@@ -21,7 +21,12 @@ export function providerNamed(name: ProviderName): LLMProvider {
         );
         break;
       case "anthropic":
-        provider = new ClaudeProvider(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL, env.ANTHROPIC_FALLBACK_MODEL || undefined);
+        provider = new ClaudeProvider(
+          env.ANTHROPIC_API_KEY,
+          env.ANTHROPIC_MODEL,
+          env.ANTHROPIC_FALLBACK_MODEL || undefined,
+          env.ANTHROPIC_WORKSPACE_ID || undefined,
+        );
         break;
       case "openai":
         provider = new OpenAIProvider(

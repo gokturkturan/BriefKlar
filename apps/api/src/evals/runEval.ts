@@ -58,7 +58,12 @@ function evalProvider(name: string): { provider: LLMProvider; model: string; fal
     case "anthropic": {
       const model = args.model ?? env.ANTHROPIC_MODEL;
       const fallbackModel = withFallback ? env.ANTHROPIC_FALLBACK_MODEL || undefined : undefined;
-      return { provider: new ClaudeProvider(env.ANTHROPIC_API_KEY, model, fallbackModel), model, fallbackModel };
+      return { provider: new ClaudeProvider(
+          env.ANTHROPIC_API_KEY,
+          model,
+          fallbackModel,
+          env.ANTHROPIC_WORKSPACE_ID || undefined,
+        ), model, fallbackModel };
     }
     case "openai": {
       const model = args.model ?? env.OPENAI_MODEL;

@@ -30,6 +30,8 @@ const EnvSchema = z
     ANTHROPIC_API_KEY: z.string().default(""),
     ANTHROPIC_MODEL: z.string().default("claude-haiku-5-5"),
     ANTHROPIC_FALLBACK_MODEL: z.string().default(""),
+    // Only for keys that are not scoped to a workspace: the workspace the requests run in
+    ANTHROPIC_WORKSPACE_ID: z.string().default(""),
 
     // OpenAI
     OPENAI_API_KEY: z.string().default(""),

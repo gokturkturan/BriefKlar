@@ -159,9 +159,15 @@ export class ClaudeProvider implements LLMProvider {
     readonly model: string,
     /** Used when the primary model is overloaded or rate limited */
     fallbackModel?: string,
+    /** Needed when the key is not scoped to a workspace */
+    workspaceId?: string,
   ) {
     // Retries are the job of the fallback runner and the BullMQ job, not of the SDK
-    this.client = new Anthropic({ apiKey, maxRetries: 0 });
+    this.client = new Anthropic({
+      apiKey,
+      maxRetries: 0,
+      defaultHeaders: workspaceId ? { "anthropic-workspace-id": workspaceId } : undefined,
+    });
     this.models = new FallbackRunner(model, fallbackModel, toLLMError);
   }
 
