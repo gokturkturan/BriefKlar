@@ -18,6 +18,8 @@ export const AGENT_NAMES = [
   "translator",
   "research",
   "chat",
+  /** The person the letter belongs to: answers a question an agent asked (F3) */
+  "user",
 ] as const;
 export const AgentNameSchema = z.enum(AGENT_NAMES);
 export type AgentName = z.infer<typeof AgentNameSchema>;
@@ -47,6 +49,15 @@ export const AgentIssueSchema = z.object({
 export type AgentIssue = z.infer<typeof AgentIssueSchema>;
 
 export const AGENT_QUESTIONS = ["RECEIVED_DATE", "FEDERAL_STATE", "REPLY_NOTES", "OTHER"] as const;
+export type AgentQuestion = (typeof AGENT_QUESTIONS)[number];
+
+/** Questions the page can show as a card; the others are answered by agents */
+export const USER_QUESTIONS = ["RECEIVED_DATE", "FEDERAL_STATE"] as const satisfies readonly AgentQuestion[];
+export type UserQuestion = (typeof USER_QUESTIONS)[number];
+
+export function isUserQuestion(value: unknown): value is UserQuestion {
+  return typeof value === "string" && (USER_QUESTIONS as readonly string[]).includes(value);
+}
 
 export const AgentPayloadSchema = z.discriminatedUnion("kind", [
   /** The orchestrator gives an agent work */
@@ -73,6 +84,15 @@ export const AgentPayloadSchema = z.discriminatedUnion("kind", [
     askUser: z.boolean(),
     question: z.enum(AGENT_QUESTIONS),
     text: z.string().min(1),
+  }),
+  /**
+   * The user's answer to a question (from "user"); `value` is the date or the federal state,
+   * null when the user does not know it. The run goes on from the agent that asked.
+   */
+  z.object({
+    kind: z.literal("answer"),
+    question: z.enum(AGENT_QUESTIONS),
+    value: z.string().nullable(),
   }),
   /** Work is passed on to another agent, e.g. from the chat to the reply writer */
   z.object({
@@ -109,15 +129,22 @@ export type AgentMessage = z.infer<typeof AgentMessageSchema>;
 export const AGENT_RUN_TRIGGERS = ["UPLOAD", "CHAT", "REPLY"] as const;
 export type AgentRunTrigger = (typeof AGENT_RUN_TRIGGERS)[number];
 
-export const AGENT_RUN_STATUSES = ["RUNNING", "DONE", "FAILED"] as const;
+/**
+ * WAITING_FOR_USER: an agent asked the user a question; the analysis is stored and shown, and the
+ * run goes on from that agent once the user answers
+ */
+export const AGENT_RUN_STATUSES = ["RUNNING", "WAITING_FOR_USER", "DONE", "FAILED"] as const;
 export type AgentRunStatus = (typeof AGENT_RUN_STATUSES)[number];
 
 /**
- * Messages per run; stops loops between agents. The longest plan of an upload needs 14: intake,
+ * Messages per run; stops loops between agents. The longest plan of an upload needs 17: intake,
  * extractor, verifier, correction, second check, deadline agent and translator, a task and a
- * reply each.
+ * reply each, and after a question to the user their answer and the deadline agent once more.
  */
-export const MAX_AGENT_HOPS = 14;
+export const MAX_AGENT_HOPS = 17;
+
+/** Questions to the user per run: one card at most, so a letter never turns into a form */
+export const MAX_USER_QUESTIONS_PER_RUN = 1;
 
 /** Model requests per run. Only free tiers are used for now, so the limit is a count, not money. */
 export const MAX_LLM_CALLS_PER_RUN = 6;

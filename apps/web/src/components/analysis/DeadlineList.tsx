@@ -1,6 +1,7 @@
-import type { DeadlineDto, DeadlineKind, LetterAnalysisDto } from "@briefklar/shared";
+import type { DeadlineDto, DeadlineKind, LetterAnalysisDto, PendingQuestionDto } from "@briefklar/shared";
 import { deadlineStepText } from "../../i18n/deadlineSteps";
 import { useI18n } from "../../i18n/I18nProvider";
+import { QuestionCard } from "../QuestionCard";
 import { ReceivedDateForm } from "../ReceivedDateForm";
 
 function DeadlineItem({ deadline: d }: { deadline: DeadlineDto }) {
@@ -35,15 +36,21 @@ function DeadlineItem({ deadline: d }: { deadline: DeadlineDto }) {
   );
 }
 
-/** Deadlines with a due date, those the API could not date, and the form for the delivery date */
+/**
+ * Deadlines with a due date, those the API could not date, and the form for the delivery date.
+ * While the agents wait for an answer (the delivery day or the federal state), their question
+ * card takes the place of the form.
+ */
 export function DeadlineList({
   documentId,
   analysis,
   receivedDate,
+  question,
 }: {
   documentId: string;
   analysis: LetterAnalysisDto;
   receivedDate: string | null;
+  question: PendingQuestionDto | null;
 }) {
   const { t } = useI18n();
   const { extraction } = analysis;
@@ -66,11 +73,15 @@ export function DeadlineList({
           </li>
         ))}
       </ul>
-      <ReceivedDateForm
-        documentId={documentId}
-        receivedDate={receivedDate}
-        letterDate={extraction.letterDate}
-      />
+      {question ? (
+        <QuestionCard documentId={documentId} question={question} letterDate={extraction.letterDate} />
+      ) : (
+        <ReceivedDateForm
+          documentId={documentId}
+          receivedDate={receivedDate}
+          letterDate={extraction.letterDate}
+        />
+      )}
     </>
   );
 }

@@ -31,6 +31,7 @@ export const ERROR_CODES = [
   "INVALID_DATE",
   "DATE_IN_FUTURE",
   "DATE_BEFORE_LETTER",
+  "NO_QUESTION",
   // Reminders
   "REMINDER_NOT_FOUND",
   "DATE_IN_PAST",

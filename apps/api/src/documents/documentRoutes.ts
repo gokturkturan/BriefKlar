@@ -4,6 +4,7 @@ import multer from "multer";
 import type { ActionItem, Deadline, Document, Extraction } from "@prisma/client";
 import { z } from "zod";
 import {
+  AnswerQuestionSchema,
   GUEST_MAX_LETTERS,
   isErrorCode,
   isTerminalStatus,
@@ -24,8 +25,7 @@ import { latestExtraction, letterOf } from "./extractions";
 import { HttpError } from "../lib/httpError";
 import { detectFileType } from "./fileType";
 import { storage } from "../lib/storage";
-import { recomputeDeadlines } from "../deadlines/recomputeDeadlines";
-import { isIsoDate, todayInGermany } from "../deadlines/calendarDate";
+import { afterReceivedDate, answerQuestion, checkReceivedDate, pendingQuestion } from "./answerQuestion";
 import { documentQueue, enqueueDocument } from "./documentQueue";
 import { isProgressEvent, subscribeToDocument } from "./documentEvents";
 import { getUserId } from "../auth/requireUser";
@@ -140,6 +140,7 @@ documentsRouter.get("/:id", async (req, res) => {
   const body: DocumentDetailDto = {
     ...toDto(doc),
     analysis: toAnalysisDto(doc.extractions[0], doc.actionItems, doc.deadlines),
+    question: doc.status === "DONE" ? await pendingQuestion(doc.id) : null,
   };
   res.json(body);
 });
@@ -155,23 +156,26 @@ documentsRouter.patch("/:id", async (req, res) => {
   if (doc.status === "PROCESSING") {
     throw new HttpError(409, "This letter is being processed. Try again in a moment.", "ALREADY_PROCESSING");
   }
-  if (receivedDate !== null) {
-    if (!isIsoDate(receivedDate)) throw new HttpError(400, "This date does not exist.", "INVALID_DATE");
-    if (receivedDate > todayInGermany()) {
-      throw new HttpError(400, "The delivery date cannot be in the future.", "DATE_IN_FUTURE");
-    }
-    const letterDate = letterOf(await latestExtraction(doc.id))?.letterDate;
-    if (letterDate && receivedDate < letterDate) {
-      throw new HttpError(400, "The letter cannot have arrived before its own date.", "DATE_BEFORE_LETTER");
-    }
-  }
+  if (receivedDate !== null) await checkReceivedDate(doc.id, receivedDate);
 
   const updated = await prisma.document.update({
     where: { id: doc.id },
     data: { receivedDate: receivedDate ? new Date(`${receivedDate}T00:00:00Z`) : null },
   });
-  if (updated.status === "DONE") await recomputeDeadlines(doc.id);
+  // Also answers the question card, if the deadline agent asked for this date
+  if (updated.status === "DONE") await afterReceivedDate(doc.id, receivedDate);
   res.json(toDto(updated));
+});
+
+// POST /api/documents/:id/question  { question: "RECEIVED_DATE", receivedDate } | { question: "FEDERAL_STATE", state }
+// The answer to the question an agent asked; null = "I don't know". The run goes on from the agent
+// that asked, without analysing the letter again.
+documentsRouter.post("/:id/question", async (req, res) => {
+  const body = AnswerQuestionSchema.safeParse(req.body);
+  if (!body.success) throw new HttpError(400, "Expected the answer to the letter's question", "INVALID_BODY");
+  const doc = await findOwnedDocument(req);
+  await answerQuestion(doc, body.data);
+  res.status(204).end();
 });
 
 // DELETE /api/documents/:id  -> removes the file, all analysis data and the queue job

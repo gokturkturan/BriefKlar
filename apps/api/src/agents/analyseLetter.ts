@@ -106,6 +106,12 @@ export async function extractAndVerify(
  * one correction round). The deadline agent computes the deadlines and stores everything, the
  * translator translates the analysis into the user's language. The analysis is written in
  * English, so English readers need no translation.
+ *
+ * The deadline agent may answer with a question for the user (the delivery day or the federal
+ * state): the analysis is stored all the same and the plan goes on; the orchestrator keeps the
+ * question and the run waits for the answer at the end. With the answer (caseFile.answer) the
+ * plan starts again at the deadline agent: the intake, the extractor and the verifier are not
+ * run again, and the translation is only made if it was not made before.
  */
 export async function analyseLetter(
   orchestrator: Orchestrator<DocumentCaseFile>,
@@ -115,20 +121,28 @@ export async function analyseLetter(
   const { language } = caseFile;
   const needsTranslation = Boolean(language && language !== ANALYSIS_LANGUAGE);
 
-  // The user asked for the full analysis of a screened-out document
-  if (!caseFile.skipIntake) {
-    await orchestrator.dispatch(agents.intake, "Classify the upload");
-    if (caseFile.intake?.scanQuality === "UNREADABLE") throw new UnreadableScanError(caseFile.documentId);
+  if (!caseFile.answer) {
+    // The user asked for the full analysis of a screened-out document
+    if (!caseFile.skipIntake) {
+      await orchestrator.dispatch(agents.intake, "Classify the upload");
+      if (caseFile.intake?.scanQuality === "UNREADABLE") throw new UnreadableScanError(caseFile.documentId);
+    }
+
+    // The intake agent wrote the analysis of a document that is not an official letter
+    const screenedOut = caseFile.intake?.isOfficialLetter === false && caseFile.extraction !== undefined;
+    if (!screenedOut) await extractAndVerify(orchestrator, agents, needsTranslation ? 1 : 0);
   }
 
-  // The intake agent wrote the analysis of a document that is not an official letter
-  const screenedOut = caseFile.intake?.isOfficialLetter === false && caseFile.extraction !== undefined;
-  if (!screenedOut) await extractAndVerify(orchestrator, agents, needsTranslation ? 1 : 0);
+  const saved = await orchestrator.dispatch(
+    agents.deadline,
+    caseFile.answer ? "Compute the deadlines again with the user's answer" : "Compute the deadlines and store the analysis",
+    { parentId: caseFile.answer ? orchestrator.lastReplyId ?? undefined : undefined },
+  );
+  if (saved.kind !== "result" && saved.kind !== "question") {
+    throw new Error(`Unexpected ${saved.kind} from the deadline agent`);
+  }
 
-  const saved = await orchestrator.dispatch(agents.deadline, "Compute the deadlines and store the analysis");
-  if (saved.kind !== "result") throw new Error(`Unexpected ${saved.kind} from the deadline agent`);
-
-  if (needsTranslation) {
+  if (needsTranslation && !orchestrator.hasRun("translator")) {
     await optional(orchestrator, agents.translator, `Translate the analysis into ${language}`);
   }
 }

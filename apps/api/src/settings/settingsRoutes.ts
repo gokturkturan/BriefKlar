@@ -7,7 +7,7 @@ import {
   type SettingsDto,
 } from "@briefklar/shared";
 import type { User } from "@prisma/client";
-import { recomputeDeadlines } from "../deadlines/recomputeDeadlines";
+import { afterStateChange } from "../documents/answerQuestion";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { getUserId } from "../auth/requireUser";
@@ -37,14 +37,9 @@ settingsRouter.patch("/", async (req, res) => {
   const before = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const user = await prisma.user.update({ where: { id: userId }, data: body.data });
 
-  // Regional holidays can move due dates, so every analyzed letter is calculated again
-  if (before.state !== user.state) {
-    const docs = await prisma.document.findMany({
-      where: { userId, status: "DONE" },
-      select: { id: true },
-    });
-    for (const doc of docs) await recomputeDeadlines(doc.id);
-  }
+  // Regional holidays can move due dates, so every analyzed letter is calculated again; a letter
+  // whose deadline agent asked for the state goes on with it
+  if (before.state !== user.state) await afterStateChange(userId, isGermanState(user.state) ? user.state : null);
 
   res.json(toDto(user));
 });

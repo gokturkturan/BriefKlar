@@ -72,9 +72,10 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
     await analyseLetter(orchestrator);
 
     await prisma.document.update({ where: { id: documentId }, data: { status: "DONE", ...scanQuality(caseFile) } });
-    await store.finishRun(runId, "DONE");
+    // The analysis is shown either way; a question of an agent waits on the page as a card
+    const question = await orchestrator.finish();
 
-    await report(job, { status: "DONE" });
+    await report(job, question ? { status: "DONE", phase: "waitingForUser", question } : { status: "DONE" });
   } catch (err) {
     const { message, code } = userError(err);
     const retryable = isRetryable(err);

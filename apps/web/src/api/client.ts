@@ -1,6 +1,7 @@
 import type {
   AccountDto,
   AnalysisTranslationDto,
+  AnswerQuestionInput,
   ChangePasswordInput,
   ApiErrorBody,
   ChatMessageDto,
@@ -76,6 +77,9 @@ export const api = {
   },
   updateDocument: (id: string, input: UpdateDocumentInput) =>
     request<DocumentDto>(`/api/documents/${id}`, json("PATCH", input)),
+  /** The answer to the letter's question card; null in it = "I don't know" */
+  answerQuestion: (id: string, input: AnswerQuestionInput) =>
+    request<void>(`/api/documents/${id}/question`, json("POST", input)),
   /** skipIntake: the full analysis, also for a document the intake did not take for an official letter */
   retryDocument: (id: string, options: { skipIntake?: boolean } = {}) =>
     request<DocumentDto>(`/api/documents/${id}/retry`, json("POST", options)),

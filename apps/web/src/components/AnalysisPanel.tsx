@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { EXPLANATION_LANGUAGES, type LetterAnalysisDto, type Urgency } from "@briefklar/shared";
+import { EXPLANATION_LANGUAGES, type LetterAnalysisDto, type PendingQuestionDto, type Urgency } from "@briefklar/shared";
 import { useI18n, type I18n } from "../i18n/I18nProvider";
 import { ActionItems } from "./analysis/ActionItems";
 import { DeadlineList } from "./analysis/DeadlineList";
@@ -39,10 +39,13 @@ export function AnalysisPanel({
   documentId,
   analysis,
   receivedDate,
+  question,
 }: {
   documentId: string;
   analysis: LetterAnalysisDto;
   receivedDate: string | null;
+  /** The question the agents asked about this letter, shown as a card with the deadlines */
+  question: PendingQuestionDto | null;
 }) {
   const i18n = useI18n();
   const { t, language, formatDate, formatMoney } = i18n;
@@ -120,7 +123,12 @@ export function AnalysisPanel({
 
       {extraction.deadlines.length > 0 && (
         <Section title={t.analysis.sections.deadlines}>
-          <DeadlineList documentId={documentId} analysis={analysis} receivedDate={receivedDate} />
+          <DeadlineList
+            documentId={documentId}
+            analysis={analysis}
+            receivedDate={receivedDate}
+            question={question}
+          />
         </Section>
       )}
 

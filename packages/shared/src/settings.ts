@@ -65,3 +65,10 @@ export const UpdateDocumentSchema = z.object({
   receivedDate: isoDate.nullable(),
 });
 export type UpdateDocumentInput = z.infer<typeof UpdateDocumentSchema>;
+
+/** The answer to the question card of a letter; null = the user does not know or skips it */
+export const AnswerQuestionSchema = z.discriminatedUnion("question", [
+  z.object({ question: z.literal("RECEIVED_DATE"), receivedDate: isoDate.nullable() }),
+  z.object({ question: z.literal("FEDERAL_STATE"), state: z.enum(GERMAN_STATES).nullable() }),
+]);
+export type AnswerQuestionInput = z.infer<typeof AnswerQuestionSchema>;

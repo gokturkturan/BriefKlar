@@ -295,6 +295,23 @@ export const de: Messages = {
     setState: "Bundesland wählen",
   },
 
+  question: {
+    receivedTitle: "Eine Frage: Wann ist dieser Brief angekommen?",
+    receivedText: (count: number) =>
+      plural("de", count, {
+        one: "Eine Frist beginnt mit dem Tag, an dem der Brief ankam. Bis Sie diesen Tag eingeben, ist ihr Datum nur geschätzt.",
+        other: "# Fristen beginnen mit dem Tag, an dem der Brief ankam. Bis Sie diesen Tag eingeben, sind ihre Daten nur geschätzt.",
+      }),
+    stateTitle: "Eine Frage: In welchem Bundesland wohnen Sie?",
+    stateText:
+      "Eine Frist fällt auf einen Feiertag, den nur einige Bundesländer haben. Mit Ihrem Bundesland ist das Datum genau. " +
+      "Das Bundesland wird in Ihrem Profil gespeichert.",
+    calculate: "Fristen berechnen",
+    dontKnow: "Weiß ich nicht",
+    chooseState: "Bundesland wählen",
+    skip: "Überspringen",
+  },
+
   replies: {
     types: {
       OBJECTION: "Widerspruch / Einspruch",
@@ -499,6 +516,7 @@ export const de: Messages = {
     INVALID_DATE: "Dieses Datum gibt es nicht.",
     DATE_IN_FUTURE: "Das Datum der Zustellung darf nicht in der Zukunft liegen.",
     DATE_BEFORE_LETTER: "Der Brief kann nicht vor seinem eigenen Datum angekommen sein.",
+    NO_QUESTION: "Diese Frage wurde schon beantwortet.",
     REMINDER_NOT_FOUND: "Diese Erinnerung gibt es nicht.",
     DATE_IN_PAST: "Das Datum liegt in der Vergangenheit.",
     AI_RATE_LIMITED: "Der KI-Dienst hat gerade zu viele Anfragen. Bitte versuchen Sie es in ein paar Minuten noch einmal.",

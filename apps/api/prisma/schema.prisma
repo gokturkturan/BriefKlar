@@ -285,6 +285,8 @@ enum AgentRunTrigger {
 
 enum AgentRunStatus {
   RUNNING
+  /// An agent asked the user a question; the run goes on from it after the answer
+  WAITING_FOR_USER
   DONE
   FAILED
 }

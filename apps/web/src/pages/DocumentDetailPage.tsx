@@ -180,7 +180,12 @@ export function DocumentDetailPage() {
                 analysingInFull={retry.isPending}
               />
             ) : doc.analysis ? (
-              <AnalysisPanel documentId={doc.id} analysis={doc.analysis} receivedDate={doc.receivedDate} />
+              <AnalysisPanel
+                documentId={doc.id}
+                analysis={doc.analysis}
+                receivedDate={doc.receivedDate}
+                question={doc.question}
+              />
             ) : (
               <div>
                 <p className="text-slate-500">{t.detail.noAnalysis}</p>

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   AgentMessageSchema,
+  MAX_AGENT_HOPS,
   type AgentIssue,
   type AgentMessage,
   type IntakeResult,
@@ -25,7 +26,9 @@ function memoryStore(llmCalls = 0) {
       messages.push(message);
     },
     llmCallCount: async () => llmCalls,
-    finishRun: async () => {},
+    finishRun: vi.fn(async () => {}),
+    waitForUser: vi.fn(async () => {}),
+    resumeRun: vi.fn(async () => true),
   };
   return { store, messages };
 }
@@ -368,5 +371,144 @@ describe("analyseLetter", () => {
 
     await expect(analyseLetter(orchestrator(store), letterAgents)).rejects.toThrow("Unexpected question");
     expect(order).toEqual(["intake"]);
+  });
+});
+
+describe("questions to the user (F3)", () => {
+  const ask = (question: "RECEIVED_DATE" | "FEDERAL_STATE" | "REPLY_NOTES"): AgentReply => ({
+    kind: "question",
+    askUser: true,
+    question,
+    text: "When did the letter arrive?",
+  });
+
+  function letterAgents(order: string[], deadlineReplies: AgentReply[]): LetterAgents {
+    const agent = (name: Agent<DocumentCaseFile>["name"]) =>
+      fakeAgent(name, async (_task, { caseFile }) => {
+        order.push(caseFile.answer ? `${name}+answer` : name);
+        if (name === "extractor") caseFile.extraction = { ...ANALYSIS };
+        if (name === "intake") caseFile.intake = { ...OFFICIAL, model: "fake" };
+        if (name === "deadline") return deadlineReplies.shift() ?? { kind: "result", wrote: ["deadlines"], summary: "" };
+        return { kind: "result", wrote: [], summary: name };
+      });
+    return {
+      intake: agent("intake"),
+      extractor: agent("extractor"),
+      verifier: agent("verifier"),
+      deadline: agent("deadline"),
+      translator: agent("translator"),
+    };
+  }
+
+  it("keeps the deadline agent's question, finishes the plan and lets the run wait", async () => {
+    const order: string[] = [];
+    const { store, messages } = memoryStore();
+    const run = orchestrator(store, caseFile("tr"));
+
+    await analyseLetter(run, letterAgents(order, [ask("RECEIVED_DATE")]));
+
+    // The analysis is stored and translated before the run waits: the page shows it at once
+    expect(order).toEqual(["intake", "extractor", "verifier", "deadline", "translator"]);
+    const question = messages.find((m) => m.payload.kind === "question")!;
+    expect(run.pendingQuestion).toEqual({ messageId: question.id, agent: "deadline", question: "RECEIVED_DATE" });
+
+    expect(await run.finish()).toBe("RECEIVED_DATE");
+    expect(store.waitForUser).toHaveBeenCalledWith(RUN_ID);
+    expect(store.finishRun).not.toHaveBeenCalled();
+  });
+
+  it("ends the run as done when no agent asked", async () => {
+    const { store } = memoryStore();
+    const run = orchestrator(store, caseFile("en"));
+    await analyseLetter(run, letterAgents([], []));
+
+    expect(await run.finish()).toBeNull();
+    expect(store.finishRun).toHaveBeenCalledWith(RUN_ID, "DONE");
+    expect(store.waitForUser).not.toHaveBeenCalled();
+  });
+
+  it("shows at most one question per run, and only questions the page can show", async () => {
+    const { store } = memoryStore();
+    const run = orchestrator(store, caseFile("en"));
+    const deadline = fakeAgent("deadline", async () => ask("RECEIVED_DATE"));
+    const writer = fakeAgent("replyWriter", async () => ask("REPLY_NOTES"));
+
+    await run.dispatch(writer, "Write");
+    expect(run.pendingQuestion).toBeNull();
+
+    await run.dispatch(deadline, "Compute");
+    const first = run.pendingQuestion;
+    await run.dispatch(fakeAgent("deadline", async () => ask("FEDERAL_STATE")), "Compute again");
+    expect(run.pendingQuestion).toBe(first);
+    expect(first?.question).toBe("RECEIVED_DATE");
+  });
+
+  it("goes on from the deadline agent after the answer, without extracting or verifying again", async () => {
+    const order: string[] = [];
+    const { store, messages } = memoryStore();
+    const file: DocumentCaseFile = {
+      ...caseFile("tr"),
+      extraction: { ...ANALYSIS },
+      answer: { question: "RECEIVED_DATE", value: "2026-09-20" },
+    };
+    const questionId = "00000000-0000-4000-8000-0000000000aa";
+    const run = new Orchestrator(RUN_ID, file, {
+      store,
+      onProgress: async () => {},
+      resume: { hops: 10, ran: ["intake", "extractor", "verifier", "translator"], userQuestions: 1 },
+    });
+
+    await run.recordAnswer(questionId, "RECEIVED_DATE", "2026-09-20");
+    // The agent asks again: the run already showed its one card, so it ends
+    await analyseLetter(run, letterAgents(order, [ask("FEDERAL_STATE")]));
+
+    expect(order).toEqual(["deadline+answer"]);
+    expect(messages.map((m) => [m.hop, m.from, m.to, m.payload.kind])).toEqual([
+      [10, "user", "orchestrator", "answer"],
+      [11, "orchestrator", "deadline", "task"],
+      [12, "deadline", "orchestrator", "question"],
+    ]);
+    // The answer answers the question, the new task answers the answer
+    expect(messages[0].parentId).toBe(questionId);
+    expect(messages[1].parentId).toBe(messages[0].id);
+    for (const message of messages) expect(AgentMessageSchema.parse(message)).toEqual(message);
+    expect(await run.finish()).toBeNull();
+    expect(store.finishRun).toHaveBeenCalledWith(RUN_ID, "DONE");
+  });
+
+  it("makes the translation after the answer when the run had not made it", async () => {
+    const order: string[] = [];
+    const { store } = memoryStore();
+    const file: DocumentCaseFile = { ...caseFile("tr"), answer: { question: "RECEIVED_DATE", value: null } };
+    const run = new Orchestrator(RUN_ID, file, {
+      store,
+      onProgress: async () => {},
+      resume: { hops: 8, ran: ["intake", "extractor", "verifier"], userQuestions: 1 },
+    });
+
+    await analyseLetter(run, letterAgents(order, []));
+    expect(order).toEqual(["deadline+answer", "translator+answer"]);
+  });
+
+  it("fits the longest plan with a question and its answer into the message limit", async () => {
+    const order: string[] = [];
+    const { store, messages } = memoryStore();
+    const verifier: AgentReply[] = [{ kind: "revise", target: "extraction", issues: [ISSUE] }];
+    const agents = letterAgents(order, [ask("RECEIVED_DATE")]);
+    agents.verifier = fakeAgent("verifier", async () => verifier.shift() ?? { kind: "result", wrote: [], summary: "" });
+    const run = orchestrator(store, caseFile("tr"));
+    await analyseLetter(run, agents);
+    expect(messages).toHaveLength(14);
+
+    const waiting = run.pendingQuestion!;
+    const file: DocumentCaseFile = { ...caseFile("tr"), answer: { question: "RECEIVED_DATE", value: "2026-09-20" } };
+    const resumed = new Orchestrator(RUN_ID, file, {
+      store,
+      onProgress: async () => {},
+      resume: { hops: messages.length, ran: ["intake", "extractor", "verifier", "translator"], userQuestions: 1 },
+    });
+    await resumed.recordAnswer(waiting.messageId, "RECEIVED_DATE", "2026-09-20");
+    await analyseLetter(resumed, agents);
+    expect(messages).toHaveLength(MAX_AGENT_HOPS);
   });
 });

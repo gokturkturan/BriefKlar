@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AgentRunStatus" ADD VALUE 'WAITING_FOR_USER';

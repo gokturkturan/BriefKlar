@@ -9,11 +9,20 @@ export interface AgentStore {
   recordMessage(message: AgentMessage): Promise<void>;
   /** Model requests made in the run so far */
   llmCallCount(runId: string): Promise<number>;
-  finishRun(runId: string, status: Exclude<AgentRunStatus, "RUNNING">, errorCode?: string): Promise<void>;
+  finishRun(runId: string, status: Extract<AgentRunStatus, "DONE" | "FAILED">, errorCode?: string): Promise<void>;
+  /** An agent asked the user a question: the run stops until the answer */
+  waitForUser(runId: string): Promise<void>;
+  /** Takes up a waiting run again; false when it is no longer waiting (answered twice, replaced) */
+  resumeRun(runId: string): Promise<boolean>;
 }
 
 export const prismaAgentStore: AgentStore = {
   async startRun(documentId, trigger) {
+    // A new analysis replaces the old one: a question of an earlier run is no longer asked
+    await prisma.agentRun.updateMany({
+      where: { documentId, status: "WAITING_FOR_USER" },
+      data: { status: "DONE", errorCode: "SUPERSEDED", finishedAt: new Date() },
+    });
     return prisma.agentRun.create({ data: { documentId, trigger }, select: { id: true } });
   },
 
@@ -46,5 +55,17 @@ export const prismaAgentStore: AgentStore = {
       where: { id: runId },
       data: { status, errorCode: errorCode ?? null, finishedAt: new Date() },
     });
+  },
+
+  async waitForUser(runId) {
+    await prisma.agentRun.update({ where: { id: runId }, data: { status: "WAITING_FOR_USER", finishedAt: null } });
+  },
+
+  async resumeRun(runId) {
+    const { count } = await prisma.agentRun.updateMany({
+      where: { id: runId, status: "WAITING_FOR_USER" },
+      data: { status: "RUNNING" },
+    });
+    return count === 1;
   },
 };

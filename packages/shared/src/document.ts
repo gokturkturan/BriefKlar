@@ -1,4 +1,4 @@
-import type { AgentName } from "./agents";
+import type { AgentName, UserQuestion } from "./agents";
 import type { DeadlineStep } from "./deadlineSteps";
 import type { ErrorCode } from "./errors";
 import type { ScanQuality } from "./intake";
@@ -72,8 +72,17 @@ export interface LetterAnalysisDto {
   deadlines: DeadlineDto[];
 }
 
+/** A question an agent asked about this letter that the user has not answered yet */
+export interface PendingQuestionDto {
+  question: UserQuestion;
+  /** Due dates that are estimated until the question is answered */
+  estimatedDeadlines: number;
+}
+
 export interface DocumentDetailDto extends DocumentDto {
   analysis: LetterAnalysisDto | null;
+  /** At most one per run; null when nothing is asked */
+  question: PendingQuestionDto | null;
 }
 
 /** Steps the background worker reports while processing a document. */
@@ -96,6 +105,12 @@ export interface ProgressEvent {
   agent?: AgentName;
   message?: string;
   code?: ErrorCode;
+  /**
+   * waitingForUser: the analysis is stored (status DONE), but an agent asked the user a question;
+   * the page shows it as a card, and the run goes on once it is answered
+   */
+  phase?: "waitingForUser";
+  question?: UserQuestion;
 }
 
 export interface HealthDto {

@@ -295,6 +295,23 @@ export const tr: Messages = {
     setState: "Eyaletinizi seçin",
   },
 
+  question: {
+    receivedTitle: "Bir soru: Bu mektup ne zaman geldi?",
+    receivedText: (count: number) =>
+      plural("tr", count, {
+        one: "Bir süre, mektubun geldiği günden itibaren başlıyor. Bu günü girene kadar tarihi yalnızca tahmini.",
+        other: "# süre, mektubun geldiği günden itibaren başlıyor. Bu günü girene kadar tarihleri yalnızca tahmini.",
+      }),
+    stateTitle: "Bir soru: Hangi eyalette yaşıyorsunuz?",
+    stateText:
+      "Bir süre, yalnızca bazı eyaletlerde olan bir resmî tatile denk geliyor. Eyaletinizle tarih kesinleşir. " +
+      "Eyalet profilinize kaydedilir.",
+    calculate: "Süreleri hesapla",
+    dontKnow: "Bilmiyorum",
+    chooseState: "Eyaletinizi seçin",
+    skip: "Geç",
+  },
+
   replies: {
     types: {
       OBJECTION: "İtiraz (Widerspruch / Einspruch)",
@@ -497,6 +514,7 @@ export const tr: Messages = {
     INVALID_DATE: "Böyle bir tarih yok.",
     DATE_IN_FUTURE: "Teslim tarihi gelecekte olamaz.",
     DATE_BEFORE_LETTER: "Mektup, üzerindeki tarihten önce gelmiş olamaz.",
+    NO_QUESTION: "Bu soru zaten yanıtlandı.",
     REMINDER_NOT_FOUND: "Bu hatırlatıcı bulunamadı.",
     DATE_IN_PAST: "Bu tarih geçmişte kalıyor.",
     AI_RATE_LIMITED: "Yapay zekâ servisine şu an çok fazla istek geliyor. Lütfen birkaç dakika sonra tekrar deneyin.",

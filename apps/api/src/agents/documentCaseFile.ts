@@ -1,5 +1,5 @@
 import type { Extraction } from "@prisma/client";
-import type { AgentIssue, ExplanationLanguage, IntakeResult, LetterExtraction } from "@briefklar/shared";
+import type { AgentIssue, ExplanationLanguage, IntakeResult, LetterExtraction, UserQuestion } from "@briefklar/shared";
 
 /** The shared state of a run that analyses an uploaded letter */
 export interface DocumentCaseFile {
@@ -24,4 +24,9 @@ export interface DocumentCaseFile {
   revisions?: number;
   /** Written by the deadline agent, which stores the analysis together with its deadlines */
   savedExtraction?: Extraction;
+  /**
+   * Set when the run goes on after the user answered the deadline agent's question: the date or
+   * the state is already stored (Document, User), the agents before the question are not run again
+   */
+  answer?: { question: UserQuestion; value: string | null };
 }

@@ -314,6 +314,23 @@ export const en = {
     setState: "Set your state",
   },
 
+  question: {
+    receivedTitle: "One question: when did this letter arrive?",
+    receivedText: (count: number) =>
+      plural("en", count, {
+        one: "One deadline starts on the day the letter arrived. Until you enter that day, its date is only estimated.",
+        other: "# deadlines start on the day the letter arrived. Until you enter that day, their dates are only estimated.",
+      }),
+    stateTitle: "One question: which federal state do you live in?",
+    stateText:
+      "A deadline falls on a public holiday that only some federal states have. With your state its date is exact. " +
+      "The state is saved in your profile.",
+    calculate: "Calculate the deadlines",
+    dontKnow: "I don't know",
+    chooseState: "Choose your state",
+    skip: "Skip",
+  },
+
   replies: {
     types: {
       OBJECTION: "Objection (Widerspruch / Einspruch)",
@@ -514,6 +531,7 @@ export const en = {
     INVALID_DATE: "This date does not exist.",
     DATE_IN_FUTURE: "The delivery date cannot be in the future.",
     DATE_BEFORE_LETTER: "The letter cannot have arrived before its own date.",
+    NO_QUESTION: "This question has already been answered.",
     REMINDER_NOT_FOUND: "This reminder was not found.",
     DATE_IN_PAST: "The date is in the past.",
     AI_RATE_LIMITED: "The AI service has too many requests right now. Please try again in a few minutes.",
