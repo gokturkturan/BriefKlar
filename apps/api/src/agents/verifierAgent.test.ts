@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { LetterExtraction } from "@briefklar/shared";
+import { revisionRequest } from "../documents/extractLetter";
 import { markUncertain, topLevelField } from "../documents/verifyExtraction";
 import { LLMError } from "../llm/errors";
 import type { JsonGenerationRequest, LLMProvider } from "../llm/LLMProvider";
@@ -110,5 +111,16 @@ describe("markUncertain", () => {
     expect(markUncertain(ANALYSIS, issues).uncertainFields).toEqual(["deadlines", "amounts", "letterDate"]);
     expect(topLevelField("deadlines[1].explicitDate")).toBe("deadlines");
     expect(topLevelField("sender.type")).toBe("sender");
+  });
+});
+
+describe("revisionRequest", () => {
+  it("shows the earlier analysis and each issue with its evidence", () => {
+    const text = revisionRequest({
+      previous: ANALYSIS,
+      issues: [{ field: "amounts[0].value", problem: "The letter says 1240", evidence: "1.240,00 €" }],
+    });
+    expect(text).toContain('"value": 124');
+    expect(text).toContain('1. amounts[0].value: The letter says 1240\n   Letter: "1.240,00 €"');
   });
 });

@@ -40,6 +40,7 @@ export interface OrchestratorOptions {
  */
 export class Orchestrator<C> {
   private hop = 0;
+  private lastReply: string | null = null;
   private readonly maxHops: number;
   private readonly maxLlmCalls: number;
 
@@ -57,6 +58,16 @@ export class Orchestrator<C> {
     return this.hop;
   }
 
+  /** Id of the latest reply, so a follow-up task (e.g. a correction) can answer it */
+  get lastReplyId(): string | null {
+    return this.lastReply;
+  }
+
+  /** Model requests the run may still make */
+  async llmCallsLeft(): Promise<number> {
+    return Math.max(0, this.maxLlmCalls - (await this.options.store.llmCallCount(this.runId)));
+  }
+
   /**
    * Gives `agent` a task and returns its reply. A failure of the agent is stored as an error
    * message and thrown on unchanged, so the caller (the BullMQ job) decides about retries.
@@ -70,9 +81,11 @@ export class Orchestrator<C> {
     if (this.hop + 2 > this.maxHops) {
       throw new AgentLimitError(`Run ${this.runId} would exceed ${this.maxHops} messages`, "hops");
     }
-    const calls = await this.options.store.llmCallCount(this.runId);
-    if (calls >= this.maxLlmCalls) {
-      throw new AgentLimitError(`Run ${this.runId} already made ${calls} model requests`, "llmCalls");
+    if (agent.usesModel !== false) {
+      const calls = await this.options.store.llmCallCount(this.runId);
+      if (calls >= this.maxLlmCalls) {
+        throw new AgentLimitError(`Run ${this.runId} already made ${calls} model requests`, "llmCalls");
+      }
     }
 
     const task: AgentTask = { kind: "task", instruction, notes: options.notes ?? [] };
@@ -94,7 +107,7 @@ export class Orchestrator<C> {
       throw err;
     }
 
-    await this.record(agent.name, "orchestrator", reply, taskMessage.id);
+    this.lastReply = (await this.record(agent.name, "orchestrator", reply, taskMessage.id)).id;
     return reply;
   }
 

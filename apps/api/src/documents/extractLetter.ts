@@ -1,4 +1,4 @@
-import { type LetterExtraction, LetterExtractionSchema } from "@briefklar/shared";
+import { type AgentIssue, type LetterExtraction, LetterExtractionSchema } from "@briefklar/shared";
 import type { LLMProvider } from "../llm/LLMProvider";
 import { generateStructured, type StructuredResult } from "../llm/generateStructured";
 import { llm } from "../llm";
@@ -49,6 +49,26 @@ Return JSON that follows the given schema. Rules:
 10. If the file is not an official letter, set "isOfficialLetter" to false and explain briefly in "summary".
 `.trim();
 
+/** A correction round: the earlier analysis and what the verifier found wrong with it */
+export interface ExtractionRevision {
+  previous: LetterExtraction;
+  issues: AgentIssue[];
+}
+
+/** The request of a correction round, after the letter */
+export function revisionRequest({ previous, issues }: ExtractionRevision): string {
+  const list = issues
+    .map((issue, i) => `${i + 1}. ${issue.field}: ${issue.problem}\n   Letter: "${issue.evidence}"`)
+    .join("\n");
+  return (
+    `Your earlier analysis of this letter:\n${JSON.stringify(previous, null, 2)}\n\n` +
+    `A reviewer compared it with the letter and reported these problems:\n${list}\n\n` +
+    `Check each problem against the letter. Fix the ones the letter confirms; keep a value the letter ` +
+    `supports, even if the reviewer disputes it. If a field stays unclear, add it to uncertainFields. ` +
+    `Return the complete corrected analysis.`
+  );
+}
+
 export async function extractLetter(params: {
   file: Buffer;
   mimeType: string;
@@ -56,6 +76,8 @@ export async function extractLetter(params: {
   /** The evaluation runs one model at a time, without the fallback */
   provider?: LLMProvider;
   purpose?: string;
+  /** Set for the correction round after the verifier found errors */
+  revision?: ExtractionRevision;
 }): Promise<StructuredResult<LetterExtraction>> {
   return generateStructured({
     provider: params.provider ?? llm,
@@ -63,9 +85,9 @@ export async function extractLetter(params: {
     system: EXTRACT_LETTER_SYSTEM_PROMPT,
     input: [
       { type: "file", mimeType: params.mimeType, data: params.file },
-      { type: "text", text: "Analyze this letter." },
+      { type: "text", text: params.revision ? revisionRequest(params.revision) : "Analyze this letter." },
     ],
-    purpose: params.purpose ?? "extract-letter",
+    purpose: params.purpose ?? (params.revision ? "revise-letter" : "extract-letter"),
     promptVersion: EXTRACT_LETTER_PROMPT_VERSION,
     documentId: params.documentId,
   });

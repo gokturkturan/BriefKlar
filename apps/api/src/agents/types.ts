@@ -20,5 +20,7 @@ export interface AgentContext<C> {
  */
 export interface Agent<C> {
   readonly name: AgentName;
+  /** false for agents without model requests (deadline engine): they run even at the request limit */
+  readonly usesModel?: boolean;
   handle(task: AgentTask, context: AgentContext<C>): Promise<AgentReply>;
 }

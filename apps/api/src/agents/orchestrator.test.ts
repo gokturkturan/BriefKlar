@@ -1,12 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import { AgentMessageSchema, type AgentMessage, type ProgressEvent } from "@briefklar/shared";
+import {
+  AgentMessageSchema,
+  type AgentIssue,
+  type AgentMessage,
+  type LetterExtraction,
+  type ProgressEvent,
+} from "@briefklar/shared";
 import { LLMError } from "../llm/errors";
 import { currentAgentScope } from "./agentScope";
 import type { AgentStore } from "./agentStore";
 import { analyseLetter, type LetterAgents } from "./analyseLetter";
 import type { DocumentCaseFile } from "./documentCaseFile";
 import { AgentLimitError, Orchestrator } from "./orchestrator";
-import type { Agent, AgentReply } from "./types";
+import type { Agent, AgentReply, AgentTask } from "./types";
 
 vi.mock("../lib/prisma", () => ({ prisma: {} }));
 
@@ -33,7 +39,7 @@ function fakeAgent(
   name: Agent<DocumentCaseFile>["name"],
   handle: Agent<DocumentCaseFile>["handle"] = async () => ({ kind: "result", wrote: [], summary: name }),
 ): Agent<DocumentCaseFile> {
-  return { name, handle: vi.fn(handle) };
+  return { name, usesModel: name !== "deadline", handle: vi.fn(handle) };
 }
 
 function orchestrator(store: AgentStore, file = caseFile(), onProgress = vi.fn(async (_e: ProgressEvent) => {})) {
@@ -115,30 +121,76 @@ describe("Orchestrator", () => {
     expect(agent.handle).not.toHaveBeenCalled();
     expect(messages).toEqual([]);
   });
+
+  it("runs an agent without model requests at the request limit", async () => {
+    const { store } = memoryStore(6);
+    const agent = fakeAgent("deadline");
+
+    await orchestrator(store).dispatch(agent, "Compute");
+    expect(agent.handle).toHaveBeenCalledTimes(1);
+  });
 });
 
+const ANALYSIS: LetterExtraction = {
+  isOfficialLetter: true,
+  letterLanguage: "de",
+  summary: "The tax office wants money.",
+  sender: { name: "Finanzamt", type: "FINANZAMT" },
+  letterType: "BESCHEID",
+  letterDate: "2026-09-14",
+  subject: "Einkommensteuer",
+  references: [],
+  amounts: [{ value: 124, currency: "EUR", purpose: "tax" }],
+  deadlines: [],
+  requiredActions: [],
+  requiredDocuments: [],
+  objectionPossible: true,
+  urgency: "HIGH",
+  uncertainFields: [],
+};
+
+const ISSUE: AgentIssue = {
+  field: "amounts[0].value",
+  problem: "The letter says 1,240.00 EUR",
+  evidence: "Bitte zahlen Sie 1.240,00 €",
+};
+
 describe("analyseLetter", () => {
-  function agents(order: string[]): LetterAgents {
+  /** Fake agents that note their order; the extractor writes an analysis, each one uses `calls` model requests */
+  function agents(order: string[], verdicts: AgentReply[] = [], calls = { used: 0 }): LetterAgents {
     const track =
-      (name: Agent<DocumentCaseFile>["name"]) =>
-      async (): Promise<AgentReply> => {
-        order.push(name);
+      (name: Agent<DocumentCaseFile>["name"], requests: number) =>
+      async (task: AgentTask, { caseFile }: { caseFile: DocumentCaseFile }): Promise<AgentReply> => {
+        order.push(task.notes.length > 0 ? `${name}+notes` : name);
+        calls.used += requests;
+        if (name === "extractor") caseFile.extraction = { ...ANALYSIS };
+        if (name === "verifier") return verdicts.shift() ?? { kind: "result", wrote: ["verdict"], summary: "ok" };
         return { kind: "result", wrote: [], summary: "" };
       };
     return {
-      extractor: fakeAgent("extractor", track("extractor")),
-      deadline: fakeAgent("deadline", track("deadline")),
-      translator: fakeAgent("translator", track("translator")),
+      extractor: fakeAgent("extractor", track("extractor", 1)),
+      verifier: fakeAgent("verifier", track("verifier", 1)),
+      deadline: fakeAgent("deadline", track("deadline", 0)),
+      translator: fakeAgent("translator", track("translator", 1)),
     };
   }
 
-  it("extracts, stores with deadlines, then translates", async () => {
+  /** A store that counts the fake agents' model requests */
+  function countingStore(calls: { used: number }) {
+    const memory = memoryStore();
+    memory.store.llmCallCount = async () => calls.used;
+    return memory;
+  }
+
+  const revise: AgentReply = { kind: "revise", target: "extraction", issues: [ISSUE] };
+
+  it("extracts, verifies, stores with deadlines, then translates", async () => {
     const order: string[] = [];
     const { store, messages } = memoryStore();
     await analyseLetter(orchestrator(store, caseFile("tr")), agents(order));
 
-    expect(order).toEqual(["extractor", "deadline", "translator"]);
-    expect(messages).toHaveLength(6);
+    expect(order).toEqual(["extractor", "verifier", "deadline", "translator"]);
+    expect(messages).toHaveLength(8);
   });
 
   it("skips the translator for English readers and unknown languages", async () => {
@@ -146,8 +198,75 @@ describe("analyseLetter", () => {
       const order: string[] = [];
       const { store } = memoryStore();
       await analyseLetter(orchestrator(store, caseFile(language)), agents(order));
-      expect(order).toEqual(["extractor", "deadline"]);
+      expect(order).toEqual(["extractor", "verifier", "deadline"]);
     }
+  });
+
+  it("passes the verifier's issues to the extractor once and checks the correction", async () => {
+    const order: string[] = [];
+    const { store, messages } = memoryStore();
+    const file = caseFile("tr");
+    const letterAgents = agents(order, [revise]);
+    await analyseLetter(orchestrator(store, file), letterAgents);
+
+    expect(order).toEqual(["extractor", "verifier", "extractor+notes", "verifier", "deadline", "translator"]);
+    const reviseMessage = messages.find((m) => m.payload.kind === "revise")!;
+    const correction = messages[reviseMessage.hop + 1];
+    expect(correction).toMatchObject({ from: "orchestrator", to: "extractor", parentId: reviseMessage.id });
+    expect(correction.payload).toMatchObject({ kind: "task", notes: [ISSUE] });
+    expect(file.extraction?.uncertainFields).toEqual([]);
+    // The longest plan fits the message limit
+    expect(messages).toHaveLength(12);
+    for (const message of messages) expect(AgentMessageSchema.parse(message)).toEqual(message);
+  });
+
+  it("marks the fields as uncertain that the verifier still disputes after the correction", async () => {
+    const order: string[] = [];
+    const { store } = memoryStore();
+    const file = caseFile("en");
+    await analyseLetter(orchestrator(store, file), agents(order, [revise, revise]));
+
+    expect(order).toEqual(["extractor", "verifier", "extractor+notes", "verifier", "deadline"]);
+    expect(file.extraction?.uncertainFields).toEqual(["amounts"]);
+  });
+
+  it("leaves the correction out when it would take the translation's model requests", async () => {
+    const order: string[] = [];
+    // The extraction needed a repair: 2 requests, the check 1, so 3 of 6 are left
+    const calls = { used: 1 };
+    const { store } = countingStore(calls);
+    const file = caseFile("tr");
+    const run = new Orchestrator(RUN_ID, file, { store, onProgress: async () => {}, maxLlmCalls: 4 });
+    await analyseLetter(run, agents(order, [revise], calls));
+
+    expect(order).toEqual(["extractor", "verifier", "deadline", "translator"]);
+    expect(file.extraction?.uncertainFields).toEqual(["amounts"]);
+  });
+
+  it("keeps the first analysis, marked as uncertain, when the correction fails", async () => {
+    const order: string[] = [];
+    const { store } = memoryStore();
+    const file = caseFile("en");
+    const letterAgents = agents(order, [revise]);
+    const extract = letterAgents.extractor.handle;
+    letterAgents.extractor = fakeAgent("extractor", async (task, context) => {
+      if (task.notes.length > 0) throw new LLMError("overloaded", true, "Try again", "AI_OVERLOADED", 503, "big");
+      return extract(task, context);
+    });
+    await analyseLetter(orchestrator(store, file), letterAgents);
+
+    expect(order).toEqual(["extractor", "verifier", "deadline"]);
+    expect(file.extraction?.uncertainFields).toEqual(["amounts"]);
+  });
+
+  it("stores the analysis without a check when the run has no model requests left for it", async () => {
+    const order: string[] = [];
+    const calls = { used: 0 };
+    const { store } = countingStore(calls);
+    const run = new Orchestrator(RUN_ID, caseFile("en"), { store, onProgress: async () => {}, maxLlmCalls: 1 });
+    await analyseLetter(run, agents(order, [], calls));
+
+    expect(order).toEqual(["extractor", "deadline"]);
   });
 
   it("does not store anything when the extractor does not return an analysis", async () => {

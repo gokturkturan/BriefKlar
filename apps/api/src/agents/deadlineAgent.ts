@@ -13,6 +13,7 @@ import type { Agent } from "./types";
  */
 export const deadlineAgent: Agent<DocumentCaseFile> = {
   name: "deadline",
+  usesModel: false,
   async handle(_task, { caseFile, report }) {
     const { documentId, extraction, model, promptVersion } = caseFile;
     if (!extraction || !model || !promptVersion) {
