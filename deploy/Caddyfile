@@ -3,12 +3,6 @@
 {$DOMAIN} {
 	encode zstd gzip
 
-	# There are no user accounts yet: every visitor would share one demo user's letters.
-	# Until real authentication exists, the whole site sits behind one password.
-	basic_auth {
-		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
-	}
-
 	handle /api/* {
 		reverse_proxy api:4000 {
 			# Send Server-Sent Events (progress, explanations, chat) chunk by chunk

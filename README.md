@@ -243,15 +243,15 @@ One host with Docker runs everything: PostgreSQL, Redis, a one-off migration job
 Caddy, which serves the web app, proxies `/api` (with SSE streaming), and gets an HTTPS certificate.
 
 ```bash
-cp deploy/.env.production.example deploy/.env.production   # domain, password hash, database password, API key
+cp deploy/.env.production.example deploy/.env.production   # domain, database password, API key
 docker compose -f docker-compose.prod.yml --env-file deploy/.env.production up -d --build
 docker compose -f docker-compose.prod.yml --env-file deploy/.env.production run --rm api npm run knowledge:seed
 ```
 
 - The API and the worker share one image (`apps/api/Dockerfile`); migrations run with
   `prisma migrate deploy` before either starts.
-- There are no user accounts yet, so every visitor would share the demo user's letters. Until real
-  authentication exists, Caddy protects the whole site with one password (`basic_auth`).
+- Visitors sign up with their own account (see [Accounts](#accounts)); the session cookie is marked
+  `Secure`, so production needs HTTPS.
 - Uploaded letters live in a Docker volume; the database and Redis are not reachable from outside.
 - GitHub Actions typechecks, tests, builds the web app and both images on every push.
 
