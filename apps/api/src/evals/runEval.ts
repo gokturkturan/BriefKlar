@@ -6,7 +6,6 @@ import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm/errors";
 import { extractLetter } from "../documents/extractLetter";
 import { ClaudeProvider } from "../llm/ClaudeProvider";
-import { GeminiProvider } from "../llm/GeminiProvider";
 import type { LLMProvider } from "../llm/LLMProvider";
 import { OpenAIProvider } from "../llm/OpenAIProvider";
 import { LLMValidationError } from "../llm/generateStructured";
@@ -18,8 +17,7 @@ import { scoreExtraction, summarize, type CaseResult, type EvalSummary } from ".
 /**
  * Runs the letter analysis over the evaluation set and scores it:
  *   npm run eval -w @briefklar/api
- *   npm run eval -w @briefklar/api -- --model gemini-flash-lite-latest
- *   npm run eval -w @briefklar/api -- --provider anthropic
+ *   npm run eval -w @briefklar/api -- --model claude-sonnet-5-5
  *   npm run eval -w @briefklar/api -- --provider openai --model gpt-6-luna
  *   npm run eval -w @briefklar/api -- --with-fallback --only 01,09
  *
@@ -50,11 +48,6 @@ const { values: args } = parseArgs({
 function evalProvider(name: string): { provider: LLMProvider; model: string; fallbackModel?: string } {
   const withFallback = args["with-fallback"];
   switch (name) {
-    case "gemini": {
-      const model = args.model ?? env.GEMINI_MODEL;
-      const fallbackModel = withFallback ? env.GEMINI_FALLBACK_MODEL || undefined : undefined;
-      return { provider: new GeminiProvider(env.GEMINI_API_KEY, model, fallbackModel), model, fallbackModel };
-    }
     case "anthropic": {
       const model = args.model ?? env.ANTHROPIC_MODEL;
       const fallbackModel = withFallback ? env.ANTHROPIC_FALLBACK_MODEL || undefined : undefined;
@@ -71,7 +64,7 @@ function evalProvider(name: string): { provider: LLMProvider; model: string; fal
       return { provider: new OpenAIProvider(env.OPENAI_API_KEY, model, fallbackModel), model, fallbackModel };
     }
     default:
-      throw new Error(`Unknown provider "${name}": use gemini, anthropic or openai`);
+      throw new Error(`Unknown provider "${name}": use anthropic or openai`);
   }
 }
 

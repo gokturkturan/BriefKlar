@@ -2,7 +2,7 @@ import type { FailedAttempt } from "./fallback";
 
 /**
  * Provider-agnostic interface. The rest of the app never imports a vendor SDK directly,
- * so switching from Gemini to Claude (or anything else) means adding one class.
+ * so adding another vendor means adding one class.
  */
 
 export type LLMInputPart =
@@ -51,19 +51,14 @@ export interface TextGenerationResult extends AnswerMeta {
 
 /** One piece of a chat turn: text, a tool call by the model, or the result the app sends back */
 export type ChatPart =
-  | {
-      type: "text";
-      text: string;
-      /** Provider data that must be sent back unchanged (Gemini thought signatures) */
-      signature?: string;
-    }
-  | { type: "toolCall"; id?: string; name: string; args: Record<string, unknown>; signature?: string }
+  | { type: "text"; text: string }
+  | { type: "toolCall"; id?: string; name: string; args: Record<string, unknown> }
   | { type: "toolResult"; id?: string; name: string; result: Record<string, unknown> };
 
 export interface ChatTurn {
   role: "user" | "model";
   parts: ChatPart[];
-  /** Model that wrote a model turn; signatures are only valid for the same model */
+  /** Model that wrote a model turn; `raw` is only sent back to the same model */
   model?: string;
   /**
    * The model turn exactly as the provider returned it (e.g. Claude's content blocks with its

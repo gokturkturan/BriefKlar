@@ -1,14 +1,6 @@
 /**
- * Prices of the models in US dollars per million tokens. Gemini: paid tier, standard
- * processing, prompts up to 200k tokens, from https://ai.google.dev/gemini-api/docs/pricing.
- * Claude and OpenAI: standard rates, see the notes in the table.
- *
- * Development runs on the free tier, so these are the costs the same calls would have on the
- * paid tier, which an app for users in the EU has to use. Thinking tokens are billed as output;
- * the provider already counts them in outputTokens.
- *
- * The "-latest" aliases point to whichever model Google released last. Their prices here are
- * those of the model behind the alias when this table was written: update them when it moves.
+ * Prices of the models in US dollars per million tokens, standard rates (see the notes in the
+ * table). Thinking tokens are billed as output; the provider already counts them in outputTokens.
  */
 export interface ModelPrice {
   inputPerMillion: number;
@@ -18,14 +10,6 @@ export interface ModelPrice {
 export const PRICES_CHECKED_ON = "2026-12-12";
 
 const MODEL_PRICES: Record<string, ModelPrice> = {
-  "gemini-2.5-pro": { inputPerMillion: 1.25, outputPerMillion: 10 },
-  "gemini-2.5-flash": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
-  "gemini-2.5-flash-lite": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
-  "gemini-3-pro": { inputPerMillion: 2, outputPerMillion: 12 },
-  "gemini-3-flash": { inputPerMillion: 0.5, outputPerMillion: 3 },
-  "gemini-flash-latest": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
-  "gemini-flash-lite-latest": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
-  "gemini-embedding-001": { inputPerMillion: 0.15, outputPerMillion: 0 },
   // Anthropic, standard rates (Claude Haiku 5.5: prompts up to 100K tokens; a letter is far below)
   "claude-haiku-5-5": { inputPerMillion: 0.1, outputPerMillion: 0.5 },
   "claude-sonnet-5-5": { inputPerMillion: 2, outputPerMillion: 10 },
@@ -35,8 +19,8 @@ const MODEL_PRICES: Record<string, ModelPrice> = {
 };
 
 /**
- * The price of a model. Versioned names ("gemini-2.5-flash-preview-09-2025",
- * "models/gemini-2.5-flash") use the price of the longest known name they start with.
+ * The price of a model. Versioned names ("claude-haiku-5-5-20261001", "models/gpt-6-luna")
+ * use the price of the longest known name they start with.
  */
 export function priceOf(model: string): ModelPrice | undefined {
   const name = model.replace(/^models\//, "");

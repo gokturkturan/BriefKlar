@@ -1,6 +1,5 @@
 import { env, type ProviderName } from "../config/env";
 import { ClaudeProvider } from "./ClaudeProvider";
-import { GeminiProvider } from "./GeminiProvider";
 import type { LLMProvider } from "./LLMProvider";
 import { OpenAIProvider } from "./OpenAIProvider";
 import { ProviderFallback } from "./ProviderFallback";
@@ -12,14 +11,6 @@ export function providerNamed(name: ProviderName): LLMProvider {
   let provider = providers.get(name);
   if (!provider) {
     switch (name) {
-      case "gemini":
-        provider = new GeminiProvider(
-          env.GEMINI_API_KEY,
-          env.GEMINI_MODEL,
-          env.GEMINI_FALLBACK_MODEL || undefined,
-          env.GEMINI_EMBEDDING_MODEL,
-        );
-        break;
       case "anthropic":
         provider = new ClaudeProvider(
           env.ANTHROPIC_API_KEY,

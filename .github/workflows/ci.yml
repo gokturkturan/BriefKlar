@@ -12,7 +12,8 @@ jobs:
       # Read by the API's config at import time; the tests never connect or call the model
       DATABASE_URL: postgresql://briefklar:briefklar@localhost:5432/briefklar
       REDIS_URL: redis://localhost:6379
-      GEMINI_API_KEY: not-used-in-tests
+      ANTHROPIC_API_KEY: not-used-in-tests
+      OPENAI_API_KEY: not-used-in-tests
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -1,6 +1,6 @@
 /**
- * Scales a vector to length 1. Gemini only normalizes its full-size (3072) embeddings;
- * shorter ones must be normalized by the caller so that distances can be compared.
+ * Scales a vector to length 1, so that distances between vectors can be compared whatever the
+ * embedding model returns (shortened embeddings are not always normalized).
  */
 export function normalize(vector: number[]): number[] {
   const length = Math.hypot(...vector);

@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { z } from "zod";
 
-const PROVIDERS = ["gemini", "anthropic", "openai"] as const;
+const PROVIDERS = ["anthropic", "openai"] as const;
 export type ProviderName = (typeof PROVIDERS)[number];
 
 const EnvSchema = z
@@ -15,16 +15,13 @@ const EnvSchema = z
 
     // Which provider answers, which one takes over when it is down, and which one embeds the
     // knowledge base. Changing the embedding provider requires running knowledge:seed again.
-    LLM_PROVIDER: z.enum(PROVIDERS).default("gemini"),
-    LLM_FALLBACK_PROVIDER: z.union([z.enum(PROVIDERS), z.literal("")]).default(""),
-    LLM_EMBEDDING_PROVIDER: z.enum(PROVIDERS).optional(),
-
-    // Gemini. Model names change often, so the model is configuration, not code
-    GEMINI_API_KEY: z.string().default(""),
-    GEMINI_MODEL: z.string().default("gemini-flash-latest"),
-    // Optional: used when the main model is overloaded (503) or rate limited (429). Empty = disabled.
-    GEMINI_FALLBACK_MODEL: z.string().default("gemini-flash-lite-latest"),
-    GEMINI_EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
+    // Model names change often, so models are configuration, not code.
+    LLM_PROVIDER: z.enum(PROVIDERS).default("anthropic"),
+    LLM_FALLBACK_PROVIDER: z.union([z.enum(PROVIDERS), z.literal("")]).default("openai"),
+    LLM_EMBEDDING_PROVIDER: z.union([z.enum(PROVIDERS), z.literal("")]).default(""),
+    // The provider of the verifier agent, which checks the analysis against the letter. Another
+    // model than the extractor's, so the same misreading is not confirmed. Empty = no verification.
+    LLM_VERIFIER_PROVIDER: z.union([z.enum(PROVIDERS), z.literal("")]).default("openai"),
 
     // Claude (Anthropic). Anthropic has no embedding model.
     ANTHROPIC_API_KEY: z.string().default(""),
@@ -41,16 +38,20 @@ const EnvSchema = z
   })
   .transform((env) => ({
     ...env,
-    // Without a choice, the main provider embeds; Anthropic cannot, so OpenAI does it then
-    LLM_EMBEDDING_PROVIDER:
-      env.LLM_EMBEDDING_PROVIDER ?? (env.LLM_PROVIDER === "anthropic" ? "openai" : env.LLM_PROVIDER),
+    // Anthropic has no embedding model, so OpenAI embeds unless configured otherwise
+    LLM_EMBEDDING_PROVIDER: env.LLM_EMBEDDING_PROVIDER || "openai",
   }))
   .superRefine((env, ctx) => {
     if (env.LLM_EMBEDDING_PROVIDER === "anthropic") {
       ctx.addIssue({ code: "custom", path: ["LLM_EMBEDDING_PROVIDER"], message: "Anthropic has no embedding model" });
     }
-    const used = new Set([env.LLM_PROVIDER, env.LLM_FALLBACK_PROVIDER, env.LLM_EMBEDDING_PROVIDER]);
-    const keys = { gemini: "GEMINI_API_KEY", anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY" } as const;
+    const used = new Set([
+      env.LLM_PROVIDER,
+      env.LLM_FALLBACK_PROVIDER,
+      env.LLM_EMBEDDING_PROVIDER,
+      env.LLM_VERIFIER_PROVIDER,
+    ]);
+    const keys = { anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY" } as const;
     for (const provider of PROVIDERS) {
       if (used.has(provider) && !env[keys[provider]]) {
         ctx.addIssue({ code: "custom", path: [keys[provider]], message: `Needed for the ${provider} provider` });

@@ -5,12 +5,12 @@ import type { ChatTurn, JsonGenerationResult, LLMProvider } from "./LLMProvider"
 import { partsOf as openAIParts, toOpenAIMessages, toOpenAIPart } from "./OpenAIProvider";
 import { ProviderFallback } from "./ProviderFallback";
 
-/** A chat with one tool round, written by a model without tool call ids (e.g. Gemini) */
+/** A chat with one tool round, written by a model without tool call ids (e.g. an older model) */
 const chat: ChatTurn[] = [
   { role: "user", parts: [{ type: "text", text: "When is it due?" }] },
   {
     role: "model",
-    model: "gemini-flash-latest",
+    model: "some-other-model",
     parts: [
       { type: "text", text: "Let me check." },
       { type: "toolCall", name: "check_date", args: { date: "2026-12-24" } },

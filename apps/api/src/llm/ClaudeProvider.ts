@@ -240,7 +240,7 @@ export class ClaudeProvider implements LLMProvider {
 
   async embed(_request: EmbeddingRequest): Promise<EmbeddingResult> {
     throw new LLMError(
-      "Anthropic has no embedding model: set LLM_EMBEDDING_PROVIDER to openai or gemini",
+      "Anthropic has no embedding model: set LLM_EMBEDDING_PROVIDER to openai",
       false,
       userErrorForStatus(undefined).message,
       "AI_FAILED",
@@ -249,7 +249,7 @@ export class ClaudeProvider implements LLMProvider {
     );
   }
 
-  /** Same rule as the Gemini provider: no switch of model after text reached the user */
+  /** No switch of model after text reached the user */
   private async runStreaming<T extends Usage>(
     onDelta: (text: string) => void,
     answer: (model: string, emit: (text: string) => void) => Promise<T>,

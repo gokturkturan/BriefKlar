@@ -8,7 +8,7 @@ import { KNOWLEDGE_ENTRIES, type KnowledgeSeed } from "./entries";
 /** Version of the embedded text format (title + content); changing it re-embeds every entry */
 export const KNOWLEDGE_EMBEDDING_VERSION = "knowledge-v1";
 
-/** Gemini accepts up to 100 texts per embedding request */
+/** Texts per embedding request; small batches keep a failed request cheap to repeat */
 const EMBED_BATCH_SIZE = 20;
 
 export interface KnowledgeHit {
