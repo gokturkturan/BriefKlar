@@ -3,9 +3,27 @@
 > AI assistant that explains German official letters (*Behördenbriefe*) in plain language:
 > what the letter is about, what you need to do and by when.
 
-**Status:** Weeks 1–6 done: analysis, deadline engine, explanations, reply drafts, six languages, knowledge base,
-chat with tool calling, reminders, an evaluation set, a cost dashboard, GDPR features, a Docker deployment
-and user accounts.
+## Features
+
+- **Letter analysis with structured output:** upload a PDF or photo; the model reads it directly and
+  answers with JSON validated against a Zod schema (sender, letter type, summary, tasks, amounts,
+  reference numbers, deadline wording), with one repair round if the answer is invalid.
+- **Deterministic deadline engine:** due dates are calculated by tested code, never by the model:
+  delivery rules (§ 122 AO, § 41 VwVfG, § 37 SGB X), §§ 187, 188, 193 BGB, and the public holidays
+  of every federal state. Each date comes with the steps that led to it.
+- **Plain-language explanations** streamed over SSE in six languages: English, simple German,
+  Turkish, Arabic, Ukrainian and Russian.
+- **Reply drafts in German:** objection, extension request, cover letter, instalment plan or
+  question, with a translation. BriefKlar only drafts; the user checks, signs and sends the letter.
+- **Chat with tool calling and RAG:** questions about a letter are answered with tools for the
+  analysis, the deadline engine, the holiday calendar, reminders and a pgvector knowledge base with
+  official sources.
+- **Reminders** for every deadline, plus the user's own.
+- **Evaluation set** of 11 fictional letters that scores schema conformance, fields and deadlines.
+- **Usage and cost dashboard** built from a log of every model call.
+- **GDPR:** data export, account deletion and automatic deletion after a chosen period.
+- **Accounts and a guest mode:** visitors can try one letter without an account.
+- **Landing page and a fully translated site**, Arabic right to left.
 
 ## Tech stack
 
@@ -22,6 +40,8 @@ and user accounts.
 | Deployment | Docker images, Docker Compose, Caddy (HTTPS, reverse proxy), GitHub Actions CI |
 
 ## Architecture
+
+[ARCHITECTURE.md](ARCHITECTURE.md) maps the folders and the files a request passes through.
 
 ```
 React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
@@ -107,8 +127,9 @@ instalment plan or question) and can add notes in their own language.
 
 ### The site in the reader's language
 
-The language chosen in the settings (or in the header) applies to the whole site: English,
-simple German, Turkish, Arabic (right to left), Ukrainian or Russian.
+The language picked in the globe menu of the header (or in the settings) applies to the whole site:
+English, simple German, Turkish, Arabic (right to left), Ukrainian or Russian. A first-time visitor
+gets the browser's language when it is one of these; the choice is kept in the browser.
 
 - The web app has typed messages per language in `apps/web/src/i18n`. Every language is typed
   against the English messages, so a missing text fails the build. Dates, amounts and plurals
@@ -221,6 +242,13 @@ what the same use would cost on the paid tier. After changing prices, `npm run l
 recalculates the logged calls. Embedding calls report no token counts and are counted as free.
 Each user sees the calls made for their own letters; every logged call stores the owner of its letter.
 
+### Landing page
+
+Visitors who are not signed in see a landing page: what BriefKlar does, an example of an analyzed
+letter, how it works in three steps, the features, the supported languages and how letters are kept
+private. It leads to trying one letter as a guest or creating an account; signed-in users go straight
+to the upload page.
+
 ### Accounts
 
 Users sign up with an e-mail address and a password, and only ever see their own letters, chats,
@@ -265,6 +293,46 @@ Letters contain personal data, so users control what is kept and for how long.
   the free quota, but an app offered to users in these regions must use the paid tier. The free tier is
   used here for development only.
 
+## Getting started
+
+Requirements: Node.js 20+, Docker Desktop.
+
+```bash
+# 1. Install dependencies (all workspaces)
+npm install
+
+# 2. Start PostgreSQL (port 5433) and Redis (port 6380)
+npm run infra:up
+
+# 3. Configure the API (add your GEMINI_API_KEY from https://aistudio.google.com)
+cp apps/api/.env.example apps/api/.env
+
+# 4. Create the database schema (Prisma asks for a migration name, e.g. "init")
+npm run db:migrate
+
+# 5. Fill the knowledge base for the chat (one embedding request for 25 short texts)
+npm run knowledge:seed -w @briefklar/api
+
+# 6. Start API, worker and web app together
+npm run dev
+```
+
+Open http://localhost:5173, create an account and upload a PDF or image.
+API health check: http://localhost:4000/api/health
+
+## Testing and evaluation
+
+```bash
+npm run typecheck                     # all workspaces
+npm test                              # Vitest unit tests (no database or model needed)
+npm run eval -w @briefklar/api        # evaluation of the letter analysis (calls the model)
+```
+
+The unit tests cover the deadline engine (periods, delivery rules, holidays per federal state),
+German date parsing, reply letter composition, the chat tools and more. GitHub Actions runs the
+typecheck, the tests and the builds on every push. See
+[Evaluation of the letter analysis](#evaluation-of-the-letter-analysis) for the eval options.
+
 ## Deployment
 
 One host with Docker runs everything: PostgreSQL, Redis, a one-off migration job, the API, the worker and
@@ -292,47 +360,6 @@ apps/
 packages/
   shared/     Zod schemas and TypeScript types shared by api and web
 ```
-
-[ARCHITECTURE.md](ARCHITECTURE.md) maps the folders and the files a request passes through.
-
-## Getting started
-
-Requirements: Node.js 20+, Docker Desktop.
-
-```bash
-# 1. Install dependencies (all workspaces)
-npm install
-
-# 2. Start PostgreSQL (port 5433) and Redis (port 6380)
-npm run infra:up
-
-# 3. Configure the API (add your GEMINI_API_KEY from https://aistudio.google.com)
-cp apps/api/.env.example apps/api/.env
-
-# 4. Create the database schema (Prisma asks for a migration name, e.g. "init")
-npm run db:migrate
-
-# 5. Fill the knowledge base for the chat (one embedding request for 25 short texts)
-npm run knowledge:seed -w @briefklar/api
-
-# 6. Start API, worker and web app together
-npm run dev
-```
-
-Open http://localhost:5173, create an account and upload a PDF or image.
-Run the tests with `npm test`, and the evaluation of the letter analysis with `npm run eval -w @briefklar/api`.
-API health check: http://localhost:4000/api/health
-
-## Roadmap
-
-- [x] Week 1 — Monorepo, Docker Compose, Prisma schema, upload, queue, SSE progress
-- [x] Week 2 — LLM structured extraction (validated with Zod), action items, explicit deadlines
-- [x] Week 3 — Deterministic deadline engine + tests, action items
-- [x] Week 4 — Streaming plain-language explanation, reply drafts in German, federal state and delivery date
-- [x] The whole site in six languages (UI, analysis, deadline steps, errors), Arabic right to left
-- [x] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
-- [x] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
-- [x] User accounts: sign-up, sign-in, profile, everything scoped per user
 
 ## Disclaimer
 
