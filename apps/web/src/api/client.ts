@@ -60,6 +60,9 @@ export const api = {
   register: (input: RegisterInput) => request<AccountDto>("/api/auth/register", json("POST", input)),
   login: (input: LoginInput) => request<AccountDto>("/api/auth/login", json("POST", input)),
   logout: () => request<void>("/api/auth/logout", { method: "POST" }),
+  /** A guest session, so a visitor can try one letter without an account */
+  startGuest: (preferredLanguage: ExplanationLanguage) =>
+    request<AccountDto>("/api/auth/guest", json("POST", { preferredLanguage })),
   updateAccount: (input: UpdateAccountInput) => request<AccountDto>("/api/auth/me", json("PATCH", input)),
   changePassword: (input: ChangePasswordInput) => request<void>("/api/auth/password", json("POST", input)),
 

@@ -4,7 +4,9 @@ import { useNavigate, useParams } from "react-router";
 import { isTerminalStatus, type DocumentDetailDto } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
 import { AnalysisPanel } from "../components/AnalysisPanel";
+import { SignInRequired } from "../components/SignInRequired";
 import { StatusBadge } from "../components/StatusBadge";
+import { useAccount } from "../hooks/useAccount";
 import { useDocumentEvents } from "../hooks/useDocumentEvents";
 import { useErrorText } from "../i18n/errors";
 import { useI18n } from "../i18n/I18nProvider";
@@ -13,11 +15,12 @@ export function DocumentDetailPage() {
   const { id = "" } = useParams();
   const { t } = useI18n();
   const errorText = useErrorText();
+  const account = useAccount().data;
 
   const { data: doc, isLoading, error } = useQuery({
     queryKey: queryKeys.document(id),
     queryFn: () => api.getDocument(id),
-    enabled: Boolean(id),
+    enabled: Boolean(id && account),
   });
 
   const isProcessing = doc ? !isTerminalStatus(doc.status) : false;
@@ -66,6 +69,7 @@ export function DocumentDetailPage() {
     </button>
   );
 
+  if (!account) return <SignInRequired />;
   if (isLoading) return <p className="text-slate-500">{t.common.loading}</p>;
   if (error) return <p className="text-red-600">{errorText(error)}</p>;
   if (!doc) return null;

@@ -25,6 +25,13 @@ export const de: Messages = {
     haveAccount: "Sie haben schon ein Konto?",
   },
 
+  guest: {
+    intro: (count) => `Ohne Konto: Probieren Sie BriefKlar mit ${count} Brief aus und sehen Sie die Analyse. Mit einem kostenlosen Konto kommen mehr Briefe, Erklärungen in einfacher Sprache, der Chat, Antwortentwürfe und Erinnerungen dazu.`,
+    yourLetter: "Ihr Brief",
+    lockedTitle: "Mit einem kostenlosen Konto verfügbar",
+    lockedText: "Melden Sie sich an oder erstellen Sie ein Konto für mehr Briefe, die Erklärung in einfacher Sprache, den Chat, Antwortentwürfe, Erinnerungen und Ihren Verbrauch. Ein Brief, den Sie als Gast hochgeladen haben, bleibt Ihnen erhalten.",
+  },
+
   common: {
     loading: "Wird geladen …",
     saving: "Wird gespeichert …",

@@ -5,9 +5,11 @@ import { ActionItems } from "./analysis/ActionItems";
 import { DeadlineList } from "./analysis/DeadlineList";
 import { textProps } from "./analysis/textProps";
 import { useAnalysisTexts } from "./analysis/useAnalysisTexts";
+import { useIsMember } from "../hooks/useAccount";
 import { ChatPanel } from "./ChatPanel";
 import { ExplanationPanel } from "./ExplanationPanel";
 import { ReplyDraftsPanel } from "./ReplyDraftsPanel";
+import { SignInRequired } from "./SignInRequired";
 
 const urgencyStyles: Record<Urgency, string> = {
   LOW: "bg-slate-100 text-slate-700",
@@ -46,6 +48,8 @@ export function AnalysisPanel({
   const { t, language, formatDate, formatMoney } = i18n;
   const { extraction } = analysis;
   const { texts, textLanguage, translating, failed, retry } = useAnalysisTexts(documentId, analysis, language);
+  // Guests see the analysis; the explanation, chat and reply drafts need an account
+  const member = useIsMember();
 
   return (
     <div className="space-y-4">
@@ -96,13 +100,19 @@ export function AnalysisPanel({
         </p>
       )}
 
-      <Section title={t.analysis.sections.explained}>
-        <ExplanationPanel documentId={documentId} />
-      </Section>
+      {member ? (
+        <>
+          <Section title={t.analysis.sections.explained}>
+            <ExplanationPanel documentId={documentId} />
+          </Section>
 
-      <Section title={t.analysis.sections.chat}>
-        <ChatPanel documentId={documentId} />
-      </Section>
+          <Section title={t.analysis.sections.chat}>
+            <ChatPanel documentId={documentId} />
+          </Section>
+        </>
+      ) : (
+        <SignInRequired />
+      )}
 
       <Section title={t.analysis.sections.todo}>
         <ActionItems documentId={documentId} analysis={analysis} texts={texts} textLanguage={textLanguage} />
@@ -164,7 +174,7 @@ export function AnalysisPanel({
         <p className="rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">{t.analysis.objectionRight}</p>
       )}
 
-      {extraction.isOfficialLetter && (
+      {member && extraction.isOfficialLetter && (
         <Section title={t.analysis.sections.reply}>
           <ReplyDraftsPanel
             documentId={documentId}

@@ -44,6 +44,13 @@ export const en = {
     haveAccount: "Already have an account?",
   },
 
+  guest: {
+    intro: (count: number) => `No account needed: try BriefKlar with ${count} letter and see its analysis. A free account adds more letters, explanations in plain language, the chat, reply drafts and reminders.`,
+    yourLetter: "Your letter",
+    lockedTitle: "Available with a free account",
+    lockedText: "Sign in or create an account for more letters, the explanation in plain language, the chat, reply drafts, reminders and your usage. A letter you uploaded as a guest stays with you.",
+  },
+
   common: {
     loading: "Loading…",
     saving: "Saving…",

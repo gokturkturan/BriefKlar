@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 import type { AccountDto, LoginInput, RegisterInput } from "@briefklar/shared";
 import { api, ApiError, queryKeys } from "../api/client";
 
-/** The signed-in account; null when nobody is signed in */
+/** The signed-in account or guest; null when the visitor has no session yet */
 export function useAccount() {
   return useQuery({
     queryKey: queryKeys.account,
@@ -13,6 +13,12 @@ export function useAccount() {
       }),
     staleTime: Infinity,
   });
+}
+
+/** Signed in with an account (not as a guest): every feature is available */
+export function useIsMember(): boolean {
+  const { data } = useAccount();
+  return Boolean(data && !data.guest);
 }
 
 /**

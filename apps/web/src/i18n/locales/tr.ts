@@ -24,6 +24,13 @@ export const tr: Messages = {
     haveAccount: "Zaten hesabınız var mı?",
   },
 
+  guest: {
+    intro: (count) => `Hesap gerekmez: BriefKlar'ı ${count} mektupla deneyin ve analizini görün. Ücretsiz bir hesapla daha fazla mektup, sade dille açıklama, sohbet, cevap taslakları ve hatırlatıcılar da açılır.`,
+    yourLetter: "Mektubunuz",
+    lockedTitle: "Ücretsiz bir hesapla kullanılabilir",
+    lockedText: "Daha fazla mektup, sade dille açıklama, sohbet, cevap taslakları, hatırlatıcılar ve kullanım bilgileri için giriş yapın veya hesap oluşturun. Misafir olarak yüklediğiniz mektup sizinle kalır.",
+  },
+
   common: {
     loading: "Yükleniyor…",
     saving: "Kaydediliyor…",
