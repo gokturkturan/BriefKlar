@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router";
 import { LanguageMenu } from "./components/LanguageMenu";
+import { PageErrorBoundary } from "./components/PageErrorBoundary";
 import { SignInRequired } from "./components/SignInRequired";
 import { useAccount, useIsMember, useSignOut } from "./hooks/useAccount";
 import { useErrorText } from "./i18n/errors";
@@ -56,7 +57,9 @@ export function App() {
         ) : account.error ? (
           <p className="text-red-600">{errorText(account.error)}</p>
         ) : (
-          <AppRoutes member={member} />
+          <PageErrorBoundary>
+            <AppRoutes member={member} />
+          </PageErrorBoundary>
         )}
       </main>
     </div>

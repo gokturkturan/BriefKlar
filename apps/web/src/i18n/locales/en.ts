@@ -60,6 +60,7 @@ export const en = {
     remove: "Remove",
     tryAgain: "Try again",
     starting: "Starting…",
+    pageCrashed: "Something went wrong while showing this page.",
   },
 
   status: { UPLOADED: "Queued", PROCESSING: "Processing", DONE: "Ready", FAILED: "Failed" },

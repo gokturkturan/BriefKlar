@@ -40,6 +40,7 @@ export const tr: Messages = {
     remove: "Kaldır",
     tryAgain: "Tekrar dene",
     starting: "Başlatılıyor…",
+    pageCrashed: "Bu sayfa gösterilirken bir hata oluştu.",
   },
 
   status: { UPLOADED: "Sırada", PROCESSING: "İşleniyor", DONE: "Hazır", FAILED: "Başarısız" },

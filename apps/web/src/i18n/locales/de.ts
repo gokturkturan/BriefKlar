@@ -41,6 +41,7 @@ export const de: Messages = {
     remove: "Entfernen",
     tryAgain: "Noch einmal versuchen",
     starting: "Wird gestartet …",
+    pageCrashed: "Beim Anzeigen dieser Seite ist ein Fehler aufgetreten.",
   },
 
   status: { UPLOADED: "Wartet", PROCESSING: "In Arbeit", DONE: "Fertig", FAILED: "Fehler" },

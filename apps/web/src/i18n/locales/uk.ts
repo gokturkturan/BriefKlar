@@ -43,6 +43,7 @@ export const uk: Messages = {
     remove: "Прибрати",
     tryAgain: "Спробувати ще раз",
     starting: "Запуск…",
+    pageCrashed: "Під час показу цієї сторінки сталася помилка.",
   },
 
   status: { UPLOADED: "У черзі", PROCESSING: "Обробка", DONE: "Готово", FAILED: "Помилка" },

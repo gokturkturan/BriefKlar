@@ -44,6 +44,7 @@ export const ar: Messages = {
     remove: "إزالة",
     tryAgain: "حاول مرة أخرى",
     starting: "جارٍ البدء…",
+    pageCrashed: "حدث خطأ أثناء عرض هذه الصفحة.",
   },
 
   status: { UPLOADED: "في الانتظار", PROCESSING: "قيد المعالجة", DONE: "جاهزة", FAILED: "فشلت" },

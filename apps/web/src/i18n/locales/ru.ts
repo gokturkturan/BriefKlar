@@ -43,6 +43,7 @@ export const ru: Messages = {
     remove: "Убрать",
     tryAgain: "Попробовать снова",
     starting: "Запуск…",
+    pageCrashed: "При отображении этой страницы произошла ошибка.",
   },
 
   status: { UPLOADED: "В очереди", PROCESSING: "Обработка", DONE: "Готово", FAILED: "Ошибка" },
