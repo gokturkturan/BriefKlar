@@ -16,6 +16,7 @@ import {
   type ProgressEvent,
 } from "@briefklar/shared";
 import { prisma } from "../lib/prisma";
+import { openSse } from "../lib/sse";
 import { latestExtraction, letterOf } from "../lib/extractions";
 import { HttpError } from "../lib/httpError";
 import { detectFileType } from "../lib/fileType";
@@ -244,14 +245,7 @@ async function currentProgress(doc: Document): Promise<ProgressEvent> {
 documentsRouter.get("/:id/events", async (req, res) => {
   const doc = await findOwnedDocument(req);
 
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache, no-transform",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no", // disable buffering behind nginx
-  });
-
-  const send = (event: ProgressEvent) => res.write(`data: ${JSON.stringify(event)}\n\n`);
+  const { send } = openSse<ProgressEvent>(res);
 
   let closed = false;
   let heartbeat: NodeJS.Timeout | undefined;

@@ -14,6 +14,7 @@ import { runChat } from "../chat/runChat";
 import { todayInGermany, toIsoDate } from "../deadlines/calendarDate";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
+import { openSse } from "../lib/sse";
 import { llm, LLMError } from "../llm";
 import type { ChatTurn } from "../llm/LLMProvider";
 import { chatSystemPrompt, chatTurnInstruction, CHAT_PROMPT_VERSION } from "../prompts/chat";
@@ -104,20 +105,8 @@ chatRouter.post("/", async (req, res) => {
     parts: [{ type: "text", text: row.content }],
   }));
 
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache, no-transform",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  });
-  res.flushHeaders();
-  const send = (event: ChatStreamEvent) => res.write(`data: ${JSON.stringify(event)}\n\n`);
-
-  // Stop the model and the tools when the user leaves the page
-  const abort = new AbortController();
-  res.on("close", () => {
-    if (!res.writableFinished) abort.abort();
-  });
+  // Stops the model and the tools when the user leaves the page
+  const { send, signal } = openSse<ChatStreamEvent>(res);
 
   try {
     const answer = await runChat({
@@ -136,7 +125,7 @@ chatRouter.post("/", async (req, res) => {
         receivedDate: doc.receivedDate ? toIsoDate(doc.receivedDate) : null,
         deadlines,
         actionItems: actionItems.map(({ text, done }) => ({ text, done })),
-        signal: abort.signal,
+        signal,
       },
       onEvent: send,
     });
@@ -162,7 +151,7 @@ chatRouter.post("/", async (req, res) => {
     ]);
     send({ type: "done", userMessage: toDto(userMessage), message: toDto(message) });
   } catch (err) {
-    if (abort.signal.aborted) return;
+    if (signal.aborted) return;
     console.error(`Chat failed for ${doc.id}:`, err);
     send(
       err instanceof LLMError

@@ -8,6 +8,7 @@ import {
 import type { Explanation } from "@prisma/client";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
+import { openSse } from "../lib/sse";
 import { LLMError } from "../llm";
 import { explainLetter } from "../llm/explainLetter";
 import { EXPLAIN_LETTER_PROMPT_VERSION } from "../prompts/explainLetter";
@@ -40,14 +41,8 @@ explanationRouter.get("/", async (req, res) => {
   if (doc.status !== "DONE") throw new HttpError(409, "This letter has not been analyzed yet.", "NOT_ANALYZED");
   const extraction = await requireExtraction(doc.id);
 
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache, no-transform",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  });
-  res.flushHeaders(); // the browser sees the stream open while the model is still thinking
-  const send = (event: ExplanationStreamEvent) => res.write(`data: ${JSON.stringify(event)}\n\n`);
+  // Stops generating (and paying for tokens) when the user leaves the page
+  const { send, signal } = openSse<ExplanationStreamEvent>(res);
 
   const cached = await prisma.explanation.findUnique({
     where: { documentId_language: { documentId: doc.id, language } },
@@ -57,12 +52,6 @@ explanationRouter.get("/", async (req, res) => {
     res.end();
     return;
   }
-
-  // Stop generating (and paying for tokens) when the user leaves the page
-  const abort = new AbortController();
-  res.on("close", () => {
-    if (!res.writableFinished) abort.abort();
-  });
 
   try {
     const [file, deadlines] = await Promise.all([
@@ -77,7 +66,7 @@ explanationRouter.get("/", async (req, res) => {
       extraction,
       deadlines,
       language,
-      signal: abort.signal,
+      signal,
       onDelta: (text) => send({ type: "delta", text }),
     });
 
@@ -94,7 +83,7 @@ explanationRouter.get("/", async (req, res) => {
     });
     send({ type: "done", explanation: toDto(saved) });
   } catch (err) {
-    if (abort.signal.aborted) return;
+    if (signal.aborted) return;
     console.error(`Explanation failed for ${doc.id}:`, err);
     send(
       err instanceof LLMError
