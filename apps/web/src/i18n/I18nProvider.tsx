@@ -89,8 +89,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       formatDate: (isoDate, style = "long") =>
         (style === "weekday" ? weekday : long).format(new Date(`${isoDate}T00:00:00Z`)),
       formatDateTime: (iso) => dateTime.format(new Date(iso)),
-      formatMoney: (amount, currency) =>
-        new Intl.NumberFormat(locale, { style: "currency", currency: currency || "EUR" }).format(amount),
+      formatMoney: (amount, currency) => formatAmount(locale, amount, currency),
       setLanguage: (value) => {
         if (!isExplanationLanguage(value) || value === language) return;
         setDeviceLanguage(value);
@@ -118,4 +117,22 @@ export function useI18n(): I18n {
   const context = useContext(I18nContext);
   if (!context) throw new Error("useI18n must be used inside <I18nProvider>");
   return context;
+}
+
+/**
+ * Amounts come from the letter, so the "currency" is not always an ISO code:
+ * price letters give unit prices such as "ct/kWh" or "EUR/Monat", which
+ * Intl rejects with a RangeError. Those are shown as a number plus the unit.
+ */
+function formatAmount(locale: string, amount: number, currency: string): string {
+  const code = currency.trim() || "EUR";
+  if (/^[A-Za-z]{3}$/.test(code)) {
+    try {
+      return new Intl.NumberFormat(locale, { style: "currency", currency: code }).format(amount);
+    } catch {
+      // Not a currency Intl knows: fall through to number + unit
+    }
+  }
+  const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(amount);
+  return `${number} ${code}`;
 }
