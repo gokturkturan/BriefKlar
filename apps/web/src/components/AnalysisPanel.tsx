@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import {
+  ANALYSIS_LANGUAGE,
   EXPLANATION_LANGUAGES,
   translatableTexts,
   type AnalysisTranslation,
@@ -18,9 +19,6 @@ import { ChatPanel } from "./ChatPanel";
 import { ExplanationPanel } from "./ExplanationPanel";
 import { ReceivedDateForm } from "./ReceivedDateForm";
 import { ReplyDraftsPanel } from "./ReplyDraftsPanel";
-
-/** The analysis itself is written in English and translated for other readers */
-const ANALYSIS_LANGUAGE: ExplanationLanguage = "en";
 
 const urgencyStyles: Record<Urgency, string> = {
   LOW: "bg-slate-100 text-slate-700",

@@ -3,10 +3,12 @@ import type { ExplanationLanguage } from "./explanation";
 import type { LetterExtraction } from "./letter";
 
 /**
- * The analysis is written in English once (stable for tests and evals). The texts a reader
+ * The analysis is written in English (ANALYSIS_LANGUAGE) once (stable for tests and evals). The texts a reader
  * sees are then translated into their language and cached per analysis and language.
  * Lists keep the order of the English analysis, so item i belongs to item i.
  */
+export const ANALYSIS_LANGUAGE: ExplanationLanguage = "en";
+
 export const AnalysisTranslationSchema = z.object({
   summary: z.string(),
   requiredActions: z.array(z.string()),

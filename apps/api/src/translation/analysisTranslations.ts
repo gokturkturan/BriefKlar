@@ -8,9 +8,6 @@ import {
 import { prisma } from "../lib/prisma";
 import { TRANSLATE_ANALYSIS_PROMPT_VERSION, translateAnalysis } from "./translateAnalysis";
 
-/** The language the analysis itself is written in; it needs no translation */
-export const ANALYSIS_LANGUAGE: ExplanationLanguage = "en";
-
 function toDto(row: AnalysisTranslationRow): AnalysisTranslationDto | null {
   const parsed = AnalysisTranslationSchema.safeParse(row.data);
   if (!parsed.success) return null;

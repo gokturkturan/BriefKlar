@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { isExplanationLanguage } from "@briefklar/shared";
+import { ANALYSIS_LANGUAGE, isExplanationLanguage } from "@briefklar/shared";
 import { HttpError } from "../lib/httpError";
 import { latestExtraction } from "../documents/extractions";
 import { LLMError } from "../llm";
 import { LLMValidationError } from "../llm/generateStructured";
-import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "./analysisTranslations";
+import { getOrCreateTranslation } from "./analysisTranslations";
 import { findOwnedDocument } from "../documents/ownedDocument";
 
 /** Mounted at /api/documents/:id/translation */
