@@ -13,7 +13,7 @@ emitter.setMaxListeners(0);
 
 let queueEvents: QueueEvents | null = null;
 
-function isProgressEvent(value: unknown): value is ProgressEvent {
+export function isProgressEvent(value: unknown): value is ProgressEvent {
   return typeof value === "object" && value !== null && "status" in value;
 }
 

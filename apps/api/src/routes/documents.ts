@@ -24,7 +24,7 @@ import { storage } from "../storage";
 import { recomputeDeadlines } from "../deadlines";
 import { isIsoDate, todayInGermany } from "../deadlines/calendarDate";
 import { documentQueue, enqueueDocument } from "../queue/documentQueue";
-import { subscribeToDocument } from "../queue/documentEvents";
+import { isProgressEvent, subscribeToDocument } from "../queue/documentEvents";
 import { getUserId } from "../middleware/demoUser";
 import { deleteDocuments } from "../privacy/userData";
 import { findOwnedDocument, routeParam } from "./ownedDocument";
@@ -217,10 +217,6 @@ documentsRouter.get("/:id/file", async (req, res) => {
   res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(doc.originalName)}`);
   stream.pipe(res);
 });
-
-function isProgressEvent(value: unknown): value is ProgressEvent {
-  return typeof value === "object" && value !== null && "status" in value;
-}
 
 /**
  * The first SSE message must include the current step: the worker may have reported it

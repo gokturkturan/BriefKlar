@@ -1,14 +1,12 @@
-import { Worker } from "bullmq";
+import { Queue, Worker } from "bullmq";
 import "./config/env";
+import { todayInGermany } from "./deadlines/calendarDate";
 import { processDocument } from "./jobs/processDocument";
 import { prisma } from "./lib/prisma";
 import { createRedisConnection } from "./lib/redis";
-import { DOCUMENT_QUEUE, type DocumentJobData } from "./queue/constants";
-import { MAINTENANCE_QUEUE, scheduleRetentionChecks } from "./queue/maintenanceQueue";
-import { REMINDER_QUEUE, scheduleReminderChecks } from "./queue/reminderQueue";
 import { deleteExpiredDocuments } from "./privacy/userData";
+import { DOCUMENT_QUEUE, type DocumentJobData } from "./queue/constants";
 import { fireDueReminders } from "./reminders/reminders";
-import { todayInGermany } from "./deadlines/calendarDate";
 
 /**
  * Separate process from the API: heavy LLM work never blocks HTTP requests,
@@ -25,48 +23,50 @@ worker.on("failed", (job, err) =>
   console.error(`Job ${job?.id} failed (attempt ${job?.attemptsMade}):`, err.message),
 );
 
-/** Fires reminders whose day has come; the job is added by a scheduler every few minutes */
-const reminderWorker = new Worker(
-  REMINDER_QUEUE,
-  async () => {
-    const fired = await fireDueReminders(todayInGermany());
-    if (fired > 0) console.log(`Fired ${fired} reminder(s)`);
-    return fired;
-  },
-  { connection: createRedisConnection() },
-);
-reminderWorker.on("failed", (_job, err) => console.error("Reminder check failed:", err.message));
+/**
+ * Runs `task` every `everyMs`, the first time right away. A BullMQ job scheduler (a repeatable
+ * job stored in Redis under `schedulerId`) adds the jobs. Upserting it on every start is safe:
+ * there is only ever one. The task returns a line to log, or nothing.
+ */
+function runEvery(queueName: string, schedulerId: string, everyMs: number, task: () => Promise<string | null>) {
+  const repeatingWorker = new Worker(
+    queueName,
+    async () => {
+      const message = await task();
+      if (message) console.log(message);
+    },
+    { connection: createRedisConnection() },
+  );
+  repeatingWorker.on("failed", (_job, err) => console.error(`${schedulerId} failed:`, err.message));
 
-const reminderQueue = scheduleReminderChecks().catch((err: unknown) => {
-  console.error("Could not schedule reminder checks:", err);
-  return null;
+  const queue = new Queue(queueName, { connection: createRedisConnection() });
+  const scheduled = queue
+    .upsertJobScheduler(
+      schedulerId,
+      { every: everyMs },
+      { name: schedulerId, opts: { removeOnComplete: { count: 100 }, removeOnFail: { count: 500 } } },
+    )
+    .catch((err: unknown) => console.error(`Could not schedule ${schedulerId}:`, err));
+
+  return () => Promise.allSettled([repeatingWorker.close(), scheduled.then(() => queue.close())]);
+}
+
+const MINUTE = 60 * 1000;
+
+/** Reminders whose day has come show up on the reminders page */
+const stopReminders = runEvery("reminders", "fire-due-reminders", 5 * MINUTE, async () => {
+  const fired = await fireDueReminders(todayInGermany());
+  return fired > 0 ? `Fired ${fired} reminder(s)` : null;
 });
 
-/** Deletes letters whose retention period (chosen in the settings) has passed */
-const maintenanceWorker = new Worker(
-  MAINTENANCE_QUEUE,
-  async () => {
-    const deleted = await deleteExpiredDocuments();
-    if (deleted > 0) console.log(`Deleted ${deleted} letter(s) after their retention period`);
-    return deleted;
-  },
-  { connection: createRedisConnection() },
-);
-maintenanceWorker.on("failed", (_job, err) => console.error("Retention check failed:", err.message));
-
-const maintenanceQueue = scheduleRetentionChecks().catch((err: unknown) => {
-  console.error("Could not schedule retention checks:", err);
-  return null;
+/** Letters whose retention period (chosen in the settings) has passed are deleted */
+const stopRetention = runEvery("maintenance", "delete-expired-letters", 60 * MINUTE, async () => {
+  const deleted = await deleteExpiredDocuments();
+  return deleted > 0 ? `Deleted ${deleted} letter(s) after their retention period` : null;
 });
 
 const shutdown = async () => {
-  await Promise.allSettled([
-    worker.close(),
-    reminderWorker.close(),
-    maintenanceWorker.close(),
-    reminderQueue.then((q) => q?.close()),
-    maintenanceQueue.then((q) => q?.close()),
-  ]);
+  await Promise.allSettled([worker.close(), stopReminders(), stopRetention()]);
   await prisma.$disconnect();
   process.exit(0);
 };
