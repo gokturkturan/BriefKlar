@@ -16,6 +16,7 @@
     "infra:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w @briefklar/api",
     "db:studio": "npm run db:studio -w @briefklar/api",
+    "demo:claim": "npm run demo:claim -w @briefklar/api --",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },

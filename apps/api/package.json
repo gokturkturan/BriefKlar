@@ -19,6 +19,7 @@
     "deadlines:recompute": "tsx src/scripts/recomputeAllDeadlines.ts",
     "knowledge:seed": "tsx src/scripts/seedKnowledge.ts",
     "llm:reprice": "tsx src/scripts/repriceLlmCalls.ts",
+    "demo:claim": "tsx src/scripts/claimDemoData.ts",
     "eval": "tsx src/evals/runEval.ts"
   },
   "dependencies": {
