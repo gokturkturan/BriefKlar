@@ -70,6 +70,11 @@ export function scoreExtraction(testCase: EvalCase, extraction: LetterExtraction
   return checks;
 }
 
+/** One deadline in the report: `2026-10-19 OBJECTION: "Der Einspruch ist ..."` */
+function describe(row: { dueDate: string; kind: string; sourceText: string }): string {
+  return `${row.dueDate} ${row.kind}: "${row.sourceText}"`;
+}
+
 /**
  * Runs the deadline engine on the extracted wording, as the worker does, and compares the
  * due dates. Each expected deadline needs a computed deadline with the same date (one each);
@@ -84,6 +89,15 @@ function scoreDeadlines(testCase: EvalCase, extraction: LetterExtraction): Field
     sourceText: row.sourceText,
   }));
   const unused = [...computed];
+  // What the model extracted, for the report: computed date, kind and wording, also when the
+  // engine found no date in the wording
+  const undated = extraction.deadlines.filter(
+    (deadline) => !computed.some((row) => row.kind === deadline.kind && row.sourceText === deadline.rawText),
+  );
+  const extracted = [
+    ...computed.map(describe),
+    ...undated.map((deadline) => describe({ dueDate: "no date", kind: deadline.kind, sourceText: deadline.rawText })),
+  ];
 
   for (const expected of testCase.deadlines ?? []) {
     const kinds: string[] = oneOf(expected.kind);
@@ -95,10 +109,10 @@ function scoreDeadlines(testCase: EvalCase, extraction: LetterExtraction): Field
       field: "deadlines.dueDate",
       ok: match !== undefined,
       expected: expected.dueDate,
-      actual: computed.map((row) => row.dueDate),
+      actual: extracted,
     });
     if (match) {
-      checks.push({ field: "deadlines.kind", ok: kinds.includes(match.kind), expected: expected.kind, actual: match.kind });
+      checks.push({ field: "deadlines.kind", ok: kinds.includes(match.kind), expected: expected.kind, actual: describe(match) });
     }
   }
 
@@ -108,7 +122,7 @@ function scoreDeadlines(testCase: EvalCase, extraction: LetterExtraction): Field
     field: "deadlines.noWrongDate",
     ok: wrong.length === 0,
     expected: [...allowed],
-    actual: wrong.map((row) => `${row.dueDate} (${row.sourceText})`),
+    actual: wrong.map(describe),
   });
   return checks;
 }

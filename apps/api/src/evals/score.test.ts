@@ -77,7 +77,17 @@ describe("scoreExtraction", () => {
     const checks = scoreExtraction(finanzamt, extraction);
     expect(failed(checks)).toEqual(["deadlines.dueDate", "deadlines.noWrongDate"]);
     expect(checks.find((c) => c.field === "deadlines.noWrongDate")?.actual).toEqual([
-      "2026-10-02 (Der Einspruch ist innerhalb von zwei Wochen nach Bekanntgabe einzulegen.)",
+      '2026-10-02 OBJECTION: "Der Einspruch ist innerhalb von zwei Wochen nach Bekanntgabe einzulegen."',
+    ]);
+  });
+
+  it("lists every extracted deadline with kind and wording when a due date is missing", () => {
+    const extraction = correctExtraction();
+    extraction.deadlines[1] = { rawText: "Einspruch ist möglich.", explicitDate: null, kind: "OBJECTION" };
+    const missing = scoreExtraction(finanzamt, extraction).find((c) => c.field === "deadlines.dueDate" && !c.ok);
+    expect(missing?.actual).toEqual([
+      '2026-10-19 PAYMENT: "Bitte zahlen Sie den Betrag von 1.234,56 € bis zum 19.10.2026"',
+      'no date OBJECTION: "Einspruch ist möglich."',
     ]);
   });
 

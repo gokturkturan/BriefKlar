@@ -50,6 +50,11 @@ const prefixes = args.only?.split(",").map((prefix) => prefix.trim());
 const cases = EVAL_CASES.filter((c) => !prefixes || prefixes.some((prefix) => c.file.startsWith(prefix)));
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const percent = (value: number) => `${(value * 100).toFixed(1)} %`;
+/** Lists in the report one item per line, so each deadline's kind and wording can be read */
+const show = (value: unknown): string =>
+  Array.isArray(value) && value.length > 0
+    ? value.map((item) => `\n  - ${typeof item === "string" ? item : JSON.stringify(item)}`).join("")
+    : JSON.stringify(value);
 const seconds = (ms: number | null) => (ms === null ? "–" : `${(ms / 1000).toFixed(1)} s`);
 
 async function runCase(testCase: EvalCase): Promise<CaseResult> {
@@ -129,7 +134,7 @@ function markdownReport(summary: EvalSummary, results: CaseResult[], startedAt: 
   for (const r of results) {
     if (r.error) lines.push(`- **${r.file}**: ${r.error}`);
     for (const c of r.checks.filter((check) => !check.ok)) {
-      lines.push(`- **${r.file}** \`${c.field}\`: expected ${JSON.stringify(c.expected)}, got ${JSON.stringify(c.actual)}`);
+      lines.push(`- **${r.file}** \`${c.field}\`: expected ${show(c.expected)}, got ${show(c.actual)}`);
     }
   }
   return `${lines.join("\n")}\n`;
