@@ -3,7 +3,8 @@
 > AI assistant that explains German official letters (*Behördenbriefe*) in plain language:
 > what the letter is about, what you need to do and by when.
 
-**Status:** 🚧 Work in progress — week 5 done: knowledge base, chat with tool calling, reminders. Next: week 6.
+**Status:** Weeks 1–6 done: analysis, deadline engine, explanations, reply drafts, six languages, knowledge base,
+chat with tool calling, reminders, an evaluation set, a cost dashboard, GDPR features and a Docker deployment.
 
 ## Tech stack
 
@@ -16,7 +17,8 @@
 | Realtime | Server-Sent Events (SSE) |
 | LLM | Google Gemini via `@google/genai`, behind a provider-agnostic `LLMProvider` interface |
 | Shared | `@briefklar/shared` — Zod schemas & types used by both API and web |
-| Tests | Vitest |
+| Tests | Vitest, plus an evaluation set for the model's letter analysis |
+| Deployment | Docker images, Docker Compose, Caddy (HTTPS, reverse proxy), GitHub Actions CI |
 
 ## Architecture
 
@@ -42,7 +44,7 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
    `packages/shared`, converted to JSON Schema for the API call).
 3. The answer is validated with Zod. If it is invalid, the validation errors are sent back to the
    model once so it can repair its answer.
-4. Every call is logged to the `LlmCall` table (model, prompt version, tokens, latency, success).
+4. Every call is logged to the `LlmCall` table (model, prompt version, tokens, estimated cost, latency, success).
    When the primary model is overloaded or times out and the fallback model answers, the failed
    attempt is logged as its own row, so the log shows each switch and the time it cost.
 5. The model never calculates dates: it only copies deadline wording from the letter.
@@ -174,6 +176,85 @@ it answers:
 - A BullMQ job scheduler in the worker fires due reminders every five minutes; the header shows how
   many are due. This job is where e-mail or push delivery plugs in once there are real accounts.
 
+### Evaluation of the letter analysis
+
+`apps/api/src/evals` holds 11 fictional letters (tax office, Jobcenter, broadcasting fee, child benefit,
+immigration office, health insurer, landlord, employer, court payment order, phone bill and a private
+invitation) with the values a correct analysis must contain.
+
+```bash
+npm run eval -w @briefklar/api                                   # the configured model, no fallback
+npm run eval -w @briefklar/api -- --model gemini-flash-lite-latest
+npm run eval -w @briefklar/api -- --with-fallback --only 01,09   # production setup, two letters
+```
+
+- **Schema conformance**: was the answer valid at once, valid after the repair round, still invalid, or
+  missing (timeout, overload)?
+- **Field accuracy**: sender type, letter type, letter date, objection possible, amounts, reference
+  numbers, and the deadlines. Only fields with one right answer are scored; urgency and the wording of
+  the summary are not.
+- Deadlines are scored end to end: the deadline engine computes due dates from the wording the model
+  copied, as in the worker, and they are compared with the legally correct dates. A due date that is
+  not expected counts as its own error, because a wrong date is worse than a missing one.
+- By default one model answers every letter (no fallback), so a run measures that model. In development
+  the primary model often timed out on the free tier and the fallback answered instead; `--with-fallback` shows which
+  model answered each letter, and comparing two runs shows what the fallback costs in accuracy.
+- Reports (Markdown and JSON) go to `apps/api/eval-results/`, which is not committed. Runs are logged
+  as `eval-extract-letter` calls, so they appear in the cost dashboard.
+- The letters are plain text sent like an uploaded file. Scans and PDFs (`.pdf`, `.jpg`, `.png`) can be
+  added to `letters/` with a case in `cases.ts`; keep real letters out of the repository.
+
+### Usage and cost dashboard
+
+The *Usage* page reads the per-call log (`GET /api/usage?days=7|30|90`):
+
+- Estimated cost, calls and failures, switches to the fallback model, average cost per letter, median
+  and 95th percentile response time, tokens.
+- Cost per day, and tables per task (analysis, translation, explanation, reply draft, chat, knowledge
+  base) and per model.
+- The latest failures with the provider's error, marked when the fallback model answered.
+
+Costs come from a price table (`apps/api/src/llm/pricing.ts`, paid-tier prices per million tokens, thinking
+tokens billed as output) and are stored with every call. Development runs on the free tier, so they show
+what the same use would cost on the paid tier. After changing prices, `npm run llm:reprice -w @briefklar/api`
+recalculates the logged calls. Embedding calls report no token counts and are counted as free.
+All calls of the app are counted; with real accounts this page belongs behind an admin role.
+
+### Data protection (GDPR)
+
+Letters contain personal data, so users control what is kept and for how long.
+
+- **Access and portability (Art. 15, 20):** *Settings → Download my data* returns one JSON file with the
+  settings, every letter with its original file (base64), analyses, translations, explanations,
+  deadlines, tasks, reply drafts, chat and reminders, and which AI calls processed each letter.
+- **Erasure (Art. 17):** *Delete all my data* removes every letter, file, queue job, reminder and setting.
+  The API asks for an explicit `{ "confirm": "DELETE" }`. Logged AI calls stay for cost statistics, without
+  the link to a letter; they hold no letter content.
+- **Storage limitation (Art. 5 (1) e):** users can have letters deleted 30, 90, 180 or 365 days after
+  upload. A scheduled worker job checks every hour and deletes the letter with everything that belongs to it.
+- **Transparency:** the settings say that letters are sent to Google's Gemini API for analysis.
+- Under the Gemini API terms, users in the EEA, Switzerland and the UK get the paid-tier data terms even on
+  the free quota, but an app offered to users in these regions must use the paid tier. The free tier is
+  used here for development only.
+
+## Deployment
+
+One host with Docker runs everything: PostgreSQL, Redis, a one-off migration job, the API, the worker and
+Caddy, which serves the web app, proxies `/api` (with SSE streaming), and gets an HTTPS certificate.
+
+```bash
+cp deploy/.env.production.example deploy/.env.production   # domain, password hash, database password, API key
+docker compose -f docker-compose.prod.yml --env-file deploy/.env.production up -d --build
+docker compose -f docker-compose.prod.yml --env-file deploy/.env.production run --rm api npm run knowledge:seed
+```
+
+- The API and the worker share one image (`apps/api/Dockerfile`); migrations run with
+  `prisma migrate deploy` before either starts.
+- There are no user accounts yet, so every visitor would share the demo user's letters. Until real
+  authentication exists, Caddy protects the whole site with one password (`basic_auth`).
+- Uploaded letters live in a Docker volume; the database and Redis are not reachable from outside.
+- GitHub Actions typechecks, tests, builds the web app and both images on every push.
+
 ## Monorepo layout
 
 ```
@@ -209,7 +290,7 @@ npm run dev
 ```
 
 Open http://localhost:5173 and upload a PDF or image.
-Run the tests with `npm test`.
+Run the tests with `npm test`, and the evaluation of the letter analysis with `npm run eval -w @briefklar/api`.
 API health check: http://localhost:4000/api/health
 
 ## Roadmap
@@ -220,13 +301,7 @@ API health check: http://localhost:4000/api/health
 - [x] Week 4 — Streaming plain-language explanation, reply drafts in German, federal state and delivery date
 - [x] The whole site in six languages (UI, analysis, deadline steps, errors), Arabic right to left
 - [x] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
-- [ ] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
-
-## Notes on data protection
-
-Letters contain personal data. Under the Gemini API terms, users in the EEA, Switzerland and the
-UK get the paid-tier data terms even on the free quota, but an app offered to users in these
-regions must use the paid tier. The free tier is used here for development only.
+- [x] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
 
 ## Disclaimer
 
