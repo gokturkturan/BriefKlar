@@ -1,3 +1,4 @@
+import type { AgentName } from "./agents";
 import type { DeadlineStep } from "./deadlineSteps";
 import type { ErrorCode } from "./errors";
 import type { LetterExtraction } from "./letter";
@@ -75,6 +76,8 @@ export type ProcessingStep = (typeof PROCESSING_STEPS)[number];
 export interface ProgressEvent {
   status: DocumentStatus;
   step?: ProcessingStep;
+  /** The agent working on this step (shown in the developer overview, not to users) */
+  agent?: AgentName;
   message?: string;
   code?: ErrorCode;
 }
