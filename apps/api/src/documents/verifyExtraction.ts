@@ -3,40 +3,68 @@ import type { AgentIssue, LetterExtraction } from "@briefklar/shared";
 import type { LLMProvider } from "../llm/LLMProvider";
 import { generateStructured, type StructuredResult } from "../llm/generateStructured";
 
-export const VERIFY_EXTRACTION_PROMPT_VERSION = "verify-extraction@1";
+export const VERIFY_EXTRACTION_PROMPT_VERSION = "verify-extraction@2";
 
 /** The longest evidence an issue keeps (AgentIssueSchema) */
 const MAX_EVIDENCE_LENGTH = 300;
 
+/**
+ * The facts the verifier checks. Wording (summary, requiredActions) has no single right answer,
+ * so a dispute about it would only cost a correction round; issues about other fields are dropped.
+ */
+export const CHECKED_FIELDS = [
+  "isOfficialLetter",
+  "sender",
+  "letterType",
+  "letterDate",
+  "references",
+  "amounts",
+  "deadlines",
+  "objectionPossible",
+] as const;
+
 export const VERIFY_EXTRACTION_SYSTEM_PROMPT = `
 You check the analysis of an official German letter. Another model read the letter and wrote the
-analysis as JSON. Compare every checkable fact in the analysis with the letter and report the
-errors you can prove.
+analysis as JSON. Compare the facts below with the letter and report only clear errors: a value
+that contradicts the letter, a value the letter does not contain, or a fact of the letter that is
+missing. Most analyses are correct; an empty list is the normal answer.
 
-Check:
-- isOfficialLetter, sender.type, letterType and letterDate.
-- references: every reference number must be in the letter and copied exactly (same characters).
-  A reference number of the letter that is missing is an error.
-- amounts: every value must be in the letter (1.240,00 € is 1240). A missing amount that the
-  recipient has to pay or receives is an error.
+Check only these fields:
+- isOfficialLetter: true for any formal letter from an authority, court, employer, landlord or
+  company (a bill from a phone company is an official letter); false only for private letters,
+  advertising and files that are no letter.
+- sender.type, one of: FINANZAMT, JOBCENTER, AGENTUR_FUER_ARBEIT, AUSLAENDERBEHOERDE, BUERGERAMT,
+  KRANKENKASSE (any statutory or private health insurer), RUNDFUNKBEITRAG (the ARD ZDF
+  Deutschlandradio Beitragsservice), FAMILIENKASSE, COURT, EMPLOYER, LANDLORD (also a property
+  management), COMPANY (bank, insurer, telecom, utility...), OTHER. Report it only when another
+  of these types fits the sender clearly better.
+- letterType: BESCHEID is a decision by an authority or court, MAHNUNG a payment reminder,
+  AUFFORDERUNG a request for action or documents, TERMIN an appointment, KUENDIGUNG a
+  termination, INVOICE a bill from a company. When two types fit (a court's Mahnbescheid is a
+  decision and a payment demand), accept either.
+- letterDate: the date printed on the letter.
+- references: every reference number must be in the letter, copied exactly. A reference number
+  of the letter that is missing is an error.
+- amounts: every value must be in the letter (1.240,00 € is 1240). An amount the recipient must
+  pay now or receives that is missing is an error. A fee that may arise later (late payment
+  surcharge, costs of enforcement) does not have to be listed.
 - deadlines: "rawText" must be wording from the letter. "explicitDate" may only be set when that
   date is written in the letter for this deadline; it must be null for relative wording such as
   "innerhalb eines Monats". Every time limit of the letter (payment, reply, objection,
-  appointment, documents) must have a deadline. A wrong "kind" is an error.
-- objectionPossible: true only if the letter mentions Widerspruch, Einspruch or a
-  Rechtsbehelfsbelehrung.
-- summary and requiredActions: only report statements that contradict the letter or invent facts.
-  Do not report style, length or wording.
+  appointment, documents) must have a deadline. A clearly wrong "kind" is an error.
+- objectionPossible: must be true when the letter mentions Widerspruch, Einspruch or a
+  Rechtsbehelfsbelehrung, and false when the letter gives no way to object at all. Other ways to
+  dispute (Einwendungen against a bill) allow either value.
 
-Rules:
-1. Report only errors you can prove with the letter. When the analysis is a reasonable reading,
-   it is correct. Do not report urgency, uncertainFields or letterLanguage.
-2. "field" is the path in the analysis, e.g. "amounts[0].value", "deadlines[1].explicitDate",
+Do not check or report the summary, requiredActions, requiredDocuments, urgency, subject,
+uncertainFields or letterLanguage. Do not report a reasonable reading or a different wording.
+
+Each issue:
+1. "field" is the path in the analysis, e.g. "amounts[0].value", "deadlines[1].explicitDate",
    "references" or "deadlines" for something missing.
-3. "problem" says in one sentence what is wrong and what the letter says instead.
-4. "evidence" quotes the sentence of the letter that shows it, word for word (at most 250
+2. "problem" says in one sentence what is wrong and what the letter says instead.
+3. "evidence" quotes the sentence of the letter that shows it, word for word (at most 250
    characters). For a value that is not in the letter at all, write "not in the letter".
-5. If the analysis is correct, return an empty list of issues.
 `.trim();
 
 const VerificationSchema = z.object({
@@ -82,11 +110,14 @@ export async function verifyExtraction(params: {
     promptVersion: VERIFY_EXTRACTION_PROMPT_VERSION,
     documentId: params.documentId,
   });
-  const issues = result.data.issues.map((issue) => ({
-    field: issue.field.trim(),
-    problem: issue.problem.trim(),
-    evidence: issue.evidence.trim().slice(0, MAX_EVIDENCE_LENGTH),
-  }));
+  const checked = new Set<string>(CHECKED_FIELDS);
+  const issues = result.data.issues
+    .filter((issue) => checked.has(topLevelField(issue.field)))
+    .map((issue) => ({
+      field: issue.field.trim(),
+      problem: issue.problem.trim(),
+      evidence: issue.evidence.trim().slice(0, MAX_EVIDENCE_LENGTH),
+    }));
   return { ...result, data: { issues } };
 }
 

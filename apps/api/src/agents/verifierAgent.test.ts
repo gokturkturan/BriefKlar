@@ -81,10 +81,18 @@ describe("verifier agent", () => {
   it("cuts evidence to the length a message allows", async () => {
     const long = "x".repeat(500);
     const { provider } = fakeProvider(async () =>
-      JSON.stringify({ issues: [{ field: "summary", problem: "Invented", evidence: long }] }),
+      JSON.stringify({ issues: [{ field: "amounts", problem: "Missing", evidence: long }] }),
     );
     const reply = await createVerifierAgent(provider).handle(task, context(caseFile()));
     expect(reply.kind === "revise" && reply.issues[0].evidence).toHaveLength(300);
+  });
+
+  it("drops issues about wording, which has no single right answer", async () => {
+    const { provider } = fakeProvider(async () =>
+      JSON.stringify({ issues: [{ field: "requiredActions[1]", problem: "Too strict", evidence: "Sie können" }] }),
+    );
+    const reply = await createVerifierAgent(provider).handle(task, context(caseFile()));
+    expect(reply).toMatchObject({ kind: "result", wrote: ["verdict"] });
   });
 
   it("keeps the analysis when its model fails", async () => {

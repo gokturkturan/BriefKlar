@@ -71,8 +71,9 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 5. The model never calculates dates: it only copies deadline wording from the letter.
    Due dates are decided by deterministic, tested code (see below).
 6. A second model checks the analysis (the verifier agent, GPT-6 luna by default): it reads the
-   original file again and reports only errors it can prove, each with the sentence of the letter
-   that shows it. The extractor gets these issues and corrects its analysis once; the verifier
+   original file again and reports only errors in the facts (sender, type, dates, reference
+   numbers, amounts, deadlines, objection right) that it can prove, each with the sentence of the
+   letter that shows it. Wording has no single right answer and is not checked. The extractor gets these issues and corrects its analysis once; the verifier
    checks the correction, and fields it still disputes are marked as uncertain, so the page asks
    the user to check them in the letter. A run makes at most six model requests; the correction
    is left out when it would take the translation's request.
