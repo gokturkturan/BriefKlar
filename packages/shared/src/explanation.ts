@@ -6,7 +6,7 @@ import type { ErrorCode } from "./errors";
 
 export const EXPLANATION_LANGUAGES = {
   en: "English",
-  de: "Einfaches Deutsch",
+  de: "Deutsch",
   tr: "Türkçe",
   ar: "العربية",
   uk: "Українська",
