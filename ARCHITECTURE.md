@@ -10,7 +10,7 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 
 | Folder | What is in it |
 | --- | --- |
-| `auth/` | Sign-up, sign-in, sign-out, profile and password routes; scrypt hashing (`password.ts`), database sessions and the cookie (`sessions.ts`), the middleware that requires a signed-in user (`requireUser.ts`), and the limit on failed sign-ins |
+| `auth/` | Sign-up, sign-in, guest, sign-out, profile and password routes; scrypt hashing (`password.ts`), database sessions and the cookie (`sessions.ts`), the middleware that requires a session or an account (`requireUser.ts`), rate limits, and moving a guest's letters to an account (`moveUserData.ts`) |
 | `documents/` | Upload, list, delete; the BullMQ queue, the worker job (`processDocument.ts`), the letter analysis prompt (`extractLetter.ts`) and progress events over SSE |
 | `explanation/` | Plain-language explanation: route, prompt, and the checked facts the model gets |
 | `translation/` | The analysis texts in the reader's language, translated once and cached |
@@ -34,14 +34,17 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 ## Who is signed in
 
 1. `auth/requireUser.ts` → `loadSession` runs for every `/api` request: it hashes the token from the
-   `briefklar_session` cookie, looks up the `Session` row and sets `req.userId`.
+   `briefklar_session` cookie, looks up the `Session` row and sets `req.userId` (and `req.isGuest` for a
+   guest, a user without an e-mail address).
 2. `app.ts` mounts the public routes first (`/api/health`, `/api/auth`), then `requireUser`, which answers
-   401 for everything else when nobody is signed in.
+   401 for everything else when there is no session. Features guests cannot use are mounted behind
+   `requireAccount` (403 `ACCOUNT_REQUIRED`).
 3. Routes read the user with `getUserId(req)` and put it into every query; letters are loaded through
    `documents/ownedDocument.ts`, which only finds the user's own. The worker gets a document id and reads
    the owner from the letter.
-4. In the browser, `hooks/useAccount.ts` asks `GET /api/auth/me`. Without an account, `App.tsx` only has
-   the sign-in and sign-up routes; any 401 later on (`main.tsx`) shows the sign-in page again.
+4. In the browser, `hooks/useAccount.ts` asks `GET /api/auth/me`. `App.tsx` shows the pages that need an
+   account as `components/SignInRequired.tsx` to visitors and guests; the upload page starts a guest
+   session (`POST /api/auth/guest`) with the first letter.
 
 ### The `llm/` folder
 

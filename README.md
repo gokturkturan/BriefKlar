@@ -233,6 +233,12 @@ reminders, settings and usage.
   stateless JWT could not do.
 - Every route under `/api` except health, sign-up and sign-in needs a session, and every query is
   scoped to the signed-in user.
+- **Guests** can try BriefKlar without an account: the first upload starts a guest session (a user
+  without an e-mail address), and the guest sees the analysis of that one letter. My letters, the
+  explanation, the chat, reply drafts, reminders, usage and the profile show a sign-in card; the API
+  answers `403 ACCOUNT_REQUIRED`. Signing up turns the guest into the account, signing in moves the
+  guest's letter to the account. Guests are deleted after 7 days, and one IP address can start
+  10 guest sessions per hour.
 - An unknown e-mail and a wrong password get the same answer in the same time; after 10 failed
   sign-ins for one address, further attempts are refused for 15 minutes.
 - The profile page shows the account (e-mail, name, password) together with the settings and the
