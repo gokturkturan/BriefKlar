@@ -1,23 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import {
-  ANALYSIS_LANGUAGE,
-  EXPLANATION_LANGUAGES,
-  translatableTexts,
-  type AnalysisTranslation,
-  type DeadlineDto,
-  type DeadlineKind,
-  type DocumentDetailDto,
-  type ExplanationLanguage,
-  type LetterAnalysisDto,
-  type Urgency,
-} from "@briefklar/shared";
-import { api, queryKeys } from "../api/client";
-import { deadlineStepText } from "../i18n/deadlineSteps";
-import { dirOf, useI18n, type I18n } from "../i18n/I18nProvider";
+import { EXPLANATION_LANGUAGES, type LetterAnalysisDto, type Urgency } from "@briefklar/shared";
+import { useI18n, type I18n } from "../i18n/I18nProvider";
+import { ActionItems } from "./analysis/ActionItems";
+import { DeadlineList } from "./analysis/DeadlineList";
+import { textProps } from "./analysis/textProps";
+import { useAnalysisTexts } from "./analysis/useAnalysisTexts";
 import { ChatPanel } from "./ChatPanel";
 import { ExplanationPanel } from "./ExplanationPanel";
-import { ReceivedDateForm } from "./ReceivedDateForm";
 import { ReplyDraftsPanel } from "./ReplyDraftsPanel";
 
 const urgencyStyles: Record<Urgency, string> = {
@@ -25,9 +14,6 @@ const urgencyStyles: Record<Urgency, string> = {
   MEDIUM: "bg-amber-100 text-amber-800",
   HIGH: "bg-red-100 text-red-800",
 };
-
-/** Language attributes for texts that may still be in English on a page in another language */
-const textProps = (language: ExplanationLanguage) => ({ lang: language, dir: dirOf(language) });
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -38,109 +24,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function DeadlineItem({ deadline: d }: { deadline: DeadlineDto }) {
-  const i18n = useI18n();
-  const { t, formatDate } = i18n;
-  const kind = t.analysis.deadlineKinds[d.kind as DeadlineKind] ?? d.kind;
-  return (
-    <li className="rounded-md bg-red-50 px-3 py-2">
-      <p className="flex flex-wrap items-center gap-2 font-medium text-red-900">
-        {formatDate(d.dueDate)} · {kind}
-        {d.isEstimate && (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-            {t.analysis.estimated}
-          </span>
-        )}
-      </p>
-      {/* Quoted from the German letter */}
-      <p className="text-sm text-red-800/80" lang="de" dir="ltr">
-        „{d.sourceText}“
-      </p>
-      {d.steps.length > 0 && (
-        <details className="mt-1 text-sm text-slate-700">
-          <summary className="cursor-pointer text-red-900/80">{t.analysis.howCalculated}</summary>
-          <ol className="mt-1 list-decimal space-y-1 ps-5">
-            {d.steps.map((step, i) => (
-              <li key={i}>{deadlineStepText(i18n, step)}</li>
-            ))}
-          </ol>
-        </details>
-      )}
-    </li>
-  );
-}
-
-function ActionItems({
-  documentId,
-  analysis,
-  texts,
-  textLanguage,
-}: {
-  documentId: string;
-  analysis: LetterAnalysisDto;
-  texts: AnalysisTranslation;
-  textLanguage: ExplanationLanguage;
-}) {
-  const { t } = useI18n();
-  const queryClient = useQueryClient();
-  const key = queryKeys.document(documentId);
-
-  // Optimistic update: the checkbox flips immediately, and is rolled back if the request fails
-  const toggle = useMutation({
-    mutationFn: ({ itemId, done }: { itemId: string; done: boolean }) =>
-      api.updateActionItem(documentId, itemId, done),
-    onMutate: async ({ itemId, done }) => {
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const previous = queryClient.getQueryData<DocumentDetailDto>(key);
-      queryClient.setQueryData<DocumentDetailDto>(key, (old) =>
-        old?.analysis
-          ? {
-              ...old,
-              analysis: {
-                ...old.analysis,
-                actionItems: old.analysis.actionItems.map((item) =>
-                  item.id === itemId ? { ...item, done } : item,
-                ),
-              },
-            }
-          : old,
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
-    },
-  });
-
-  if (analysis.actionItems.length === 0) {
-    return <p className="text-slate-600">{t.analysis.nothingToDo}</p>;
-  }
-
-  return (
-    <ul className="space-y-2">
-      {/* Action items are stored in the order of the analysis, so item i has translation i */}
-      {analysis.actionItems.map((item, i) => (
-        <li key={item.id}>
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={item.done}
-              onChange={(e) => toggle.mutate({ itemId: item.id, done: e.target.checked })}
-              className="mt-1 h-4 w-4 accent-emerald-600"
-            />
-            <span
-              className={item.done ? "text-slate-400 line-through" : "text-slate-800"}
-              {...textProps(texts.requiredActions[i] ? textLanguage : ANALYSIS_LANGUAGE)}
-            >
-              {texts.requiredActions[i] ?? item.text}
-            </span>
-          </label>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /** "deadlines[0].explicitDate" -> "deadlines" in the reader's language */
 function uncertainFieldNames({ t }: I18n, fields: string[]): string {
   const names = fields.map((field) => {
@@ -148,28 +31,6 @@ function uncertainFieldNames({ t }: I18n, fields: string[]): string {
     return (t.analysis.fields as Record<string, string | undefined>)[base] ?? field;
   });
   return [...new Set(names)].join(", ");
-}
-
-/**
- * The analysis texts in the reader's language. Letters analyzed before the user chose their
- * language are translated on first view; until then (or if it fails) the English texts show.
- */
-function useAnalysisTexts(documentId: string, analysis: LetterAnalysisDto, language: ExplanationLanguage) {
-  const needsTranslation = language !== ANALYSIS_LANGUAGE;
-  const translation = useQuery({
-    queryKey: queryKeys.translation(documentId, language, analysis.createdAt),
-    queryFn: () => api.getAnalysisTranslation(documentId, language),
-    enabled: needsTranslation,
-    staleTime: Infinity,
-  });
-  const translated = needsTranslation && translation.data !== undefined;
-  return {
-    texts: translated ? translation.data : translatableTexts(analysis.extraction),
-    textLanguage: translated ? language : ANALYSIS_LANGUAGE,
-    translating: needsTranslation && translation.isPending,
-    failed: needsTranslation && translation.isError,
-    retry: () => void translation.refetch(),
-  };
 }
 
 export function AnalysisPanel({
@@ -185,10 +46,6 @@ export function AnalysisPanel({
   const { t, language, formatDate, formatMoney } = i18n;
   const { extraction } = analysis;
   const { texts, textLanguage, translating, failed, retry } = useAnalysisTexts(documentId, analysis, language);
-
-  // Deadlines the API could not turn into a date are shown as text only
-  const datedTexts = new Set(analysis.deadlines.map((d) => d.sourceText));
-  const undatedDeadlines = extraction.deadlines.filter((d) => !datedTexts.has(d.rawText));
 
   return (
     <div className="space-y-4">
@@ -251,26 +108,9 @@ export function AnalysisPanel({
         <ActionItems documentId={documentId} analysis={analysis} texts={texts} textLanguage={textLanguage} />
       </Section>
 
-      {(analysis.deadlines.length > 0 || undatedDeadlines.length > 0) && (
+      {extraction.deadlines.length > 0 && (
         <Section title={t.analysis.sections.deadlines}>
-          <ul className="space-y-2">
-            {analysis.deadlines.map((d) => (
-              <DeadlineItem key={d.id} deadline={d} />
-            ))}
-            {undatedDeadlines.map((d, i) => (
-              <li key={i} className="rounded-md bg-amber-50 px-3 py-2">
-                <p className="font-medium text-amber-900">{t.analysis.deadlineKinds[d.kind]}</p>
-                <p className="text-sm text-amber-800/80">
-                  <bdi lang="de">„{d.rawText}“</bdi> · {t.analysis.undated}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <ReceivedDateForm
-            documentId={documentId}
-            receivedDate={receivedDate}
-            letterDate={extraction.letterDate}
-          />
+          <DeadlineList documentId={documentId} analysis={analysis} receivedDate={receivedDate} />
         </Section>
       )}
 
