@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "deadlines:recompute": "tsx src/scripts/recomputeAllDeadlines.ts",
     "knowledge:seed": "tsx src/scripts/seedKnowledge.ts",
-    "llm:reprice": "tsx src/scripts/repriceLlmCalls.ts"
+    "llm:reprice": "tsx src/scripts/repriceLlmCalls.ts",
+    "eval": "tsx src/evals/runEval.ts"
   },
   "dependencies": {
     "@briefklar/shared": "*",
