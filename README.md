@@ -304,7 +304,8 @@ npm install
 # 2. Start PostgreSQL (port 5433) and Redis (port 6380)
 npm run infra:up
 
-# 3. Configure the API (add your GEMINI_API_KEY from https://aistudio.google.com)
+# 3. Configure the API: choose LLM_PROVIDER (gemini, anthropic or openai) and add its key
+#    (GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY); see the comments in the file
 cp apps/api/.env.example apps/api/.env
 
 # 4. Create the database schema (Prisma asks for a migration name, e.g. "init")
@@ -326,6 +327,7 @@ API health check: http://localhost:4000/api/health
 npm run typecheck                     # all workspaces
 npm test                              # Vitest unit tests (no database or model needed)
 npm run eval -w @briefklar/api        # evaluation of the letter analysis (calls the model)
+npm run eval -w @briefklar/api -- --provider anthropic   # the same with another provider
 ```
 
 The unit tests cover the deadline engine (periods, delivery rules, holidays per federal state),

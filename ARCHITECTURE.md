@@ -53,13 +53,16 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 | --- | --- |
 | `LLMProvider.ts` | The provider-neutral interface. Nothing outside `llm/` imports a vendor SDK. |
 | `GeminiProvider.ts` | The Gemini implementation: JSON answers, streamed text, chat rounds with tools, embeddings |
+| `ClaudeProvider.ts` | The Claude implementation (Anthropic API, e.g. Claude Haiku 5.5); no embeddings |
+| `OpenAIProvider.ts` | The OpenAI implementation (Chat Completions, e.g. GPT-6 luna) and OpenAI embeddings |
+| `ProviderFallback.ts` | Puts the configured providers behind one: `LLM_PROVIDER` answers, `LLM_FALLBACK_PROVIDER` takes over when it is down, `LLM_EMBEDDING_PROVIDER` embeds |
 | `fallback.ts` | Circuit breaker: when the primary model is overloaded, the fallback model answers for a while |
 | `generateStructured.ts` | Asks for JSON, validates it with Zod, and lets the model repair an invalid answer once |
 | `streamText.ts` | Streams free text (the explanation) |
 | `logCall.ts` | `loggedCall()` writes every model request to the `LlmCall` table with tokens, cost and latency |
 | `pricing.ts` | Price table for the cost estimate |
 | `errors.ts` | `LLMError`: one error type for all providers, with a code the web app translates |
-| `index.ts` | The `llm` instance the app uses |
+| `index.ts` | The `llm` instance the app uses, built from the `LLM_*` settings |
 
 ## The path of an uploaded letter
 

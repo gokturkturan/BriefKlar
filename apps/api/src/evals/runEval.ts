@@ -5,7 +5,10 @@ import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm/errors";
 import { extractLetter } from "../documents/extractLetter";
+import { ClaudeProvider } from "../llm/ClaudeProvider";
 import { GeminiProvider } from "../llm/GeminiProvider";
+import type { LLMProvider } from "../llm/LLMProvider";
+import { OpenAIProvider } from "../llm/OpenAIProvider";
 import { LLMValidationError } from "../llm/generateStructured";
 import { costOf } from "../llm/pricing";
 import { EXTRACT_LETTER_PROMPT_VERSION } from "../documents/extractLetter";
@@ -16,6 +19,8 @@ import { scoreExtraction, summarize, type CaseResult, type EvalSummary } from ".
  * Runs the letter analysis over the evaluation set and scores it:
  *   npm run eval -w @briefklar/api
  *   npm run eval -w @briefklar/api -- --model gemini-flash-lite-latest
+ *   npm run eval -w @briefklar/api -- --provider anthropic
+ *   npm run eval -w @briefklar/api -- --provider openai --model gpt-6-luna
  *   npm run eval -w @briefklar/api -- --with-fallback --only 01,09
  *
  * By default one model answers everything (no fallback), so the result belongs to that model.
@@ -32,7 +37,8 @@ const MIME_TYPES: Record<string, string> = {
 
 const { values: args } = parseArgs({
   options: {
-    model: { type: "string", default: env.GEMINI_MODEL },
+    provider: { type: "string", default: env.LLM_PROVIDER },
+    model: { type: "string" },
     "with-fallback": { type: "boolean", default: false },
     only: { type: "string" },
     // Pause between letters, so the free tier's requests-per-minute limit is not hit
@@ -40,9 +46,31 @@ const { values: args } = parseArgs({
   },
 });
 
-const model = args.model ?? env.GEMINI_MODEL;
-const fallbackModel = args["with-fallback"] ? env.GEMINI_FALLBACK_MODEL || undefined : undefined;
-const provider = new GeminiProvider(env.GEMINI_API_KEY, model, fallbackModel, env.GEMINI_EMBEDDING_MODEL);
+/** The provider under test, with one model (and its fallback model with --with-fallback) */
+function evalProvider(name: string): { provider: LLMProvider; model: string; fallbackModel?: string } {
+  const withFallback = args["with-fallback"];
+  switch (name) {
+    case "gemini": {
+      const model = args.model ?? env.GEMINI_MODEL;
+      const fallbackModel = withFallback ? env.GEMINI_FALLBACK_MODEL || undefined : undefined;
+      return { provider: new GeminiProvider(env.GEMINI_API_KEY, model, fallbackModel), model, fallbackModel };
+    }
+    case "anthropic": {
+      const model = args.model ?? env.ANTHROPIC_MODEL;
+      const fallbackModel = withFallback ? env.ANTHROPIC_FALLBACK_MODEL || undefined : undefined;
+      return { provider: new ClaudeProvider(env.ANTHROPIC_API_KEY, model, fallbackModel), model, fallbackModel };
+    }
+    case "openai": {
+      const model = args.model ?? env.OPENAI_MODEL;
+      const fallbackModel = withFallback ? env.OPENAI_FALLBACK_MODEL || undefined : undefined;
+      return { provider: new OpenAIProvider(env.OPENAI_API_KEY, model, fallbackModel), model, fallbackModel };
+    }
+    default:
+      throw new Error(`Unknown provider "${name}": use gemini, anthropic or openai`);
+  }
+}
+
+const { provider, model, fallbackModel } = evalProvider(args.provider ?? env.LLM_PROVIDER);
 const lettersDir = new URL("./letters/", import.meta.url);
 const resultsDir = new URL("../../eval-results/", import.meta.url);
 

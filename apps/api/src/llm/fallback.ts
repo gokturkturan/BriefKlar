@@ -3,6 +3,8 @@ import { LLMError } from "./errors";
 /** A model that was tried and failed before another model answered (or everything failed) */
 export interface FailedAttempt {
   model: string;
+  /** Set when the attempt was made by another provider than the one called */
+  provider?: string;
   errorMessage: string;
   latencyMs: number;
 }

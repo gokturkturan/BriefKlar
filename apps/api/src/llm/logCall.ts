@@ -15,6 +15,8 @@ export interface CallContext {
 
 interface CallOutcome {
   model: string;
+  /** The provider that answered, if not the one in the context */
+  provider?: string;
   inputTokens: number;
   outputTokens: number;
   latencyMs: number;
@@ -43,9 +45,9 @@ async function logCall(context: CallContext, outcome: CallOutcome) {
         documentId: context.documentId,
         userId: owner?.userId,
         purpose: context.purpose,
-        provider: context.provider.name,
         promptVersion: context.promptVersion,
         ...outcome,
+        provider: outcome.provider ?? context.provider.name,
         errorMessage: outcome.errorMessage?.slice(0, 2000),
         costUsd,
         agentRunId: scope?.runId,
@@ -72,6 +74,7 @@ async function logFailedAttempts(context: CallContext, attempts: FailedAttempt[]
   for (const attempt of attempts) {
     await logCall(context, {
       model: attempt.model,
+      provider: attempt.provider,
       inputTokens: 0,
       outputTokens: 0,
       latencyMs: attempt.latencyMs,
@@ -85,6 +88,7 @@ async function logFailedAttempts(context: CallContext, attempts: FailedAttempt[]
 /** The parts of a provider result that are logged */
 export interface LoggableResult {
   model: string;
+  provider?: string;
   latencyMs: number;
   inputTokens?: number;
   outputTokens?: number;
@@ -126,6 +130,7 @@ export async function loggedCall<R extends LoggableResult>(
   await logFailedAttempts(context, result.failedAttempts);
   await logCall(context, {
     model: result.model,
+    provider: result.provider,
     inputTokens: result.inputTokens ?? 0,
     outputTokens: result.outputTokens ?? 0,
     latencyMs: result.latencyMs,
