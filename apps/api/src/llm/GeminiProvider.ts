@@ -1,4 +1,11 @@
-import { ApiError, FunctionCallingConfigMode, GoogleGenAI, type Part } from "@google/genai";
+import {
+  ApiError,
+  FunctionCallingConfigMode,
+  GoogleGenAI,
+  type GenerateContentParameters,
+  type GenerateContentResponse,
+  type Part,
+} from "@google/genai";
 import { isRetryableStatus, LLMError, userErrorForStatus } from "./errors";
 import { FallbackRunner, type FallbackResult } from "./fallback";
 import { StreamedParts, toGeminiContents } from "./geminiChat";
@@ -90,80 +97,123 @@ export class GeminiProvider implements LLMProvider {
     request: TextGenerationRequest,
     onDelta: (text: string) => void,
   ): Promise<TextGenerationResult> {
-    let started = false;
-    const emit = (text: string) => {
-      started = true;
-      onDelta(text);
-    };
-    // Once text has reached the user, switching to another model would mix two answers
-    return withMeta(await this.models.run((model) => this.stream(model, request, emit), () => !started));
+    return this.runStreaming(onDelta, async (model, emit) => {
+      let text = "";
+      const usage = await this.stream(
+        model,
+        {
+          contents: [{ role: "user", parts: request.input.map(toGeminiPart) }],
+          config: {
+            systemInstruction: request.system,
+            temperature: 0.3, // explanations may vary a little, facts come from the letter
+          },
+        },
+        { signal: request.signal, firstChunkMs: FIRST_CHUNK_TIMEOUT_MS },
+        (chunk) => {
+          const delta = chunk.text ?? "";
+          if (!delta) return;
+          text += delta;
+          emit(delta);
+        },
+      );
+      return { text, ...usage };
+    });
   }
 
   async chatRound(request: ChatRoundRequest, onDelta: (text: string) => void): Promise<ChatRoundResult> {
+    return this.runStreaming(onDelta, async (model, emit) => {
+      const collected = new StreamedParts();
+      const usage = await this.stream(
+        model,
+        {
+          contents: toGeminiContents(request.turns, model),
+          config: {
+            systemInstruction: request.system,
+            tools: [
+              {
+                functionDeclarations: request.tools.map((tool) => ({
+                  name: tool.name,
+                  description: tool.description,
+                  parametersJsonSchema: tool.parameters,
+                })),
+              },
+            ],
+            toolConfig: {
+              functionCallingConfig: {
+                mode: request.toolChoice === "none" ? FunctionCallingConfigMode.NONE : FunctionCallingConfigMode.AUTO,
+              },
+            },
+          },
+        },
+        { signal: request.signal, firstChunkMs: CHAT_FIRST_CHUNK_TIMEOUT_MS },
+        (chunk) => {
+          const delta = collected.add(chunk.candidates?.[0]?.content?.parts);
+          if (delta) emit(delta);
+        },
+        // Thinking tokens are billed as output
+        { countThoughts: true },
+      );
+      return { parts: collected.parts, ...usage };
+    });
+  }
+
+  /**
+   * Runs a streamed answer on the primary model, or on the fallback model if the primary is
+   * overloaded. Once text has reached the user, switching models would mix two answers, so a
+   * failure after that is thrown; a chat round that only asked for tools can still switch.
+   */
+  private async runStreaming<T extends Usage>(
+    onDelta: (text: string) => void,
+    answer: (model: string, emit: (text: string) => void) => Promise<T>,
+  ) {
     let started = false;
     const emit = (text: string) => {
       started = true;
       onDelta(text);
     };
-    // A round that only asked for tools can still move to the fallback; streamed text cannot
-    return withMeta(await this.models.run((model) => this.chatStream(model, request, emit), () => !started));
+    return withMeta(await this.models.run((model) => answer(model, emit), () => !started));
   }
 
-  private async chatStream(
+  /**
+   * Streams one answer from `model` and passes every chunk to `onChunk`. A model can stay
+   * silent for a long time when it is overloaded: waiting longer than `firstChunkMs` for the
+   * first chunk counts as a timeout, so the fallback model can answer instead.
+   */
+  private async stream(
     model: string,
-    request: ChatRoundRequest,
-    onDelta: (text: string) => void,
-  ): Promise<Pick<ChatRoundResult, "parts"> & Usage> {
+    { contents, config }: Pick<GenerateContentParameters, "contents" | "config">,
+    { signal, firstChunkMs }: { signal?: AbortSignal; firstChunkMs: number },
+    onChunk: (chunk: GenerateContentResponse) => void,
+    { countThoughts = false } = {},
+  ): Promise<Usage> {
     const timeout = new AbortController();
-    const signal = request.signal ? AbortSignal.any([request.signal, timeout.signal]) : timeout.signal;
-    const timer = setTimeout(() => timeout.abort(), CHAT_FIRST_CHUNK_TIMEOUT_MS);
-
-    const collected = new StreamedParts();
-    let inputTokens = 0;
-    let outputTokens = 0;
+    const timer = setTimeout(() => timeout.abort(), firstChunkMs);
+    const usage: Usage = { inputTokens: 0, outputTokens: 0 };
     try {
       const stream = await this.client.models.generateContentStream({
         model,
-        contents: toGeminiContents(request.turns, model),
-        config: {
-          systemInstruction: request.system,
-          tools: [
-            {
-              functionDeclarations: request.tools.map((tool) => ({
-                name: tool.name,
-                description: tool.description,
-                parametersJsonSchema: tool.parameters,
-              })),
-            },
-          ],
-          toolConfig: {
-            functionCallingConfig: {
-              mode: request.toolChoice === "none" ? FunctionCallingConfigMode.NONE : FunctionCallingConfigMode.AUTO,
-            },
-          },
-          abortSignal: signal,
-        },
+        contents,
+        config: { ...config, abortSignal: signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal },
       });
 
       for await (const chunk of stream) {
         clearTimeout(timer);
-        const delta = collected.add(chunk.candidates?.[0]?.content?.parts);
-        if (delta) onDelta(delta);
-        if (chunk.usageMetadata) {
-          inputTokens = chunk.usageMetadata.promptTokenCount ?? inputTokens;
-          // Thinking tokens are billed as output
-          outputTokens =
-            (chunk.usageMetadata.candidatesTokenCount ?? 0) + (chunk.usageMetadata.thoughtsTokenCount ?? 0) ||
-            outputTokens;
+        onChunk(chunk);
+        // Usage is reported with the chunks; the last one has the totals
+        const meta = chunk.usageMetadata;
+        if (meta) {
+          usage.inputTokens = meta.promptTokenCount ?? usage.inputTokens;
+          const output = (meta.candidatesTokenCount ?? 0) + (countThoughts ? (meta.thoughtsTokenCount ?? 0) : 0);
+          usage.outputTokens = output || usage.outputTokens;
         }
       }
     } catch (err) {
-      if (timeout.signal.aborted && !request.signal?.aborted) throw timeoutError(model, CHAT_FIRST_CHUNK_TIMEOUT_MS);
+      if (timeout.signal.aborted && !signal?.aborted) throw timeoutError(model, firstChunkMs);
       throw err;
     } finally {
       clearTimeout(timer);
     }
-    return { parts: collected.parts, inputTokens, outputTokens };
+    return usage;
   }
 
   /**
@@ -201,53 +251,6 @@ export class GeminiProvider implements LLMProvider {
       error.latencyMs = Date.now() - startedAt;
       throw error;
     }
-  }
-
-  private async stream(
-    model: string,
-    request: TextGenerationRequest,
-    onDelta: (text: string) => void,
-  ): Promise<{ text: string } & Usage> {
-    // A model can stay silent for a long time when it is overloaded. Waiting longer than
-    // FIRST_CHUNK_TIMEOUT_MS for the first chunk counts as a timeout, so the fallback can answer.
-    const timeout = new AbortController();
-    const signal = request.signal ? AbortSignal.any([request.signal, timeout.signal]) : timeout.signal;
-    const timer = setTimeout(() => timeout.abort(), FIRST_CHUNK_TIMEOUT_MS);
-
-    let text = "";
-    let inputTokens = 0;
-    let outputTokens = 0;
-    try {
-      const stream = await this.client.models.generateContentStream({
-        model,
-        contents: [{ role: "user", parts: request.input.map(toGeminiPart) }],
-        config: {
-          systemInstruction: request.system,
-          temperature: 0.3, // explanations may vary a little, facts come from the letter
-          abortSignal: signal,
-        },
-      });
-
-      for await (const chunk of stream) {
-        clearTimeout(timer);
-        const delta = chunk.text ?? "";
-        if (delta) {
-          text += delta;
-          onDelta(delta);
-        }
-        // Usage is reported with the chunks; the last one has the totals
-        if (chunk.usageMetadata) {
-          inputTokens = chunk.usageMetadata.promptTokenCount ?? inputTokens;
-          outputTokens = chunk.usageMetadata.candidatesTokenCount ?? outputTokens;
-        }
-      }
-    } catch (err) {
-      if (timeout.signal.aborted && !request.signal?.aborted) throw timeoutError(model, FIRST_CHUNK_TIMEOUT_MS);
-      throw err;
-    } finally {
-      clearTimeout(timer);
-    }
-    return { text, inputTokens, outputTokens };
   }
 
   private async call(model: string, request: JsonGenerationRequest): Promise<{ text: string } & Usage> {
