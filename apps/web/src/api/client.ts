@@ -62,6 +62,11 @@ export const api = {
 
   updateSettings: (input: UpdateSettingsInput) => request<SettingsDto>("/api/settings", json("PATCH", input)),
 
+  /** A plain link, so the browser downloads the file */
+  exportUrl: "/api/account/export",
+
+  deleteAccount: () => request<void>("/api/account", json("DELETE", { confirm: "DELETE" })),
+
   deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
 
   getHealth: () => request<HealthDto>("/api/health"),

@@ -332,6 +332,27 @@ export const en = {
     languageHint:
       "BriefKlar is shown in this language: the pages, the analysis of your letters, explanations and " +
       "the translations of reply drafts.",
+    privacy: {
+      title: "Your data and privacy",
+      processing:
+        "To analyze a letter, BriefKlar sends it to Google's Gemini API. Everything else (your letters, analyses, " +
+        "chats and reminders) is stored by BriefKlar until you delete it.",
+      retention: "Delete letters automatically",
+      retentionHint:
+        "A letter is deleted this many days after you uploaded it, with its analysis, explanations, reply drafts, " +
+        "chat and reminders.",
+      retentionNever: "Never (keep until I delete them)",
+      retentionDays: (days: number) => `After ${days} days`,
+      export: "Download my data",
+      exportHint:
+        "A JSON file with your settings and every letter, including the original file, the analysis, reply drafts, " +
+        "chat and reminders.",
+      delete: "Delete all my data",
+      deleteHint: "Deletes every letter, file, analysis, chat, reminder and your settings.",
+      deleteConfirm: "This cannot be undone. Delete everything now?",
+      deleteYes: "Yes, delete everything",
+      deleted: "All your data was deleted.",
+    },
   },
 
   usage: {

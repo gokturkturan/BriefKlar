@@ -317,6 +317,27 @@ export const de: Messages = {
     languageHint:
       "BriefKlar zeigt alles in dieser Sprache: die Seiten, die Auswertung Ihrer Briefe, die Erklärungen " +
       "und die Übersetzung von Antwort-Entwürfen.",
+    privacy: {
+      title: "Ihre Daten und Datenschutz",
+      processing:
+        "Um einen Brief zu analysieren, schickt BriefKlar ihn an die Gemini-API von Google. Alles andere (Ihre Briefe, " +
+        "Analysen, Chats und Erinnerungen) speichert BriefKlar, bis Sie es löschen.",
+      retention: "Briefe automatisch löschen",
+      retentionHint:
+        "Ein Brief wird so viele Tage nach dem Hochladen gelöscht, mit Analyse, Erklärungen, Antwort-Entwürfen, " +
+        "Chat und Erinnerungen.",
+      retentionNever: "Nie (behalten, bis ich sie lösche)",
+      retentionDays: (days) => `Nach ${days} Tagen`,
+      export: "Meine Daten herunterladen",
+      exportHint:
+        "Eine JSON-Datei mit Ihren Einstellungen und allen Briefen, mit Original-Datei, Analyse, Antwort-Entwürfen, " +
+        "Chat und Erinnerungen.",
+      delete: "Alle meine Daten löschen",
+      deleteHint: "Löscht alle Briefe, Dateien, Analysen, Chats, Erinnerungen und Ihre Einstellungen.",
+      deleteConfirm: "Das kann man nicht rückgängig machen. Jetzt alles löschen?",
+      deleteYes: "Ja, alles löschen",
+      deleted: "Alle Ihre Daten wurden gelöscht.",
+    },
   },
 
   usage: {

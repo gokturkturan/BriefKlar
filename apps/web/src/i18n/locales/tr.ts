@@ -315,6 +315,27 @@ export const tr: Messages = {
     languageHint:
       "BriefKlar bu dilde gösterilir: sayfalar, mektuplarınızın analizi, açıklamalar ve cevap " +
       "taslaklarının çevirileri.",
+    privacy: {
+      title: "Verileriniz ve gizlilik",
+      processing:
+        "BriefKlar bir mektubu analiz etmek için onu Google'ın Gemini API'sine gönderir. Diğer her şey (mektuplarınız, " +
+        "analizler, sohbetler ve hatırlatıcılar) siz silene kadar BriefKlar'da saklanır.",
+      retention: "Mektupları otomatik sil",
+      retentionHint:
+        "Bir mektup, yüklemenizden bu kadar gün sonra analizi, açıklamaları, yanıt taslakları, sohbeti ve " +
+        "hatırlatıcılarıyla birlikte silinir.",
+      retentionNever: "Asla (ben silene kadar sakla)",
+      retentionDays: (days) => `${days} gün sonra`,
+      export: "Verilerimi indir",
+      exportHint:
+        "Ayarlarınızı ve tüm mektuplarınızı (orijinal dosya, analiz, yanıt taslakları, sohbet ve hatırlatıcılar " +
+        "dahil) içeren bir JSON dosyası.",
+      delete: "Tüm verilerimi sil",
+      deleteHint: "Tüm mektupları, dosyaları, analizleri, sohbetleri, hatırlatıcıları ve ayarlarınızı siler.",
+      deleteConfirm: "Bu işlem geri alınamaz. Her şey şimdi silinsin mi?",
+      deleteYes: "Evet, her şeyi sil",
+      deleted: "Tüm verileriniz silindi.",
+    },
   },
 
   usage: {
