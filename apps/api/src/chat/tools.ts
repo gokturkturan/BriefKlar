@@ -1,9 +1,15 @@
 import {
+  DELEGATE_AGENTS,
   HOLIDAY_GERMAN_NAMES,
   parseDeadlineSteps,
   REMINDER_NOTE_MAX_LENGTH,
+  REPLY_TYPES,
+  type AgentName,
+  type AgentPhase,
+  type ChatReplyDraftDto,
   type ChatSourceDto,
   type ChatToolName,
+  type DelegateAgent,
   type GermanState,
   type LetterExtraction,
 } from "@briefklar/shared";
@@ -35,6 +41,19 @@ export interface ToolContext {
   deadlines: Pick<Deadline, "dueDate" | "kind" | "sourceText" | "isEstimate" | "steps">[];
   actionItems: { text: string; done: boolean }[];
   signal?: AbortSignal;
+  /**
+   * Hands work to another agent through the orchestrator (chatRoutes builds it); without it the
+   * delegate tool is not available
+   */
+  delegate?: (request: DelegateRequest, onAgent: (agent: AgentName, phase: AgentPhase) => void) => Promise<ToolOutput>;
+  /** Set by runChat: passes the other agents' activity on to the browser */
+  onAgent?: (agent: AgentName, phase: AgentPhase) => void;
+}
+
+/** What the chat asks another agent to do */
+export interface DelegateRequest {
+  agent: DelegateAgent;
+  input: { type: (typeof REPLY_TYPES)[number]; notes: string };
 }
 
 export interface ToolOutput {
@@ -44,6 +63,8 @@ export interface ToolOutput {
   ok: boolean;
   /** Knowledge base entries the answer can be based on */
   sources?: ChatSourceDto[];
+  /** A reply draft the tool stored; the page links to it under the answer */
+  replyDraft?: ChatReplyDraftDto;
 }
 
 export interface ChatTool<A> {
@@ -287,6 +308,37 @@ const createReminderTool = defineTool({
   },
 });
 
+const delegate = defineTool<DelegateRequest>({
+  name: "delegate",
+  description:
+    'Hands work to another BriefKlar agent. agent "replyWriter" writes a German reply to this letter: a draft ' +
+    "the user checks, completes and sends themselves, saved in the reply section of the page. Another model " +
+    "checks it for facts that are not in the letter or in the user's words. Types: OBJECTION (Widerspruch or " +
+    "Einspruch), EXTENSION_REQUEST (more time), SEND_DOCUMENTS (cover letter for documents), INSTALLMENT_PLAN " +
+    "(Ratenzahlung), QUESTION (a question to the sender). Call it whenever the user asks you to write, draft or " +
+    "formulate a reply or letter; never write the letter yourself. Put everything the user said that belongs " +
+    "in the reply into input.notes, in their words: reasons, amounts they can pay, dates, what they want to ask. " +
+    'When it answers "needs_info", ask the user for it in one short message; when they answer, call delegate ' +
+    "again with the same type and their answer in input.notes (empty if they want the draft without it).",
+  schema: z.object({
+    agent: z.enum(DELEGATE_AGENTS).describe('The agent to hand the work to: "replyWriter"'),
+    input: z.object({
+      type: z.enum(REPLY_TYPES).describe("The kind of reply"),
+      notes: z
+        .string()
+        .max(2000)
+        .describe("The user's own words for the reply: reasons, amounts, dates, wishes. Empty if they gave none."),
+    }),
+  }),
+  async run(request, ctx) {
+    if (!ctx.delegate) return failure("Reply drafts cannot be written here.");
+    if (!ctx.extraction.isOfficialLetter) {
+      return failure("This document is not an official letter, so BriefKlar does not write a reply to it.");
+    }
+    return ctx.delegate(request, ctx.onAgent ?? (() => {}));
+  },
+});
+
 export const CHAT_TOOLS = [
   getLetterDetails,
   searchKnowledgeBase,
@@ -295,6 +347,7 @@ export const CHAT_TOOLS = [
   listPublicHolidays,
   listRemindersTool,
   createReminderTool,
+  delegate,
 ] as ChatTool<unknown>[];
 
 /** JSON Schema declarations sent to the model */

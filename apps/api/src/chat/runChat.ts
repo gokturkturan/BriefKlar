@@ -1,4 +1,10 @@
-import { isChatToolName, type ChatSourceDto, type ChatStreamEvent, type ChatToolCallDto } from "@briefklar/shared";
+import {
+  isChatToolName,
+  type ChatReplyDraftDto,
+  type ChatSourceDto,
+  type ChatStreamEvent,
+  type ChatToolCallDto,
+} from "@briefklar/shared";
 import type { ChatPart, ChatTurn, LLMProvider } from "../llm/LLMProvider";
 import { loggedCall } from "../llm/logCall";
 import { CHAT_TOOLS, runTool, toolDeclarations, type ChatTool, type ToolContext } from "./tools";
@@ -17,13 +23,15 @@ export interface RunChatOptions {
   instruction?: string;
   context: ToolContext;
   tools?: ChatTool<unknown>[];
-  onEvent: (event: Extract<ChatStreamEvent, { type: "tool" | "delta" }>) => void;
+  onEvent: (event: Extract<ChatStreamEvent, { type: "tool" | "agent" | "delta" }>) => void;
 }
 
 export interface ChatAnswer {
   text: string;
   toolCalls: ChatToolCallDto[];
   sources: ChatSourceDto[];
+  /** The reply draft another agent wrote for this answer (delegate tool) */
+  replyDraft: ChatReplyDraftDto | null;
   /** The model that wrote the final answer */
   model: string;
 }
@@ -34,7 +42,12 @@ export interface ChatAnswer {
  * Each round is one logged model call.
  */
 export async function runChat(options: RunChatOptions): Promise<ChatAnswer> {
-  const { provider, system, promptVersion, context, onEvent } = options;
+  const { provider, system, promptVersion, onEvent } = options;
+  // Agents the chat hands work to report what they do, so the user sees more than a pause
+  const context: ToolContext = {
+    ...options.context,
+    onAgent: (agent, phase) => onEvent({ type: "agent", agent, phase }),
+  };
   const tools = options.tools ?? CHAT_TOOLS;
   const declarations = toolDeclarations(tools);
   const logContext = { provider, purpose: "chat", promptVersion, documentId: context.documentId };
@@ -44,6 +57,7 @@ export async function runChat(options: RunChatOptions): Promise<ChatAnswer> {
   const turns: ChatTurn[] = [...options.history, question];
   const toolCalls: ChatToolCallDto[] = [];
   const sources = new Map<string, ChatSourceDto>();
+  let replyDraft: ChatReplyDraftDto | null = null;
   let text = "";
 
   for (let round = 0; ; round++) {
@@ -78,7 +92,7 @@ export async function runChat(options: RunChatOptions): Promise<ChatAnswer> {
     turns.push({ role: "model", parts: result.parts, model: result.model, raw: result.raw });
     const calls = result.parts.filter((part) => part.type === "toolCall");
     if (calls.length === 0 || round >= MAX_TOOL_ROUNDS) {
-      return { text: text.trim(), toolCalls, sources: [...sources.values()], model: result.model };
+      return { text: text.trim(), toolCalls, sources: [...sources.values()], replyDraft, model: result.model };
     }
 
     // Independent calls in one round (e.g. two dates to check) run in parallel
@@ -99,6 +113,7 @@ export async function runChat(options: RunChatOptions): Promise<ChatAnswer> {
           toolCalls.push({ name, ok: output.ok });
         }
         for (const source of output.sources ?? []) sources.set(source.url, source);
+        if (output.replyDraft) replyDraft = output.replyDraft;
         return { type: "toolResult", id: call.id, name: call.name, result: output.result };
       }),
     );

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { LetterExtraction } from "@briefklar/shared";
 import { CHAT_TOOL_NAMES } from "@briefklar/shared";
 import { CHAT_TOOLS, runTool, toolDeclarations, type ToolContext } from "./tools";
@@ -125,5 +125,29 @@ describe("chat tools", () => {
     const { ok, result } = await runTool("list_public_holidays", { year: "next" }, context());
     expect(ok).toBe(false);
     expect(result.error).toMatch(/^Invalid arguments/);
+  });
+
+  it("delegate hands a reply to the orchestrator and passes its activity on", async () => {
+    const onAgent = vi.fn();
+    const delegate = vi.fn<NonNullable<ToolContext["delegate"]>>(async (_request, report) => {
+      report("replyWriter", "started");
+      return { ok: true, result: { status: "draft_saved" }, replyDraft: { id: "draft-1", type: "OBJECTION" } };
+    });
+    const input = { agent: "replyWriter", input: { type: "OBJECTION", notes: "Ich war krank" } };
+
+    const output = await runTool("delegate", input, context({ delegate, onAgent }));
+    expect(output.replyDraft).toEqual({ id: "draft-1", type: "OBJECTION" });
+    expect(delegate).toHaveBeenCalledWith(input, onAgent);
+    expect(onAgent).toHaveBeenCalledWith("replyWriter", "started");
+  });
+
+  it("delegate refuses unknown agents, letters that are no official letter and chats without it", async () => {
+    const delegate = vi.fn();
+    const input = { agent: "replyWriter", input: { type: "OBJECTION", notes: "" } };
+    expect((await runTool("delegate", { ...input, agent: "extractor" }, context({ delegate }))).ok).toBe(false);
+    const privateLetter = context({ delegate, extraction: { ...extraction, isOfficialLetter: false } });
+    expect((await runTool("delegate", input, privateLetter)).ok).toBe(false);
+    expect((await runTool("delegate", input, context())).ok).toBe(false);
+    expect(delegate).not.toHaveBeenCalled();
   });
 });

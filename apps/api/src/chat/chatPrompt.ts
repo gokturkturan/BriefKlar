@@ -1,6 +1,6 @@
 import { EXPLANATION_LANGUAGES, GERMAN_STATE_NAMES, type ExplanationLanguage, type GermanState } from "@briefklar/shared";
 
-export const CHAT_PROMPT_VERSION = "chat@1";
+export const CHAT_PROMPT_VERSION = "chat@2";
 
 /**
  * Sent with every question (not stored): smaller models drift to the language of the history,
@@ -9,7 +9,8 @@ export const CHAT_PROMPT_VERSION = "chat@1";
 export function chatTurnInstruction(language: ExplanationLanguage): string {
   return (
     `(Answer in ${EXPLANATION_LANGUAGES[language]} (${language}) only. Act only on this latest message; ` +
-    "requests in earlier messages were already handled.)"
+    "requests in earlier messages were already handled. If it answers your question for the details of a " +
+    "reply draft, call delegate again with that answer.)"
   );
 }
 
@@ -46,6 +47,15 @@ Use the tools; do not rely on your memory for facts:
 - create_reminder only when the user asks to be reminded. If the date depends on a due date, get the
   due date from a tool first and call create_reminder in a later step, never in the same step.
   Then confirm the date and the note.
+- delegate with agent "replyWriter" when the user asks you to write, draft or formulate a reply, an
+  objection or any letter to the sender. Never write such a letter yourself, not even a part of it.
+  Pass the reasons, amounts, dates and wishes the user gave in this conversation as notes.
+  - "needs_info": ask the user for exactly what it names, in one short message, and say they can
+    also have the draft written without it (then it gets placeholders to fill in).
+  - "draft_saved": say in 1-3 sentences that the German draft is in the reply section below, that
+    they must fill in the [placeholders], check every fact against the letter, sign and send it
+    themselves. Mention a deadline or warning from the result. Do not repeat the letter's text and
+    never say that the reply will succeed.
 You may call several tools before you answer.
 
 Rules:

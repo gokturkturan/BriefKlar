@@ -389,7 +389,16 @@ export const en = {
       list_public_holidays: "Public holidays",
       list_reminders: "Reminders",
       create_reminder: "New reminder",
+      delegate: "Reply draft",
     },
+    /** Other agents the chat hands work to, shown while they work */
+    agents: {
+      replyWriter: "Writing the reply",
+      verifier: "Checking the draft against the letter",
+      research: "Looking up official sources",
+    },
+    draftSaved: (type: string) => `Draft saved: ${type}`,
+    openDraft: "Open the draft",
     sources: "Sources",
     seeReminders: "See your reminders",
     answeredBy: (model: string) => `Answered by ${model}. Check important details in the original letter.`,

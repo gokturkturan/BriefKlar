@@ -11,6 +11,7 @@ import { api, queryKeys } from "../api/client";
 import { usePanelLanguage } from "../hooks/useSettings";
 import { useErrorText } from "../i18n/errors";
 import { dirOf, useI18n, type I18n } from "../i18n/I18nProvider";
+import { replyDraftElementId } from "./replyDraftAnchor";
 
 /** Reply types that make sense for this letter come first */
 function suggestedType(objectionPossible: boolean, hasDocuments: boolean): ReplyType {
@@ -68,7 +69,7 @@ function DraftCard({ documentId, draft }: { documentId: string; draft: ReplyDraf
   };
 
   return (
-    <li className="rounded-lg border border-slate-200 p-4">
+    <li id={replyDraftElementId(draft.id)} className="scroll-mt-4 rounded-lg border border-slate-200 p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="font-medium text-slate-900">{t.replies.types[draft.type]}</p>
         <div className="flex items-center gap-3 text-sm">

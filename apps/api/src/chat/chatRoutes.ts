@@ -8,8 +8,11 @@ import {
   type ChatSourceDto,
   type ChatStreamEvent,
   type ChatToolCallDto,
+  type ReplyType,
 } from "@briefklar/shared";
 import type { ChatMessage, Prisma } from "@prisma/client";
+import { dropWaitingReplyRuns } from "../agents/writeReply";
+import { delegateToAgent } from "./delegateReply";
 import { runChat } from "./runChat";
 import { todayInGermany, toIsoDate } from "../deadlines/calendarDate";
 import { HttpError } from "../lib/httpError";
@@ -45,13 +48,17 @@ function sourcesOf(value: Prisma.JsonValue): ChatSourceDto[] {
   });
 }
 
-function toDto(row: ChatMessage): ChatMessageDto {
+type ChatRow = ChatMessage & { replyDraft: { id: string; type: string } | null };
+const withDraft = { replyDraft: { select: { id: true, type: true } } } as const;
+
+function toDto(row: ChatRow): ChatMessageDto {
   return {
     id: row.id,
     role: row.role === "USER" ? "user" : "assistant",
     content: row.content,
     toolCalls: toolCallsOf(row.toolCalls),
     sources: sourcesOf(row.sources),
+    replyDraft: row.replyDraft ? { id: row.replyDraft.id, type: row.replyDraft.type as ReplyType } : null,
     model: row.model,
     createdAt: row.createdAt.toISOString(),
   };
@@ -63,6 +70,7 @@ chatRouter.get("/", async (req, res) => {
   const rows = await prisma.chatMessage.findMany({
     where: { documentId: doc.id, role: { in: ["USER", "ASSISTANT"] } },
     orderBy: { createdAt: "asc" },
+    include: withDraft,
   });
   res.json(rows.map(toDto));
 });
@@ -71,6 +79,8 @@ chatRouter.get("/", async (req, res) => {
 chatRouter.delete("/", async (req, res) => {
   const doc = await findOwnedDocument(req);
   await prisma.chatMessage.deleteMany({ where: { documentId: doc.id } });
+  // A question for the details of a reply belonged to this conversation
+  await dropWaitingReplyRuns(doc.id);
   res.status(204).end();
 });
 
@@ -126,6 +136,7 @@ chatRouter.post("/", async (req, res) => {
         deadlines,
         actionItems: actionItems.map(({ text, done }) => ({ text, done })),
         signal,
+        delegate: (request, onAgent) => delegateToAgent(doc.id, language, request, onAgent),
       },
       onEvent: send,
     });
@@ -136,6 +147,7 @@ chatRouter.post("/", async (req, res) => {
     const [userMessage, message] = await prisma.$transaction([
       prisma.chatMessage.create({
         data: { documentId: doc.id, role: "USER", content: body.data.message, createdAt: new Date(now) },
+        include: withDraft,
       }),
       prisma.chatMessage.create({
         data: {
@@ -145,8 +157,10 @@ chatRouter.post("/", async (req, res) => {
           toolCalls: answer.toolCalls as unknown as Prisma.InputJsonValue,
           sources: answer.sources as unknown as Prisma.InputJsonValue,
           model: answer.model,
+          replyDraftId: answer.replyDraft?.id,
           createdAt: new Date(now + 1),
         },
+        include: withDraft,
       }),
     ]);
     send({ type: "done", userMessage: toDto(userMessage), message: toDto(message) });
@@ -161,3 +175,4 @@ chatRouter.post("/", async (req, res) => {
   }
   res.end();
 });
+

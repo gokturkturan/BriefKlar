@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessageDto, ChatStreamEvent, ChatToolName, ErrorCode } from "@briefklar/shared";
+import type { AgentName, ChatMessageDto, ChatStreamEvent, ChatToolName, ErrorCode } from "@briefklar/shared";
 import { api, ApiError, queryKeys } from "../api/client";
 
 export interface ToolActivity {
@@ -8,10 +8,17 @@ export interface ToolActivity {
   status: "running" | "done" | "failed";
 }
 
-/** The answer being written: the question, the tools the model is using and the text so far */
+/** Another agent working for the chat (the reply writer, the verifier, the research agent) */
+export interface AgentActivity {
+  agent: AgentName;
+  status: "running" | "done" | "failed";
+}
+
+/** The answer being written: the question, the tools and agents at work and the text so far */
 export interface PendingTurn {
   question: string;
   tools: ToolActivity[];
+  agents: AgentActivity[];
   text: string;
 }
 
@@ -61,7 +68,7 @@ export function useChat(documentId: string) {
     const abort = new AbortController();
     abortRef.current = abort;
     setError(null);
-    let turn: PendingTurn = { question, tools: [], text: "" };
+    let turn: PendingTurn = { question, tools: [], agents: [], text: "" };
     setPending(turn);
     const update = (next: PendingTurn) => {
       turn = next;
@@ -87,6 +94,13 @@ export function useChat(documentId: string) {
             update({ ...turn, tools: [...others, { name: event.name, status: event.status }] });
             break;
           }
+          case "agent": {
+            // One entry per agent: a correction runs the reply writer again
+            const status = event.phase === "started" ? "running" : event.phase === "failed" ? "failed" : "done";
+            const others = turn.agents.filter((activity) => activity.agent !== event.agent);
+            update({ ...turn, agents: [...others, { agent: event.agent, status }] });
+            break;
+          }
           case "delta":
             update({ ...turn, text: turn.text + event.text });
             break;
@@ -99,6 +113,10 @@ export function useChat(documentId: string) {
             // The model may have set a reminder
             if (event.message.toolCalls.some((call) => call.name === "create_reminder")) {
               void queryClient.invalidateQueries({ queryKey: queryKeys.reminders });
+            }
+            // The reply writer stored a draft: the reply section shows it
+            if (event.message.replyDraft) {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.replyDrafts(documentId) });
             }
             setPending(null);
             return;

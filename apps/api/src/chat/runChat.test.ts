@@ -44,6 +44,18 @@ const search: ChatTool<{ query: string }> = {
   }),
 };
 
+/** Stands in for the delegate tool: the orchestrator's events and a stored draft */
+const delegate: ChatTool<{ agent: string }> = {
+  name: "delegate",
+  description: "Hands work over",
+  schema: z.object({ agent: z.string() }),
+  run: async (_args, ctx) => {
+    ctx.onAgent?.("replyWriter", "started");
+    ctx.onAgent?.("replyWriter", "done");
+    return { ok: true, result: { status: "draft_saved" }, replyDraft: { id: "draft-1", type: "OBJECTION" } };
+  },
+};
+
 const tools = [checkDate, search] as ChatTool<unknown>[];
 const context = { documentId: "doc-1" } as ToolContext;
 
@@ -77,6 +89,7 @@ describe("runChat", () => {
       text: "No, it is not.",
       toolCalls: [{ name: "check_date", ok: true }],
       sources: [],
+      replyDraft: null,
       model: "fake-model",
     });
     expect(requests[0]?.tools.map((t) => t.name)).toEqual(["check_date", "search_knowledge_base"]);
@@ -170,5 +183,31 @@ describe("runChat", () => {
     expect(answer.text).toBe("Enough checking.");
     expect(requests).toHaveLength(MAX_TOOL_ROUNDS + 1);
     expect(requests.map((r) => r.toolChoice)).toEqual([...Array(MAX_TOOL_ROUNDS).fill("auto"), "none"]);
+  });
+
+  it("streams the other agents' activity and returns the draft they stored", async () => {
+    const { provider } = scriptedProvider([
+      [{ type: "toolCall", id: "c1", name: "delegate", args: { agent: "replyWriter" } }],
+      [{ type: "text", text: "The draft is below." }],
+    ]);
+
+    const answer = await runChat({
+      provider,
+      system: "system",
+      promptVersion: "test",
+      history: [],
+      message: "Write an objection",
+      context,
+      tools: [delegate] as ChatTool<unknown>[],
+      onEvent: (event) => events.push(event),
+    });
+
+    expect(answer.replyDraft).toEqual({ id: "draft-1", type: "OBJECTION" });
+    expect(events.slice(0, 4)).toEqual([
+      { type: "tool", name: "delegate", status: "running" },
+      { type: "agent", agent: "replyWriter", phase: "started" },
+      { type: "agent", agent: "replyWriter", phase: "done" },
+      { type: "tool", name: "delegate", status: "done" },
+    ]);
   });
 });

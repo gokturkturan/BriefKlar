@@ -180,6 +180,8 @@ model ReplyDraft {
   promptVersion       String?
   createdAt           DateTime @default(now())
 
+  chatMessages ChatMessage[]
+
   @@index([documentId, createdAt])
 }
 
@@ -214,17 +216,20 @@ model Reminder {
 /// Chat about one letter. Assistant messages keep which tools ran and which knowledge base
 /// entries the answer used; tool results themselves are not stored.
 model ChatMessage {
-  id         String   @id @default(uuid())
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  role       ChatRole
-  content    String
+  id           String      @id @default(uuid())
+  documentId   String
+  document     Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role         ChatRole
+  content      String
   /// ChatToolCallDto[] (packages/shared)
-  toolCalls  Json?
+  toolCalls    Json?
   /// ChatSourceDto[]: knowledge base entries the answer is based on
-  sources    Json     @default("[]")
-  model      String?
-  createdAt  DateTime @default(now())
+  sources      Json        @default("[]")
+  model        String?
+  /// The reply draft this answer delivered (the chat handed the work to the reply writer)
+  replyDraftId String?
+  replyDraft   ReplyDraft? @relation(fields: [replyDraftId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
 
   @@index([documentId, createdAt])
 }

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { CHAT_MESSAGE_MAX_LENGTH, type ChatMessageDto, type ChatToolCallDto } from "@briefklar/shared";
-import { useChat, type ToolActivity } from "../hooks/useChat";
+import { useChat, type AgentActivity, type ToolActivity } from "../hooks/useChat";
 import { useErrorText } from "../i18n/errors";
 import { useI18n } from "../i18n/I18nProvider";
 import { PlainText } from "./PlainText";
+import { replyDraftElementId } from "./replyDraftAnchor";
 
 const toolStyles: Record<ToolActivity["status"], string> = {
   running: "bg-amber-50 text-amber-800",
@@ -31,6 +32,57 @@ function ToolChips({ tools }: { tools: (ToolActivity | ChatToolCallDto)[] }) {
   );
 }
 
+/** What the other agents do while the chat waits for them: what the user sees of the handoff */
+function AgentSteps({ agents }: { agents: AgentActivity[] }) {
+  const { t } = useI18n();
+  const labels: Partial<Record<AgentActivity["agent"], string>> = t.chat.agents;
+  const shown = agents.filter((activity) => labels[activity.agent]);
+  if (shown.length === 0) return null;
+  return (
+    <ul className="mb-2 space-y-1 text-sm">
+      {shown.map((activity) => (
+        <li key={activity.agent} className="flex items-center gap-2 text-slate-600">
+          <span
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+              activity.status === "running"
+                ? "animate-pulse bg-amber-500"
+                : activity.status === "done"
+                  ? "bg-emerald-500"
+                  : "bg-slate-300"
+            }`}
+          />
+          <span className={activity.status === "failed" ? "line-through" : undefined}>{labels[activity.agent]}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Under an answer that delivered a reply draft: a link down to it in the reply section */
+function DraftLink({ draft }: { draft: NonNullable<ChatMessageDto["replyDraft"]> }) {
+  const { t } = useI18n();
+  const open = () => {
+    const element = document.getElementById(replyDraftElementId(draft.id));
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
+    element?.querySelector("textarea")?.focus({ preventScroll: true });
+  };
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-emerald-50 px-3 py-2 text-sm">
+      <span className="text-emerald-900">{t.chat.draftSaved(t.replies.types[draft.type])}</span>
+      <a
+        href={`#${replyDraftElementId(draft.id)}`}
+        onClick={(e) => {
+          e.preventDefault();
+          open();
+        }}
+        className="font-medium text-emerald-700 hover:underline"
+      >
+        {t.chat.openDraft}
+      </a>
+    </p>
+  );
+}
+
 function AssistantMessage({ message }: { message: ChatMessageDto }) {
   const { t } = useI18n();
   const setReminder = message.toolCalls.some((call) => call.name === "create_reminder" && call.ok);
@@ -41,6 +93,7 @@ function AssistantMessage({ message }: { message: ChatMessageDto }) {
       <div dir="auto">
         <PlainText text={message.content} />
       </div>
+      {message.replyDraft && <DraftLink draft={message.replyDraft} />}
       {setReminder && (
         <p className="mt-2 text-sm">
           <Link to="/reminders" className="font-medium text-emerald-700 hover:underline">
@@ -96,7 +149,7 @@ export function ChatPanel({ documentId }: { documentId: string }) {
   const following = Boolean(pending);
   useEffect(() => {
     if (following) endRef.current?.scrollIntoView({ block: "nearest" });
-  }, [following, pending?.text, pending?.tools.length]);
+  }, [following, pending?.text, pending?.tools.length, pending?.agents.length]);
 
   const ask = (question: string) => {
     const text = question.trim();
@@ -129,6 +182,7 @@ export function ChatPanel({ documentId }: { documentId: string }) {
             <UserMessage text={pending.question} />
             <div className="rounded-lg bg-slate-50 p-3">
               <ToolChips tools={pending.tools} />
+              <AgentSteps agents={pending.agents} />
               {pending.text ? (
                 <div dir="auto">
                   <PlainText text={pending.text} />
