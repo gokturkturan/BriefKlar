@@ -35,6 +35,8 @@ model User {
   preferredLanguage String     @default("en")
   /// Federal state (e.g. "NW") for regional public holidays; null = nationwide only
   state             String?
+  /// Letters are deleted this many days after upload (RETENTION_PERIODS); null = kept until deleted
+  retentionDays     Int?
   createdAt         DateTime   @default(now())
   documents         Document[]
   reminders         Reminder[]

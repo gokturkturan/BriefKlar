@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { documentQueue } from "../queue/documentQueue";
 import { storage } from "../storage";
+import { expiredDocumentsWhere } from "./retention";
 
 /**
  * Data protection: everything stored about a user can be exported (GDPR Art. 15 and 20) and
@@ -59,6 +60,7 @@ export async function exportUserData(userId: string) {
       settings: {
         preferredLanguage: user.preferredLanguage,
         state: user.state,
+        retentionDays: user.retentionDays,
       },
     },
     documents,
@@ -96,4 +98,11 @@ export async function deleteDocuments(where: Prisma.DocumentWhereInput): Promise
 export async function deleteUserData(userId: string): Promise<void> {
   await deleteDocuments({ userId });
   await prisma.user.delete({ where: { id: userId } }); // cascades to reminders
+}
+
+/** Deletes every letter whose retention period has passed; run by a scheduled worker job */
+export async function deleteExpiredDocuments(now = new Date()): Promise<number> {
+  let deleted = 0;
+  for (const { where } of expiredDocumentsWhere(now)) deleted += await deleteDocuments(where);
+  return deleted;
 }

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   isExplanationLanguage,
   isGermanState,
+  isRetentionPeriod,
   UpdateSettingsSchema,
   type SettingsDto,
 } from "@briefklar/shared";
@@ -17,6 +18,7 @@ function toDto(user: User): SettingsDto {
   return {
     preferredLanguage: isExplanationLanguage(user.preferredLanguage) ? user.preferredLanguage : "en",
     state: isGermanState(user.state) ? user.state : null,
+    retentionDays: isRetentionPeriod(user.retentionDays) ? user.retentionDays : null,
   };
 }
 
@@ -26,7 +28,7 @@ settingsRouter.get("/", async (req, res) => {
   res.json(toDto(user));
 });
 
-// PATCH /api/settings  { preferredLanguage?, state? }
+// PATCH /api/settings  { preferredLanguage?, state?, retentionDays? }
 settingsRouter.patch("/", async (req, res) => {
   const body = UpdateSettingsSchema.safeParse(req.body);
   if (!body.success) throw new HttpError(400, "Invalid settings", "INVALID_BODY");

@@ -31,10 +31,20 @@ export function isGermanState(value: unknown): value is GermanState {
   return typeof value === "string" && (GERMAN_STATES as readonly string[]).includes(value);
 }
 
+/** Days after upload when letters are deleted automatically (GDPR storage limitation) */
+export const RETENTION_PERIODS = [30, 90, 180, 365] as const;
+export type RetentionPeriod = (typeof RETENTION_PERIODS)[number];
+
+export function isRetentionPeriod(value: unknown): value is RetentionPeriod {
+  return (RETENTION_PERIODS as readonly unknown[]).includes(value);
+}
+
 export interface SettingsDto {
   preferredLanguage: ExplanationLanguage;
   /** null: not set, only nationwide holidays are applied */
   state: GermanState | null;
+  /** null: letters are kept until the user deletes them */
+  retentionDays: RetentionPeriod | null;
 }
 
 const languageCodes = Object.keys(EXPLANATION_LANGUAGES) as [ExplanationLanguage, ...ExplanationLanguage[]];
@@ -43,6 +53,7 @@ export const UpdateSettingsSchema = z
   .object({
     preferredLanguage: z.enum(languageCodes),
     state: z.enum(GERMAN_STATES).nullable(),
+    retentionDays: z.literal(RETENTION_PERIODS).nullable(),
   })
   .partial();
 export type UpdateSettingsInput = z.infer<typeof UpdateSettingsSchema>;
