@@ -1,8 +1,9 @@
 import {
   AgentPayloadSchema,
+  USER_QUESTIONS,
   isExplanationLanguage,
-  isUserQuestion,
   type AgentName,
+  type AgentQuestion,
   type ErrorCode,
   type UserQuestion,
 } from "@briefklar/shared";
@@ -15,8 +16,9 @@ import type { DocumentCaseFile } from "./documentCaseFile";
 import { Orchestrator, type PendingQuestion, type RunSoFar } from "./orchestrator";
 
 /** A run that stopped at a question to the user, as its messages tell */
-export interface WaitingRun extends PendingQuestion, RunSoFar {
+export interface WaitingRun<Q extends AgentQuestion = UserQuestion> extends PendingQuestion, RunSoFar {
   runId: string;
+  question: Q;
 }
 
 /** The columns of an AgentMessage row the resume needs */
@@ -34,14 +36,16 @@ const NOT_AGENTS: ReadonlySet<AgentName> = new Set<AgentName>(["orchestrator", "
  * replied without an error before it (the plan does not run them again) and the message count.
  * The agent that asked is left out of `ran`: it gets its task again with the answer.
  */
-export function readWaitingRun(
+export function readWaitingRun<Q extends AgentQuestion = UserQuestion>(
   runId: string,
   hops: number,
   messages: StoredMessage[],
-): WaitingRun | null {
+  askable: readonly Q[] = USER_QUESTIONS as readonly AgentQuestion[] as readonly Q[],
+): WaitingRun<Q> | null {
   const ordered = [...messages].sort((a, b) => a.hop - b.hop);
   const ran = new Set<AgentName>();
-  let question: PendingQuestion | null = null;
+  const isAskable = (value: AgentQuestion): value is Q => (askable as readonly AgentQuestion[]).includes(value);
+  let question: (PendingQuestion & { question: Q }) | null = null;
   let userQuestions = 0;
 
   for (const message of ordered) {
@@ -49,9 +53,11 @@ export function readWaitingRun(
     if (!payload.success) continue;
     const from = message.from as AgentName;
     if (NOT_AGENTS.has(from) || payload.data.kind === "task" || payload.data.kind === "error") continue;
+    // A handoff passes work on; the agent that handed over did not do it
+    if (payload.data.kind === "handoff") continue;
     ran.add(from);
-    if (payload.data.kind === "question" && payload.data.askUser && isUserQuestion(payload.data.question)) {
-      question = { messageId: message.id, agent: from, question: payload.data.question };
+    if (payload.data.kind === "question" && payload.data.askUser && isAskable(payload.data.question)) {
+      question = { messageId: message.id, agent: from, question: payload.data.question, text: payload.data.text };
       userQuestions += 1;
     }
   }
@@ -62,8 +68,9 @@ export function readWaitingRun(
 
 /** The latest run of the document, if it waits for the user's answer */
 export async function waitingRun(documentId: string): Promise<WaitingRun | null> {
+  // Runs of the chat ask their own questions, in the chat; the card belongs to the upload
   const run = await prisma.agentRun.findFirst({
-    where: { documentId },
+    where: { documentId, trigger: "UPLOAD" },
     orderBy: { startedAt: "desc" },
     include: { messages: { select: { id: true, from: true, payload: true, hop: true } } },
   });

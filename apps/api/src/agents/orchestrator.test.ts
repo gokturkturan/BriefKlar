@@ -410,7 +410,12 @@ describe("questions to the user (F3)", () => {
     // The analysis is stored and translated before the run waits: the page shows it at once
     expect(order).toEqual(["intake", "extractor", "verifier", "deadline", "translator"]);
     const question = messages.find((m) => m.payload.kind === "question")!;
-    expect(run.pendingQuestion).toEqual({ messageId: question.id, agent: "deadline", question: "RECEIVED_DATE" });
+    expect(run.pendingQuestion).toEqual({
+      messageId: question.id,
+      agent: "deadline",
+      question: "RECEIVED_DATE",
+      text: "When did the letter arrive?",
+    });
 
     expect(await run.finish()).toBe("RECEIVED_DATE");
     expect(store.waitForUser).toHaveBeenCalledWith(RUN_ID);

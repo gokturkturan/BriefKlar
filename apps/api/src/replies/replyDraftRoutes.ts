@@ -12,9 +12,10 @@ import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
 import { LLMValidationError } from "../llm/generateStructured";
-import { REPLY_DRAFT_PROMPT_VERSION, draftReply } from "./draftReply";
+import { AgentLimitError } from "../agents/orchestrator";
+import { runReply } from "../agents/writeReply";
 import { todayInGermany } from "../deadlines/calendarDate";
-import { composeReplyLetter, replyWarnings } from "./composeReplyLetter";
+import { replyWarnings } from "./composeReplyLetter";
 import { requireExtraction } from "../documents/extractions";
 import { findOwnedDocument, routeParam } from "../documents/ownedDocument";
 
@@ -60,6 +61,7 @@ replyDraftsRouter.get("/", async (req, res) => {
 });
 
 // POST /api/documents/:id/reply-drafts  { type, notes?, language? }
+// The reply writer writes the draft and the verifier checks it, as an agent run (agents/writeReply.ts)
 replyDraftsRouter.post("/", async (req, res) => {
   const body = CreateReplyDraftSchema.safeParse(req.body);
   if (!body.success) {
@@ -70,30 +72,19 @@ replyDraftsRouter.post("/", async (req, res) => {
   const doc = await findOwnedDocument(req);
   const extraction = await requireExtraction(doc.id);
 
-  let result;
+  let outcome;
   try {
-    result = await draftReply({ documentId: doc.id, type, extraction, notes, language });
+    outcome = await runReply({ documentId: doc.id, type, notes, language, trigger: "REPLY" });
   } catch (err) {
     if (err instanceof LLMError) throw new HttpError(503, err.userMessage, err.code);
-    if (err instanceof LLMValidationError) {
+    if (err instanceof LLMValidationError || err instanceof AgentLimitError) {
       throw new HttpError(502, "The AI returned an incomplete draft. Please try again.", "AI_INCOMPLETE");
     }
     throw err;
   }
-
-  const contentDe = composeReplyLetter({ type, extraction, body: result.data, date: todayInGermany() });
-  const draft = await prisma.replyDraft.create({
-    data: {
-      documentId: doc.id,
-      type,
-      contentDe,
-      contentUserLanguage: result.data.translation.trim(),
-      language,
-      notes,
-      model: result.model,
-      promptVersion: REPLY_DRAFT_PROMPT_VERSION,
-    },
-  });
+  // The reply panel never asks: it has its own notes field
+  if (outcome.status !== "draft") throw new Error("The reply writer asked a question in the reply panel");
+  const { draft } = outcome;
 
   res.status(201).json(toDto(draft, extraction, await deadlineDates(doc.id)));
 });

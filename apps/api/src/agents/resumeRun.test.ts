@@ -33,6 +33,7 @@ describe("readWaitingRun", () => {
       messageId: "m8",
       agent: "deadline",
       question: "RECEIVED_DATE",
+      text: "When?",
       hops: 10,
       // The verifier failed, the deadline agent asked: neither counts as done
       ran: ["intake", "extractor", "translator"],

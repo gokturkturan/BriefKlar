@@ -18,9 +18,10 @@ export interface AgentStore {
 
 export const prismaAgentStore: AgentStore = {
   async startRun(documentId, trigger) {
-    // A new analysis replaces the old one: a question of an earlier run is no longer asked
+    // A new analysis replaces the old one: a question of an earlier run is no longer asked.
+    // The same for a new reply from the chat; an upload and a chat do not replace each other.
     await prisma.agentRun.updateMany({
-      where: { documentId, status: "WAITING_FOR_USER" },
+      where: { documentId, trigger, status: "WAITING_FOR_USER" },
       data: { status: "DONE", errorCode: "SUPERSEDED", finishedAt: new Date() },
     });
     return prisma.agentRun.create({ data: { documentId, trigger }, select: { id: true } });

@@ -38,14 +38,15 @@ export class UnreadableScanError extends Error {
 /** Correction rounds between the verifier and the extractor */
 export const MAX_REVISIONS = 1;
 
-/** Runs an agent whose work is not needed for a usable analysis; at the run's limit it is skipped */
-async function optional(
-  orchestrator: Orchestrator<DocumentCaseFile>,
-  agent: Agent<DocumentCaseFile>,
+/** Runs an agent whose work is not needed for a usable result; at the run's limit it is skipped */
+export async function optional<C>(
+  orchestrator: Orchestrator<C>,
+  agent: Agent<C>,
   instruction: string,
+  options: { parentId?: string } = {},
 ): Promise<AgentReply | null> {
   try {
-    return await orchestrator.dispatch(agent, instruction);
+    return await orchestrator.dispatch(agent, instruction, options);
   } catch (err) {
     if (err instanceof AgentLimitError) {
       console.warn(`Run ${orchestrator.runId}: skipping ${agent.name} (${err.message})`);

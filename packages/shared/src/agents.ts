@@ -59,6 +59,21 @@ export function isUserQuestion(value: unknown): value is UserQuestion {
   return typeof value === "string" && (USER_QUESTIONS as readonly string[]).includes(value);
 }
 
+/**
+ * Questions the chat puts to the user in its own words: the reply writer's question for details
+ * of a reply (the reasons of an objection, the monthly instalment), answered in the next message
+ */
+export const CHAT_QUESTIONS = ["REPLY_NOTES"] as const satisfies readonly AgentQuestion[];
+export type ChatQuestion = (typeof CHAT_QUESTIONS)[number];
+
+/** Agents the chat can hand work to with its delegate tool */
+export const DELEGATE_AGENTS = ["replyWriter"] as const satisfies readonly AgentName[];
+export type DelegateAgent = (typeof DELEGATE_AGENTS)[number];
+
+/** What the chat shows while another agent works for it (ChatStreamEvent "agent") */
+export const AGENT_PHASES = ["started", "done", "revising", "waitingForUser", "failed"] as const;
+export type AgentPhase = (typeof AGENT_PHASES)[number];
+
 export const AgentPayloadSchema = z.discriminatedUnion("kind", [
   /** The orchestrator gives an agent work */
   z.object({
@@ -86,8 +101,8 @@ export const AgentPayloadSchema = z.discriminatedUnion("kind", [
     text: z.string().min(1),
   }),
   /**
-   * The user's answer to a question (from "user"); `value` is the date or the federal state,
-   * null when the user does not know it. The run goes on from the agent that asked.
+   * The user's answer to a question (from "user"); `value` is the date, the federal state or the
+   * details of a reply, null when the user does not know it. The run goes on from the agent that asked.
    */
   z.object({
     kind: z.literal("answer"),
@@ -140,6 +155,8 @@ export type AgentRunStatus = (typeof AGENT_RUN_STATUSES)[number];
  * Messages per run; stops loops between agents. The longest plan of an upload needs 17: intake,
  * extractor, verifier, correction, second check, deadline agent and translator, a task and a
  * reply each, and after a question to the user their answer and the deadline agent once more.
+ * A reply from the chat needs at most 15: the handoff, the reply writer's question, the answer,
+ * the draft, its check, a correction, the second check and the research agent.
  */
 export const MAX_AGENT_HOPS = 17;
 

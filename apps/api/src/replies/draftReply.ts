@@ -1,5 +1,6 @@
 import {
   EXPLANATION_LANGUAGES,
+  type AgentIssue,
   type ExplanationLanguage,
   type LetterExtraction,
   type ReplyBody,
@@ -8,9 +9,10 @@ import {
 } from "@briefklar/shared";
 import { generateStructured, type StructuredResult } from "../llm/generateStructured";
 import { llm } from "../llm";
+import type { LLMProvider } from "../llm/LLMProvider";
 import { objectionTerm } from "./composeReplyLetter";
 
-export const REPLY_DRAFT_PROMPT_VERSION = "reply-draft@1";
+export const REPLY_DRAFT_PROMPT_VERSION = "reply-draft@2";
 
 export const REPLY_DRAFT_SYSTEM_PROMPT = `
 You write the body of a reply to an official German letter, on behalf of the recipient.
@@ -21,13 +23,17 @@ reference numbers, greeting ("Sehr geehrte Damen und Herren,") and closing
 Rules:
 1. Formal, polite, factual German (Sie-Form). Short sentences. No legal threats, no emotions.
 2. Use only facts from the letter analysis and the user's notes. Never invent reasons,
-   amounts, dates or circumstances. Where the user must add something, write a short
-   placeholder in square brackets, e.g. [monatlicher Betrag] or [neues Datum].
-3. The user's notes may be in any language: use their content, but write German.
-4. Do not repeat reference numbers or the subject line in the paragraphs.
-5. "subject": a short German subject line without reference numbers.
-6. "paragraphs": 1-5 paragraphs.
-7. "translation": translate the subject and all paragraphs into the user's language, so the
+   amounts, dates, periods, reference numbers, names or circumstances. Where the user must
+   add something, write a short placeholder in square brackets, e.g. [monatlicher Betrag]
+   or [neues Datum]. Never write a placeholder for something the notes already say, and
+   never add a year, weekday or detail to a date or amount the user gave.
+3. Do not cite laws or paragraphs and do not argue legally beyond the user's own reasons:
+   this is a draft the user checks and sends themselves, not legal advice.
+4. The user's notes may be in any language: use their content, but write German.
+5. Do not repeat reference numbers or the subject line in the paragraphs.
+6. "subject": a short German subject line without reference numbers.
+7. "paragraphs": 1-5 paragraphs.
+8. "translation": translate the subject and all paragraphs into the user's language, so the
    user understands exactly what they are signing. Keep the [placeholders] in German.
 `.trim();
 
@@ -38,8 +44,8 @@ function instructions(type: ReplyType, extraction: LetterExtraction): string {
       return [
         `Write a ${term} against the decision. Use the word "${term}".`,
         `Start with "hiermit lege ich ${term} gegen ... ein" and name the letter by its date and subject.`,
-        `If the notes give reasons, state them briefly. If not, write that the reasons will follow`,
-        `("Die Begründung reiche ich nach.").`,
+        `If the notes give reasons, state them briefly and do not say that reasons will follow.`,
+        `Only if the notes give no reasons, write that the reasons will follow ("Die Begründung reiche ich nach.").`,
         `Ask for a written confirmation of receipt.`,
       ].join(" ");
     }
@@ -56,21 +62,38 @@ function instructions(type: ReplyType, extraction: LetterExtraction): string {
     case "INSTALLMENT_PLAN":
       return (
         "Ask to pay the amount in monthly instalments (Ratenzahlung). Name the amount from the " +
-        "analysis. Use the monthly amount and reason from the notes, or [monatlicher Betrag] and " +
-        "[Grund]. Offer to provide proof of income if needed."
+        "analysis. Use the monthly amount and the reason from the notes; write [monatlicher Betrag] " +
+        "or [Grund] only for what the notes do not say. Offer to provide proof of income if needed."
       );
     case "QUESTION":
       return "Ask the question from the notes clearly and briefly. Ask for a written answer.";
   }
 }
 
-export function replyDraftInput(params: {
+export interface ReplyDraftParams {
   type: ReplyType;
   extraction: LetterExtraction;
   notes: string;
   language: ExplanationLanguage;
-}): string {
-  const { type, extraction, notes, language } = params;
+  /** Problems a check found in the previous draft, which this one corrects */
+  corrections?: AgentIssue[];
+  previous?: ReplyBody;
+}
+
+export function replyDraftInput(params: ReplyDraftParams): string {
+  const { type, extraction, notes, language, corrections = [], previous } = params;
+  const correction =
+    corrections.length > 0 && previous
+      ? [
+          "",
+          "Your previous draft:",
+          JSON.stringify({ subject: previous.subject, paragraphs: previous.paragraphs }, null, 2),
+          "",
+          "A check found these problems in it. Write the draft again without them; where a fact is",
+          "missing, write a placeholder instead:",
+          ...corrections.map((issue) => `- ${issue.field}: ${issue.problem}`),
+        ]
+      : [];
   return [
     `Task: ${instructions(type, extraction)}`,
     "",
@@ -93,19 +116,16 @@ export function replyDraftInput(params: {
       null,
       2,
     ),
+    ...correction,
   ].join("\n");
 }
 
 /** The model only writes the body; composeReplyLetter builds the letter around it */
-export async function draftReply(params: {
-  documentId: string;
-  type: ReplyType;
-  extraction: LetterExtraction;
-  notes: string;
-  language: ExplanationLanguage;
-}): Promise<StructuredResult<ReplyBody>> {
+export async function draftReply(
+  params: ReplyDraftParams & { documentId: string; provider?: LLMProvider },
+): Promise<StructuredResult<ReplyBody>> {
   return generateStructured({
-    provider: llm,
+    provider: params.provider ?? llm,
     schema: ReplyBodySchema,
     system: REPLY_DRAFT_SYSTEM_PROMPT,
     input: [{ type: "text", text: replyDraftInput(params) }],

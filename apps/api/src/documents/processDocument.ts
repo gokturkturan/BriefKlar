@@ -1,5 +1,5 @@
 import { UnrecoverableError, type Job } from "bullmq";
-import { isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@briefklar/shared";
+import { isExplanationLanguage, isUserQuestion, type ErrorCode, type ProgressEvent } from "@briefklar/shared";
 import { analyseLetter, UnreadableScanError } from "../agents/analyseLetter";
 import { prismaAgentStore } from "../agents/agentStore";
 import type { DocumentCaseFile } from "../agents/documentCaseFile";
@@ -73,7 +73,8 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
 
     await prisma.document.update({ where: { id: documentId }, data: { status: "DONE", ...scanQuality(caseFile) } });
     // The analysis is shown either way; a question of an agent waits on the page as a card
-    const question = await orchestrator.finish();
+    const asked = await orchestrator.finish();
+    const question = isUserQuestion(asked) ? asked : null;
 
     await report(job, question ? { status: "DONE", phase: "waitingForUser", question } : { status: "DONE" });
   } catch (err) {
