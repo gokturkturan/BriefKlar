@@ -47,6 +47,7 @@ export const tr: Messages = {
   processing: {
     preprocessing: "Dosya hazırlanıyor",
     extracting: "Mektup okunuyor ve inceleniyor",
+    verifying: "Analiz mektupla karşılaştırılıyor",
     translating: "Sonuçlar çevriliyor",
     saving: "Sonuçlar kaydediliyor",
     retrying: "Yapay zekâ servisi şu an yoğun, birazdan tekrar denenecek",
@@ -446,6 +447,8 @@ export const tr: Messages = {
     columns: { name: "Ad", calls: "Çağrı", failed: "Hatalı", switches: "Yedek", tokens: "Token", cost: "Maliyet", latency: "Medyan / %95" },
     purposes: {
       "extract-letter": "Mektup analizi",
+      "verify-letter": "Analiz kontrolü",
+      "revise-letter": "Analiz düzeltmesi",
       "translate-analysis": "Çeviri",
       "explain-letter": "Açıklama",
       "reply-draft": "Yanıt taslağı",
@@ -453,6 +456,7 @@ export const tr: Messages = {
       "embed-query": "Bilgi bankası araması",
       "embed-knowledge": "Bilgi bankası kurulumu",
       "eval-extract-letter": "Değerlendirme çalıştırması",
+      "eval-verify-letter": "Değerlendirme çalıştırması (kontrol)",
     },
     unpriced: "fiyatı bilinmiyor, 0 sayıldı",
     recentFailures: "Son hatalar",

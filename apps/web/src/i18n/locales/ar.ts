@@ -51,6 +51,7 @@ export const ar: Messages = {
   processing: {
     preprocessing: "جارٍ تجهيز الملف",
     extracting: "جارٍ قراءة الرسالة وتحليلها",
+    verifying: "جارٍ مطابقة التحليل مع الرسالة",
     translating: "جارٍ ترجمة النتائج",
     saving: "جارٍ حفظ النتائج",
     retrying: "خدمة الذكاء الاصطناعي مشغولة، ستتم المحاولة مرة أخرى بعد قليل",
@@ -448,6 +449,8 @@ export const ar: Messages = {
     columns: { name: "الاسم", calls: "الطلبات", failed: "فاشلة", switches: "احتياطي", tokens: "الرموز", cost: "التكلفة", latency: "الوسيط / 95%" },
     purposes: {
       "extract-letter": "تحليل الرسالة",
+      "verify-letter": "التحقق من التحليل",
+      "revise-letter": "تصحيح التحليل",
       "translate-analysis": "الترجمة",
       "explain-letter": "الشرح",
       "reply-draft": "مسودة الرد",
@@ -455,6 +458,7 @@ export const ar: Messages = {
       "embed-query": "البحث في قاعدة المعرفة",
       "embed-knowledge": "إعداد قاعدة المعرفة",
       "eval-extract-letter": "تشغيل التقييم",
+      "eval-verify-letter": "تشغيل التقييم (التحقق)",
     },
     unpriced: "السعر غير معروف، احتُسب 0",
     recentFailures: "آخر الأخطاء",

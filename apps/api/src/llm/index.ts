@@ -42,5 +42,13 @@ export const llm: LLMProvider = new ProviderFallback(
   providerNamed(env.LLM_EMBEDDING_PROVIDER),
 );
 
+/**
+ * The model that checks the analysis (verifier agent), or undefined without LLM_VERIFIER_PROVIDER.
+ * One provider without a fallback: a check by the extractor's own model would prove little.
+ */
+export const verifierLlm: LLMProvider | undefined = env.LLM_VERIFIER_PROVIDER
+  ? providerNamed(env.LLM_VERIFIER_PROVIDER)
+  : undefined;
+
 export { LLMError } from "./errors";
 export { EMBEDDING_DIMENSIONS, type LLMInputPart, type LLMProvider } from "./LLMProvider";

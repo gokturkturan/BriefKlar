@@ -50,6 +50,7 @@ export const uk: Messages = {
   processing: {
     preprocessing: "Підготовка файлу",
     extracting: "Читання та аналіз листа",
+    verifying: "Аналіз звіряється з листом",
     translating: "Переклад результатів",
     saving: "Збереження результатів",
     retrying: "Сервіс ШІ зараз перевантажений, незабаром спробуємо ще раз",
@@ -448,6 +449,8 @@ export const uk: Messages = {
     columns: { name: "Назва", calls: "Запити", failed: "Помилки", switches: "Резерв", tokens: "Токени", cost: "Вартість", latency: "Медіана / 95%" },
     purposes: {
       "extract-letter": "Аналіз листа",
+      "verify-letter": "Перевірка аналізу",
+      "revise-letter": "Виправлення аналізу",
       "translate-analysis": "Переклад",
       "explain-letter": "Пояснення",
       "reply-draft": "Чернетка відповіді",
@@ -455,6 +458,7 @@ export const uk: Messages = {
       "embed-query": "Пошук у базі знань",
       "embed-knowledge": "Наповнення бази знань",
       "eval-extract-letter": "Запуск оцінювання",
+      "eval-verify-letter": "Запуск оцінювання (перевірка)",
     },
     unpriced: "ціна невідома, враховано як 0",
     recentFailures: "Останні помилки",

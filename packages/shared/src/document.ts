@@ -69,7 +69,7 @@ export interface DocumentDetailDto extends DocumentDto {
 }
 
 /** Steps the background worker reports while processing a document. */
-export const PROCESSING_STEPS = ["preprocessing", "extracting", "translating", "saving", "retrying"] as const;
+export const PROCESSING_STEPS = ["preprocessing", "extracting", "verifying", "translating", "saving", "retrying"] as const;
 export type ProcessingStep = (typeof PROCESSING_STEPS)[number];
 
 /** Payload of each Server-Sent Event sent to the browser. */

@@ -48,6 +48,7 @@ export const de: Messages = {
   processing: {
     preprocessing: "Die Datei wird vorbereitet",
     extracting: "Der Brief wird gelesen und geprüft",
+    verifying: "Die Auswertung wird mit dem Brief abgeglichen",
     translating: "Die Ergebnisse werden übersetzt",
     saving: "Die Ergebnisse werden gespeichert",
     retrying: "Der KI-Dienst ist gerade voll. Wir versuchen es gleich noch einmal.",
@@ -448,6 +449,8 @@ export const de: Messages = {
     columns: { name: "Name", calls: "Aufrufe", failed: "Fehler", switches: "Ersatz", tokens: "Tokens", cost: "Kosten", latency: "Median / 95 %" },
     purposes: {
       "extract-letter": "Brief-Analyse",
+      "verify-letter": "Prüfung der Analyse",
+      "revise-letter": "Korrektur der Analyse",
       "translate-analysis": "Übersetzung",
       "explain-letter": "Erklärung",
       "reply-draft": "Antwort-Entwurf",
@@ -455,6 +458,7 @@ export const de: Messages = {
       "embed-query": "Suche im Wissen",
       "embed-knowledge": "Wissen einrichten",
       "eval-extract-letter": "Test-Lauf (Evaluation)",
+      "eval-verify-letter": "Test-Lauf (Prüfung)",
     },
     unpriced: "kein Preis bekannt, zählt als 0",
     recentFailures: "Letzte Fehler",

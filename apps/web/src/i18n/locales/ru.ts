@@ -50,6 +50,7 @@ export const ru: Messages = {
   processing: {
     preprocessing: "Подготовка файла",
     extracting: "Чтение и анализ письма",
+    verifying: "Анализ сверяется с письмом",
     translating: "Перевод результатов",
     saving: "Сохранение результатов",
     retrying: "Сервис ИИ сейчас перегружен, скоро попробуем снова",
@@ -449,6 +450,8 @@ export const ru: Messages = {
     columns: { name: "Название", calls: "Запросы", failed: "Ошибки", switches: "Резерв", tokens: "Токены", cost: "Стоимость", latency: "Медиана / 95%" },
     purposes: {
       "extract-letter": "Анализ письма",
+      "verify-letter": "Проверка анализа",
+      "revise-letter": "Исправление анализа",
       "translate-analysis": "Перевод",
       "explain-letter": "Объяснение",
       "reply-draft": "Черновик ответа",
@@ -456,6 +459,7 @@ export const ru: Messages = {
       "embed-query": "Поиск в базе знаний",
       "embed-knowledge": "Наполнение базы знаний",
       "eval-extract-letter": "Прогон оценки",
+      "eval-verify-letter": "Прогон оценки (проверка)",
     },
     unpriced: "цена неизвестна, учтено как 0",
     recentFailures: "Последние ошибки",

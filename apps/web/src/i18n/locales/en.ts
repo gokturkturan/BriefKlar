@@ -67,6 +67,7 @@ export const en = {
   processing: {
     preprocessing: "Preparing the file",
     extracting: "Reading and analyzing the letter",
+    verifying: "Checking the analysis against the letter",
     translating: "Translating the results",
     saving: "Saving the results",
     retrying: "The AI service is busy, trying again shortly",
@@ -463,6 +464,8 @@ export const en = {
     columns: { name: "Name", calls: "Calls", failed: "Failed", switches: "Fallback", tokens: "Tokens", cost: "Cost", latency: "Median / 95%" },
     purposes: {
       "extract-letter": "Letter analysis",
+      "verify-letter": "Analysis check",
+      "revise-letter": "Analysis correction",
       "translate-analysis": "Translation",
       "explain-letter": "Explanation",
       "reply-draft": "Reply draft",
@@ -470,6 +473,7 @@ export const en = {
       "embed-query": "Knowledge base search",
       "embed-knowledge": "Knowledge base setup",
       "eval-extract-letter": "Evaluation run",
+      "eval-verify-letter": "Evaluation run (check)",
     } as Record<string, string>,
     unpriced: "no price known, counted as 0",
     recentFailures: "Latest failures",
