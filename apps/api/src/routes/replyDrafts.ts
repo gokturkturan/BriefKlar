@@ -14,7 +14,8 @@ import { LLMError } from "../llm";
 import { draftReply } from "../llm/draftReply";
 import { LLMValidationError } from "../llm/generateStructured";
 import { REPLY_DRAFT_PROMPT_VERSION } from "../prompts/replyDraft";
-import { composeReplyLetter, replyWarnings, todayInGermany } from "../replies/composeReplyLetter";
+import { todayInGermany } from "../deadlines/calendarDate";
+import { composeReplyLetter, replyWarnings } from "../replies/composeReplyLetter";
 import { findOwnedDocument, requireExtraction, routeParam } from "./ownedDocument";
 
 /** Mounted at /api/documents/:id/reply-drafts */

@@ -2,7 +2,7 @@ import { isGermanState, LetterExtractionSchema } from "@briefklar/shared";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { syncDeadlineReminders } from "../reminders/deadlineReminders";
-import { todayInGermany } from "../replies/composeReplyLetter";
+import { todayInGermany } from "./calendarDate";
 import { toIsoDate } from "./calendarDate";
 import { deadlineRows, type DeadlineContext, type DeadlineRow } from "./deadlineRows";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, addMonths, isIsoDate, weekday } from "./calendarDate";
+import { addDays, addMonths, isIsoDate, todayInGermany, weekday } from "./calendarDate";
 
 describe("calendarDate", () => {
   it("validates ISO dates", () => {
@@ -27,5 +27,13 @@ describe("calendarDate", () => {
   it("knows weekdays", () => {
     expect(weekday("2026-11-22")).toBe(0);
     expect(weekday("2025-04-07")).toBe(1);
+  });
+
+  it("uses the German calendar day, not UTC", () => {
+    // 23:30 UTC on 31 December is already 1 January in Berlin
+    expect(todayInGermany(new Date("2026-12-31T23:30:00Z"))).toBe("2027-01-01");
+    // Summer time: 22:30 UTC is 00:30 the next day
+    expect(todayInGermany(new Date("2026-07-14T22:30:00Z"))).toBe("2026-07-15");
+    expect(todayInGermany(new Date("2026-07-14T21:30:00Z"))).toBe("2026-07-14");
   });
 });

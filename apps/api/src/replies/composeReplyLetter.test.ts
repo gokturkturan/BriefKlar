@@ -6,7 +6,6 @@ import {
   formatGermanDate,
   objectionTerm,
   replyWarnings,
-  todayInGermany,
 } from "./composeReplyLetter";
 
 const extraction: LetterExtraction = {
@@ -47,14 +46,6 @@ describe("objectionTerm", () => {
 describe("dates", () => {
   it("formats ISO dates the German way", () => {
     expect(formatGermanDate("2026-03-02")).toBe("02.03.2026");
-  });
-
-  it("uses the German calendar day, not UTC", () => {
-    // 23:30 UTC on 31 December is already 1 January in Berlin
-    expect(todayInGermany(new Date("2026-12-31T23:30:00Z"))).toBe("2027-01-01");
-    // Summer time: 22:30 UTC is 00:30 the next day
-    expect(todayInGermany(new Date("2026-07-14T22:30:00Z"))).toBe("2026-07-15");
-    expect(todayInGermany(new Date("2026-07-14T21:30:00Z"))).toBe("2026-07-14");
   });
 });
 

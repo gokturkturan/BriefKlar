@@ -9,7 +9,7 @@ import { LLMValidationError } from "../llm/generateStructured";
 import { EXTRACT_LETTER_PROMPT_VERSION } from "../prompts/extractLetter";
 import type { DocumentJobData } from "../queue/constants";
 import { syncDeadlineReminders } from "../reminders/deadlineReminders";
-import { todayInGermany } from "../replies/composeReplyLetter";
+import { todayInGermany } from "../deadlines/calendarDate";
 import { storage } from "../storage";
 import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "../translations/analysisTranslations";
 

@@ -66,3 +66,9 @@ export function isWeekend(date: IsoDate): boolean {
   const day = weekday(date);
   return day === 0 || day === 6;
 }
+
+/** Today's date in Germany, whatever the server's time zone */
+export function todayInGermany(now = new Date()): IsoDate {
+  // en-CA formats as YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin" }).format(now);
+}

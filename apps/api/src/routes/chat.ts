@@ -11,13 +11,12 @@ import {
 } from "@briefklar/shared";
 import type { ChatMessage, Prisma } from "@prisma/client";
 import { runChat } from "../chat/runChat";
-import { toIsoDate } from "../deadlines/calendarDate";
+import { todayInGermany, toIsoDate } from "../deadlines/calendarDate";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { llm, LLMError } from "../llm";
 import type { ChatTurn } from "../llm/LLMProvider";
 import { chatSystemPrompt, chatTurnInstruction, CHAT_PROMPT_VERSION } from "../prompts/chat";
-import { todayInGermany } from "../replies/composeReplyLetter";
 import { findOwnedDocument, requireExtraction } from "./ownedDocument";
 
 /** Mounted at /api/documents/:id/chat */

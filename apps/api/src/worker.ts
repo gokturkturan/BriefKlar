@@ -8,7 +8,7 @@ import { MAINTENANCE_QUEUE, scheduleRetentionChecks } from "./queue/maintenanceQ
 import { REMINDER_QUEUE, scheduleReminderChecks } from "./queue/reminderQueue";
 import { deleteExpiredDocuments } from "./privacy/userData";
 import { fireDueReminders } from "./reminders/reminders";
-import { todayInGermany } from "./replies/composeReplyLetter";
+import { todayInGermany } from "./deadlines/calendarDate";
 
 /**
  * Separate process from the API: heavy LLM work never blocks HTTP requests,

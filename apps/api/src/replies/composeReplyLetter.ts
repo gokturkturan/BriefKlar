@@ -20,12 +20,6 @@ export function formatGermanDate(date: IsoDate): string {
   return `${day}.${month}.${year}`;
 }
 
-/** Today's date in Germany, whatever the server's time zone */
-export function todayInGermany(now = new Date()): IsoDate {
-  // en-CA formats as YYYY-MM-DD
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin" }).format(now);
-}
-
 export interface ComposeInput {
   type: ReplyType;
   extraction: LetterExtraction;

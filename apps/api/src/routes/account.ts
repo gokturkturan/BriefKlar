@@ -4,7 +4,7 @@ import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { ensureDemoUser, getUserId } from "../middleware/demoUser";
 import { deleteUserData, exportUserData } from "../privacy/userData";
-import { todayInGermany } from "../replies/composeReplyLetter";
+import { todayInGermany } from "../deadlines/calendarDate";
 
 export const accountRouter = Router();
 

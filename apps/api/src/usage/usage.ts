@@ -1,10 +1,9 @@
 import { Prisma } from "@prisma/client";
 import type { UsageDayDto, UsageDto, UsageGroupDto, UsagePeriod } from "@briefklar/shared";
-import { addDays, type IsoDate } from "../deadlines/calendarDate";
+import { addDays, todayInGermany, type IsoDate } from "../deadlines/calendarDate";
 import { prisma } from "../lib/prisma";
 import { FALLBACK_SWITCH_NOTE } from "../llm/logCall";
 import { PRICES_CHECKED_ON, priceOf } from "../llm/pricing";
-import { todayInGermany } from "../replies/composeReplyLetter";
 
 /** Days are counted in German time, like deadlines and reminders */
 const BERLIN_DAY = Prisma.sql`to_char("createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD')`;
