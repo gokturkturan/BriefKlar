@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
-import { ensureDemoUser, getUserId } from "../middleware/demoUser";
+import { getUserId } from "../auth/requireUser";
+import { clearSessionCookie } from "../auth/sessions";
 import { deleteUserData, exportUserData } from "./userData";
 import { todayInGermany } from "../deadlines/calendarDate";
 
@@ -19,7 +20,7 @@ accountRouter.get("/export", async (req, res) => {
 /** The client must send this, so the account is never deleted by a stray request */
 const DeleteAccountSchema = z.object({ confirm: z.literal("DELETE") });
 
-// DELETE /api/account  { confirm: "DELETE" }  -> deletes every letter, file and setting (Art. 17)
+// DELETE /api/account  { confirm: "DELETE" }  -> deletes the account with every letter and file (Art. 17)
 accountRouter.delete("/", async (req, res) => {
   if (!DeleteAccountSchema.safeParse(req.body).success) {
     throw new HttpError(400, 'Send { "confirm": "DELETE" } to delete the account', "INVALID_BODY");
@@ -30,8 +31,7 @@ accountRouter.delete("/", async (req, res) => {
     throw new HttpError(409, "A letter is being processed. Try again in a moment.", "ALREADY_PROCESSING");
   }
 
-  await deleteUserData(userId);
-  // Until there are real accounts, the app keeps working with a new, empty demo user
-  await ensureDemoUser();
+  await deleteUserData(userId); // also ends every session
+  clearSessionCookie(res);
   res.status(204).end();
 });

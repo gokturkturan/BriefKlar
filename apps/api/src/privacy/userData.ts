@@ -94,10 +94,10 @@ export async function deleteDocuments(where: Prisma.DocumentWhereInput): Promise
   return docs.length;
 }
 
-/** Deletes the user's letters, files, reminders and settings, and finally the user */
+/** Deletes the user's letters, files, reminders and settings, and finally the account */
 export async function deleteUserData(userId: string): Promise<void> {
   await deleteDocuments({ userId });
-  await prisma.user.delete({ where: { id: userId } }); // cascades to reminders
+  await prisma.user.delete({ where: { id: userId } }); // cascades to reminders and sessions
 }
 
 /** Deletes every letter whose retention period has passed; run by a scheduled worker job */

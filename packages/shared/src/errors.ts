@@ -11,6 +11,10 @@ export const ERROR_CODES = [
   "INVALID_PARAM",
   "INVALID_LANGUAGE",
   "INTERNAL",
+  // Accounts
+  "INVALID_CREDENTIALS",
+  "EMAIL_TAKEN",
+  "TOO_MANY_ATTEMPTS",
   // Uploads
   "NO_FILE",
   "UNSUPPORTED_TYPE",

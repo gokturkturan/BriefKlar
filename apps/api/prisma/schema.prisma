@@ -30,8 +30,11 @@ enum ChatRole {
 
 model User {
   id                String     @id @default(uuid())
+  /// Stored in lower case
   email             String     @unique
   name              String?
+  /// scrypt hash (src/auth/password.ts); null for the demo user from before accounts, who cannot sign in
+  passwordHash      String?
   preferredLanguage String     @default("en")
   /// Federal state (e.g. "NW") for regional public holidays; null = nationwide only
   state             String?
@@ -40,6 +43,19 @@ model User {
   createdAt         DateTime   @default(now())
   documents         Document[]
   reminders         Reminder[]
+  sessions          Session[]
+}
+
+/// A signed-in browser. The cookie holds a random token; only its SHA-256 hash is stored.
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Document {

@@ -1,14 +1,12 @@
 import { env } from "./config/env";
 import { createApp } from "./app";
 import { prisma } from "./lib/prisma";
-import { ensureDemoUser } from "./middleware/demoUser";
 import { documentQueue } from "./documents/documentQueue";
 import { startDocumentEvents, stopDocumentEvents } from "./documents/documentEvents";
 import { storage } from "./lib/storage";
 
 async function main() {
   await storage.init();
-  await ensureDemoUser();
   startDocumentEvents();
 
   const server = createApp().listen(env.PORT, () => {

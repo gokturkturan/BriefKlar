@@ -2,7 +2,7 @@ import { Router } from "express";
 import { CreateReminderSchema, UpdateReminderSchema } from "@briefklar/shared";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
-import { getUserId } from "../middleware/demoUser";
+import { getUserId } from "../auth/requireUser";
 import { createReminder, listReminders, toReminderDto } from "./reminders";
 import { todayInGermany } from "../deadlines/calendarDate";
 import { routeParam } from "../documents/ownedDocument";

@@ -2,7 +2,7 @@ import type { Request } from "express";
 import type { Document } from "@prisma/client";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
-import { getUserId } from "../middleware/demoUser";
+import { getUserId } from "../auth/requireUser";
 
 /** Express 5 types route params as string | string[] (wildcards); our routes only use plain ones. */
 export function routeParam(req: Request, name: string): string {

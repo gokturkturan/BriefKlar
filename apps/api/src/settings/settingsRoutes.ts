@@ -10,7 +10,7 @@ import type { User } from "@prisma/client";
 import { recomputeDeadlines } from "../deadlines/recomputeDeadlines";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
-import { getUserId } from "../middleware/demoUser";
+import { getUserId } from "../auth/requireUser";
 
 export const settingsRouter = Router();
 

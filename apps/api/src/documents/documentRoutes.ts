@@ -25,7 +25,7 @@ import { recomputeDeadlines } from "../deadlines/recomputeDeadlines";
 import { isIsoDate, todayInGermany } from "../deadlines/calendarDate";
 import { documentQueue, enqueueDocument } from "./documentQueue";
 import { isProgressEvent, subscribeToDocument } from "./documentEvents";
-import { getUserId } from "../middleware/demoUser";
+import { getUserId } from "../auth/requireUser";
 import { deleteDocuments } from "../privacy/userData";
 import { findOwnedDocument, routeParam } from "./ownedDocument";
 
