@@ -10,3 +10,6 @@ apps/api/eval-results/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Redis snapshot of a local redis-server
+dump.rdb
