@@ -142,6 +142,17 @@ instalment plan or question) and can add notes in their own language.
 - Code picks *Einspruch* (tax and child benefit offices) or *Widerspruch* (other authorities).
 - Warnings are computed when a draft is read: an objection deadline that has passed, a letter
   that mentions no right to object, placeholders still to fill in.
+- A second model (the verifier, GPT-6 luna by default) checks every draft for facts that neither
+  the analysis nor the user's notes contain: amounts, dates, reference numbers, names, events or
+  reasons. Code compares every number of the draft with them too. The reply writer corrects the
+  draft once; numbers still without a source become `[Angabe prüfen]` before the draft is saved.
+- The chat can write a draft too ("write an objection for me"): it hands the work to the reply
+  writer with its `delegate` tool, shows what the agents do while they work and links to the
+  saved draft under its answer. When the request leaves out what only the user knows (the reasons
+  of an objection, the monthly instalment), the reply writer asks once, in the chat; the user can
+  answer or have the draft written with placeholders. The research agent adds official sources
+  about this kind of reply. The draft makes no legal arguments of its own and is presented as a
+  draft to check, complete, sign and send, not as legal advice.
 
 ### The site in the reader's language
 
@@ -229,6 +240,7 @@ npm run eval -w @briefklar/api -- --with-fallback --only 01,09   # production se
 npm run eval:verifier -w @briefklar/api                          # the verifier agent (see below)
 npm run eval:pipeline -w @briefklar/api                          # the whole agent plan, with and without intake
 npm run eval:questions -w @briefklar/api                         # the question to the user and the resumed run
+npm run eval:replies -w @briefklar/api                           # reply drafts written from the chat
 ```
 
 - **Schema conformance**: was the answer valid at once, valid after the repair round, still invalid, or
@@ -263,6 +275,13 @@ npm run eval:questions -w @briefklar/api                         # the question 
   estimated due dates before and after the answer, and checks the trace: one question at most, the
   run waits and is done after the answer, and the resumed run makes no model request and gives no
   task to the intake agent, the extractor, the verifier or the translator again.
+- `eval:replies` asks the chat for replies to the evaluation letters in six languages, like users
+  would (with and without the reasons or the monthly amount), and answers the reply writer's
+  question when it asks. It counts fabricated numbers (amounts, dates, periods, reference numbers
+  that neither the letter's text nor the user's messages contain) in the reply writer's first
+  draft, after the verifier's correction and in the saved letter, and checks that the chat handed
+  the work over instead of writing the letter itself, the kind of reply, that the question came
+  exactly when details were missing, and each run's trace and limits.
 - The letters are plain text sent like an uploaded file. Scans and PDFs (`.pdf`, `.jpg`, `.png`) can be
   added to `letters/` with a case in `cases.ts`; keep real letters out of the repository.
 

@@ -11,11 +11,11 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 | Folder | What is in it |
 | --- | --- |
 | `auth/` | Sign-up, sign-in, guest, sign-out, profile and password routes; scrypt hashing (`password.ts`), database sessions and the cookie (`sessions.ts`), the middleware that requires a session or an account (`requireUser.ts`), rate limits, and moving a guest's letters to an account (`moveUserData.ts`) |
-| `agents/` | The orchestrator and the agents that analyse a letter (intake, extractor, verifier, deadline, translator), the messages between them and where they are stored |
+| `agents/` | The orchestrator and the agents that analyse a letter (intake, extractor, verifier, deadline, translator) or write a reply (reply writer, its verifier, research), the messages between them and where they are stored |
 | `documents/` | Upload, list, delete; the BullMQ queue, the worker job (`processDocument.ts`), the letter analysis prompt (`extractLetter.ts`) and progress events over SSE |
 | `explanation/` | Plain-language explanation: route, prompt, and the checked facts the model gets |
 | `translation/` | The analysis texts in the reader's language, translated once and cached |
-| `replies/` | Reply drafts: the model writes the body, `composeReplyLetter.ts` builds the letter around it |
+| `replies/` | Reply drafts: the model writes the body (`draftReply.ts`), another checks it (`verifyReply.ts`, `replyFacts.ts`), `composeReplyLetter.ts` builds the letter around it |
 | `chat/` | Chat about a letter: route, prompt, tool loop (`runChat.ts`) and the tools (`tools.ts`) |
 | `knowledge/` | Curated entries and pgvector search for the chat |
 | `reminders/` | Reminders the user sets and the automatic ones for deadlines |
@@ -124,6 +124,26 @@ latest runs with their messages in order.
    the model answers with text.
 3. Tool activity and text chunks go to the browser as they arrive (`apps/web/src/hooks/useChat.ts`);
    the question and the answer are stored together at the end.
+
+### A reply draft from the chat
+
+1. The model calls the `delegate` tool with `agent: "replyWriter"`, the kind of reply and the
+   user's words as notes. `chat/delegateReply.ts` runs `agents/writeReply.ts`, the same plan the
+   reply panel (`POST /api/documents/:id/reply-drafts`) uses:
+   - A `CHAT` run starts with a `handoff` message from the chat to the reply writer.
+   - The **reply writer** (`agents/replyWriterAgent.ts`) asks first when the notes lack what only
+     the user knows (`replies/replyNotes.ts`, code, no model): a `REPLY_NOTES` question, which the
+     chat puts to the user in its answer. The run waits; the next `delegate` call for the same kind
+     of reply is the answer, and the run goes on (one question per run).
+   - Otherwise it writes the body. The **verifier** (`agents/replyVerifierAgent.ts`) compares
+     every number with the analysis and the notes (`replies/replyFacts.ts`) and asks the verifier's
+     model about invented names, events and reasons (`replies/verifyReply.ts`). Issues go back to
+     the reply writer for one correction; numbers still without a source become placeholders.
+   - The **research agent** (`agents/researchAgent.ts`) finds official sources about this kind of
+     reply in the knowledge base.
+2. The draft is stored in `ReplyDraft`; the chat message keeps its id (`ChatMessage.replyDraftId`).
+3. While the agents work, the orchestrator reports each one (`onAgent`), and the chat streams it
+   as an `agent` event; the page shows the steps and, under the answer, a link to the draft.
 
 ## The web app (`apps/web/src`)
 
