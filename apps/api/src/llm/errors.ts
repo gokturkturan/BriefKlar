@@ -46,9 +46,9 @@ export function userErrorForStatus(status: number | undefined): { message: strin
       };
     case 401:
     case 403:
-      return { code: "AI_KEY_REJECTED", message: "The AI service rejected the API key. Check GEMINI_API_KEY." };
+      return { code: "AI_KEY_REJECTED", message: "The AI service rejected the API key. Check the API key in the configuration." };
     case 404:
-      return { code: "AI_MODEL_NOT_FOUND", message: "The configured AI model was not found. Check GEMINI_MODEL." };
+      return { code: "AI_MODEL_NOT_FOUND", message: "The configured AI model was not found. Check the model name in the configuration." };
     default:
       return { code: "AI_FAILED", message: "The AI service could not process this letter." };
   }

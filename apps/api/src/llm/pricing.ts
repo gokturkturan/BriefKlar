@@ -1,6 +1,7 @@
 /**
- * Prices of the Gemini models in US dollars per million tokens (paid tier, standard
- * processing, prompts up to 200k tokens), from https://ai.google.dev/gemini-api/docs/pricing.
+ * Prices of the models in US dollars per million tokens. Gemini: paid tier, standard
+ * processing, prompts up to 200k tokens, from https://ai.google.dev/gemini-api/docs/pricing.
+ * Claude and OpenAI: standard rates, see the notes in the table.
  *
  * Development runs on the free tier, so these are the costs the same calls would have on the
  * paid tier, which an app for users in the EU has to use. Thinking tokens are billed as output;
@@ -25,6 +26,12 @@ const MODEL_PRICES: Record<string, ModelPrice> = {
   "gemini-flash-latest": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
   "gemini-flash-lite-latest": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
   "gemini-embedding-001": { inputPerMillion: 0.15, outputPerMillion: 0 },
+  // Anthropic, standard rates (Claude Haiku 5.5: prompts up to 100K tokens; a letter is far below)
+  "claude-haiku-5-5": { inputPerMillion: 0.1, outputPerMillion: 0.5 },
+  "claude-sonnet-5-5": { inputPerMillion: 2, outputPerMillion: 10 },
+  // OpenAI, standard tier, short context, from https://developers.openai.com/api/docs/pricing
+  "gpt-6-luna": { inputPerMillion: 0.1, outputPerMillion: 0.5 },
+  "gpt-6.2-sol": { inputPerMillion: 2, outputPerMillion: 10 },
 };
 
 /**
