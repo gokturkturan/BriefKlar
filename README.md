@@ -4,7 +4,8 @@
 > what the letter is about, what you need to do and by when.
 
 **Status:** Weeks 1–6 done: analysis, deadline engine, explanations, reply drafts, six languages, knowledge base,
-chat with tool calling, reminders, an evaluation set, a cost dashboard, GDPR features and a Docker deployment.
+chat with tool calling, reminders, an evaluation set, a cost dashboard, GDPR features, a Docker deployment
+and user accounts.
 
 ## Tech stack
 
@@ -174,7 +175,7 @@ it answers:
   closer). Reminders follow recalculated deadlines and keep their state when the date stays the same.
 - Users add their own reminders on the reminders page, or ask the chat ("remind me two days before").
 - A BullMQ job scheduler in the worker fires due reminders every five minutes; the header shows how
-  many are due. This job is where e-mail or push delivery plugs in once there are real accounts.
+  many are due. This job is where e-mail or push delivery plugs in.
 
 ### Evaluation of the letter analysis
 
@@ -218,21 +219,42 @@ Costs come from a price table (`apps/api/src/llm/pricing.ts`, paid-tier prices p
 tokens billed as output) and are stored with every call. Development runs on the free tier, so they show
 what the same use would cost on the paid tier. After changing prices, `npm run llm:reprice -w @briefklar/api`
 recalculates the logged calls. Embedding calls report no token counts and are counted as free.
-All calls of the app are counted; with real accounts this page belongs behind an admin role.
+Each user sees the calls made for their own letters; every logged call stores the owner of its letter.
+
+### Accounts
+
+Users sign up with an e-mail address and a password, and only ever see their own letters, chats,
+reminders, settings and usage.
+
+- Passwords are hashed with **scrypt** from Node's `crypto` module (memory-hard, no native dependency).
+- Sessions are rows in the database. The browser gets a random token in an `httpOnly`, `SameSite=Lax`
+  cookie (`Secure` in production); only the token's SHA-256 hash is stored. Signing out, changing the
+  password (which signs out the other devices) or deleting the account ends sessions at once, which a
+  stateless JWT could not do.
+- Every route under `/api` except health, sign-up and sign-in needs a session, and every query is
+  scoped to the signed-in user.
+- An unknown e-mail and a wrong password get the same answer in the same time; after 10 failed
+  sign-ins for one address, further attempts are refused for 15 minutes.
+- The profile page shows the account (e-mail, name, password) together with the settings and the
+  data protection options below.
+
+Before accounts, every letter belonged to one demo user. After signing up, an existing database hands
+those letters to the new account with `npm run demo:claim -- you@example.com`.
 
 ### Data protection (GDPR)
 
 Letters contain personal data, so users control what is kept and for how long.
 
-- **Access and portability (Art. 15, 20):** *Settings → Download my data* returns one JSON file with the
-  settings, every letter with its original file (base64), analyses, translations, explanations,
+- **Access and portability (Art. 15, 20):** *Profile → Download my data* returns one JSON file with the
+  account, the settings, every letter with its original file (base64), analyses, translations, explanations,
   deadlines, tasks, reply drafts, chat and reminders, and which AI calls processed each letter.
-- **Erasure (Art. 17):** *Delete all my data* removes every letter, file, queue job, reminder and setting.
+- **Erasure (Art. 17):** *Delete my account* removes the account with every letter, file, queue job,
+  reminder, setting and session.
   The API asks for an explicit `{ "confirm": "DELETE" }`. Logged AI calls stay for cost statistics, without
   the link to a letter; they hold no letter content.
 - **Storage limitation (Art. 5 (1) e):** users can have letters deleted 30, 90, 180 or 365 days after
   upload. A scheduled worker job checks every hour and deletes the letter with everything that belongs to it.
-- **Transparency:** the settings say that letters are sent to Google's Gemini API for analysis.
+- **Transparency:** the profile page says that letters are sent to Google's Gemini API for analysis.
 - Under the Gemini API terms, users in the EEA, Switzerland and the UK get the paid-tier data terms even on
   the free quota, but an app offered to users in these regions must use the paid tier. The free tier is
   used here for development only.
@@ -291,7 +313,7 @@ npm run knowledge:seed -w @briefklar/api
 npm run dev
 ```
 
-Open http://localhost:5173 and upload a PDF or image.
+Open http://localhost:5173, create an account and upload a PDF or image.
 Run the tests with `npm test`, and the evaluation of the letter analysis with `npm run eval -w @briefklar/api`.
 API health check: http://localhost:4000/api/health
 
@@ -304,6 +326,7 @@ API health check: http://localhost:4000/api/health
 - [x] The whole site in six languages (UI, analysis, deadline steps, errors), Arabic right to left
 - [x] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
 - [x] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
+- [x] User accounts: sign-up, sign-in, profile, everything scoped per user
 
 ## Disclaimer
 

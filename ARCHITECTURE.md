@@ -10,6 +10,7 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 
 | Folder | What is in it |
 | --- | --- |
+| `auth/` | Sign-up, sign-in, sign-out, profile and password routes; scrypt hashing (`password.ts`), database sessions and the cookie (`sessions.ts`), the middleware that requires a signed-in user (`requireUser.ts`), and the limit on failed sign-ins |
 | `documents/` | Upload, list, delete; the BullMQ queue, the worker job (`processDocument.ts`), the letter analysis prompt (`extractLetter.ts`) and progress events over SSE |
 | `explanation/` | Plain-language explanation: route, prompt, and the checked facts the model gets |
 | `translation/` | The analysis texts in the reader's language, translated once and cached |
@@ -23,11 +24,24 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 | `system/` | Health check and a development-only debug overview |
 | `deadlines/` | The deterministic deadline engine (calendar, holidays, BGB rules). No AI. |
 | `llm/` | Everything model-related that features share (see below) |
+| `middleware/` | The JSON error handler and the 404 answer |
 | `lib/` | Small helpers: Prisma, Redis, storage, SSE, HTTP errors, German date parsing |
 | `evals/` | Evaluation set of sample letters and its scoring |
-| `scripts/` | One-off commands (`npm run knowledge:seed`, `deadlines:recompute`, `llm:reprice`) |
+| `scripts/` | One-off commands (`npm run knowledge:seed`, `deadlines:recompute`, `llm:reprice`, `demo:claim`) |
 
 `app.ts` mounts the routes, `server.ts` starts the API, `worker.ts` starts the worker process.
+
+## Who is signed in
+
+1. `auth/requireUser.ts` → `loadSession` runs for every `/api` request: it hashes the token from the
+   `briefklar_session` cookie, looks up the `Session` row and sets `req.userId`.
+2. `app.ts` mounts the public routes first (`/api/health`, `/api/auth`), then `requireUser`, which answers
+   401 for everything else when nobody is signed in.
+3. Routes read the user with `getUserId(req)` and put it into every query; letters are loaded through
+   `documents/ownedDocument.ts`, which only finds the user's own. The worker gets a document id and reads
+   the owner from the letter.
+4. In the browser, `hooks/useAccount.ts` asks `GET /api/auth/me`. Without an account, `App.tsx` only has
+   the sign-in and sign-up routes; any 401 later on (`main.tsx`) shows the sign-in page again.
 
 ### The `llm/` folder
 
@@ -72,9 +86,9 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 
 | Folder | What is in it |
 | --- | --- |
-| `pages/` | One component per route (upload, letters, letter detail, reminders, usage, settings) |
+| `pages/` | One component per route (sign-in and sign-up, upload, letters, letter detail, reminders, usage, profile) |
 | `components/` | Panels of the letter page; `components/analysis/` holds the parts of the analysis panel |
-| `hooks/` | Server-Sent Events (progress, explanation, chat) and settings |
+| `hooks/` | The signed-in account, settings, and Server-Sent Events (progress, explanation, chat) |
 | `api/client.ts` | Every API call and the TanStack Query keys |
 | `i18n/` | Typed texts per language, plural rules, error texts |
 
