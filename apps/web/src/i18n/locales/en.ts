@@ -358,7 +358,7 @@ export const en = {
   usage: {
     title: "Usage and cost",
     intro: (date: string) =>
-      `Every AI call is logged. Costs are estimates at the paid-tier prices of each model (checked on ${date}); ` +
+      `Every AI call for your letters is logged. Costs are estimates at the paid-tier prices of each model (checked on ${date}); ` +
       "development runs on the free tier.",
     period: (days: number) => `Last ${days} days`,
     cost: "Estimated cost",

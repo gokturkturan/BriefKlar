@@ -6,7 +6,9 @@ import { generateStructured } from "./generateStructured";
 import type { JsonGenerationResult, LLMProvider } from "./LLMProvider";
 import { FALLBACK_SWITCH_NOTE, loggedCall } from "./logCall";
 
-vi.mock("../lib/prisma", () => ({ prisma: { llmCall: { create: vi.fn() } } }));
+vi.mock("../lib/prisma", () => ({
+  prisma: { llmCall: { create: vi.fn() }, document: { findUnique: vi.fn(async () => null) } },
+}));
 
 const create = vi.mocked(prisma.llmCall.create);
 const logged = () => create.mock.calls.map(([args]) => args.data);

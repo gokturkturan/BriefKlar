@@ -30,9 +30,14 @@ export const FALLBACK_SWITCH_NOTE = "(switched to the fallback model)";
  */
 async function logCall(context: CallContext, outcome: CallOutcome) {
   try {
+    // Each user sees the cost of their own letters on the usage page
+    const owner = context.documentId
+      ? await prisma.document.findUnique({ where: { id: context.documentId }, select: { userId: true } })
+      : null;
     await prisma.llmCall.create({
       data: {
         documentId: context.documentId,
+        userId: owner?.userId,
         purpose: context.purpose,
         provider: context.provider.name,
         promptVersion: context.promptVersion,

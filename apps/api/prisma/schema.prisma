@@ -44,6 +44,7 @@ model User {
   documents         Document[]
   reminders         Reminder[]
   sessions          Session[]
+  llmCalls          LlmCall[]
 }
 
 /// A signed-in browser. The cookie holds a random token; only its SHA-256 hash is stored.
@@ -249,6 +250,9 @@ model LlmCall {
   id            String    @id @default(uuid())
   documentId    String?
   document      Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  /// Whose letter it was, for the usage page; kept without the link when the account is deleted
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   purpose       String
   provider      String
   model         String
@@ -262,4 +266,5 @@ model LlmCall {
   createdAt     DateTime  @default(now())
 
   @@index([createdAt])
+  @@index([userId, createdAt])
 }

@@ -73,13 +73,16 @@ function groupBy(column: Prisma.Sql, where: Prisma.Sql) {
 }
 
 /**
- * Usage of the LLM over the last `days` days (German time, today included): totals, a row
- * per day, per purpose and per model, and the latest failures. All calls of the app are
- * counted; once there are real accounts this belongs behind an admin role.
+ * A user's usage of the LLM over the last `days` days (German time, today included): totals,
+ * a row per day, per purpose and per model, and the latest failures.
  */
-export async function getUsage(days: UsagePeriod, today: IsoDate = todayInGermany()): Promise<UsageDto> {
+export async function getUsage(
+  userId: string,
+  days: UsagePeriod,
+  today: IsoDate = todayInGermany(),
+): Promise<UsageDto> {
   const start = periodStart(today, days);
-  const where = Prisma.sql`${BERLIN_DAY} >= ${start}`;
+  const where = Prisma.sql`"userId" = ${userId} AND ${BERLIN_DAY} >= ${start}`;
 
   const [totals, letters, dayRows, byPurpose, byModel, failures] = await Promise.all([
     prisma.$queryRaw<[GroupRow]>`
@@ -109,7 +112,7 @@ export async function getUsage(days: UsagePeriod, today: IsoDate = todayInGerman
     groupBy(Prisma.sql`purpose`, where),
     groupBy(Prisma.sql`model`, where),
     prisma.llmCall.findMany({
-      where: { success: false, createdAt: { gte: new Date(`${addDays(start, -1)}T00:00:00Z`) } },
+      where: { userId, success: false, createdAt: { gte: new Date(`${addDays(start, -1)}T00:00:00Z`) } },
       orderBy: { createdAt: "desc" },
       take: 20,
       select: { createdAt: true, purpose: true, model: true, latencyMs: true, errorMessage: true },

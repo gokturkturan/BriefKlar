@@ -343,7 +343,7 @@ export const de: Messages = {
   usage: {
     title: "Verbrauch und Kosten",
     intro: (date) =>
-      `Jeder KI-Aufruf wird gespeichert. Die Kosten sind geschätzt, mit den Preisen der bezahlten Stufe (Stand: ${date}). ` +
+      `Jeder KI-Aufruf für Ihre Briefe wird gespeichert. Die Kosten sind geschätzt, mit den Preisen der bezahlten Stufe (Stand: ${date}). ` +
       "Bei der Entwicklung wird die kostenlose Stufe genutzt.",
     period: (days) => `Letzte ${days} Tage`,
     cost: "Geschätzte Kosten",

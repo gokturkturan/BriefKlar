@@ -341,7 +341,7 @@ export const tr: Messages = {
   usage: {
     title: "Kullanım ve maliyet",
     intro: (date) =>
-      `Her yapay zeka çağrısı kaydedilir. Maliyetler, her modelin ücretli katman fiyatlarıyla yapılan tahminlerdir (kontrol tarihi: ${date}); ` +
+      `Mektuplarınız için yapılan her yapay zeka çağrısı kaydedilir. Maliyetler, her modelin ücretli katman fiyatlarıyla yapılan tahminlerdir (kontrol tarihi: ${date}); ` +
       "geliştirme ücretsiz katmanda yapılır.",
     period: (days) => `Son ${days} gün`,
     cost: "Tahmini maliyet",
