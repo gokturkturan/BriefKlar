@@ -147,6 +147,32 @@ function withMeta<T extends Usage>({ value, model, latencyMs, failedAttempts }: 
   return { ...value, model, latencyMs, failedAttempts };
 }
 
+/**
+ * Claude's structured output accepts minItems of 0 or 1 only, so a schema that asks for an
+ * exact item count (e.g. a translation with one entry per source line) was rejected with a 400.
+ * Such counts move into the description; Zod still checks them on the answer and asks for a
+ * repair when they are wrong.
+ */
+export function toClaudeSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(toClaudeSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema)) result[key] = toClaudeSchema(value);
+  const min = typeof result.minItems === "number" ? result.minItems : undefined;
+  const max = typeof result.maxItems === "number" ? result.maxItems : undefined;
+  if ((min ?? 0) <= 1 && max === undefined) return result;
+  delete result.maxItems;
+  if (min !== undefined) result.minItems = Math.min(min, 1);
+  const count =
+    min !== undefined && min === max
+      ? `Exactly ${min} items.`
+      : [min !== undefined && min > 1 ? `At least ${min} items.` : "", max !== undefined ? `At most ${max} items.` : ""]
+          .filter(Boolean)
+          .join(" ");
+  result.description = typeof result.description === "string" ? `${result.description} (${count})` : count;
+  return result;
+}
+
 /** Claude through the Anthropic API (e.g. claude-haiku-5-5). Has no embedding model. */
 export class ClaudeProvider implements LLMProvider {
   readonly name = "anthropic";
@@ -184,7 +210,7 @@ export class ClaudeProvider implements LLMProvider {
               max_tokens: MAX_TOKENS,
               system: request.system,
               messages: [{ role: "user", content: request.input.map(toClaudeBlock) }],
-              output_config: { format: { type: "json_schema", schema: request.jsonSchema } },
+              output_config: { format: { type: "json_schema", schema: toClaudeSchema(request.jsonSchema) as Record<string, unknown> } },
             },
             { signal: timeout },
           );

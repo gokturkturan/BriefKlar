@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { partsOf as claudeParts, toClaudeBlock, toClaudeMessages } from "./ClaudeProvider";
+import { partsOf as claudeParts, toClaudeBlock, toClaudeMessages, toClaudeSchema } from "./ClaudeProvider";
 import { LLMError } from "./errors";
 import type { ChatTurn, JsonGenerationResult, LLMProvider } from "./LLMProvider";
 import { partsOf as openAIParts, toOpenAIMessages, toOpenAIPart } from "./OpenAIProvider";
@@ -20,6 +20,25 @@ const chat: ChatTurn[] = [
 ];
 
 describe("ClaudeProvider", () => {
+  it("turns exact item counts Claude rejects into descriptions", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        actions: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 3 },
+        refs: { type: "array", items: { type: "string" }, minItems: 0, maxItems: 0 },
+        notes: { type: "array", items: { type: "string" }, minItems: 1 },
+      },
+    };
+    expect(toClaudeSchema(schema)).toEqual({
+      type: "object",
+      properties: {
+        actions: { type: "array", items: { type: "string" }, minItems: 1, description: "Exactly 3 items." },
+        refs: { type: "array", items: { type: "string" }, minItems: 0, description: "Exactly 0 items." },
+        notes: { type: "array", items: { type: "string" }, minItems: 1 },
+      },
+    });
+  });
+
   it("sends PDFs as documents, images as images and plain text as a text document", () => {
     const pdf = toClaudeBlock({ type: "file", mimeType: "application/pdf", data: Buffer.from("%PDF") });
     const png = toClaudeBlock({ type: "file", mimeType: "image/png", data: Buffer.from("png") });
