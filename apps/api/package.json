@@ -21,7 +21,8 @@
     "llm:reprice": "tsx src/scripts/repriceLlmCalls.ts",
     "demo:claim": "tsx src/scripts/claimDemoData.ts",
     "eval": "tsx src/evals/runEval.ts",
-    "eval:verifier": "tsx src/evals/runVerifierEval.ts"
+    "eval:verifier": "tsx src/evals/runVerifierEval.ts",
+    "eval:pipeline": "tsx src/evals/runPipelineEval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.11.0",

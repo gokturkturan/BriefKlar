@@ -61,6 +61,12 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 
 1. The worker sends the PDF or photo directly to the model. Claude and GPT read documents and
    images natively, so there is no separate OCR step.
+   A short first request (the intake agent) decides whether the upload is an official letter at
+   all, its type, its language and whether the scan can be read. A document that is not an
+   official letter (a private invitation, advertising) is only described in one or two sentences,
+   without the full analysis and its check, and the page offers the full analysis in case it is a
+   letter after all. An unreadable photo stops the analysis and asks for a clearer one; a poor but
+   readable scan is analysed, and the page warns that parts were hard to read.
 2. The model must answer with JSON that follows `LetterExtractionSchema` (a Zod schema in
    `packages/shared`, converted to JSON Schema for the API call).
 3. The answer is validated with Zod. If it is invalid, the validation errors are sent back to the
@@ -216,6 +222,7 @@ npm run eval -w @briefklar/api                                   # the configure
 npm run eval -w @briefklar/api -- --provider openai              # GPT-6 luna
 npm run eval -w @briefklar/api -- --with-fallback --only 01,09   # production setup, two letters
 npm run eval:verifier -w @briefklar/api                          # the verifier agent (see below)
+npm run eval:pipeline -w @briefklar/api                          # the whole agent plan, with and without intake
 ```
 
 - **Schema conformance**: was the answer valid at once, valid after the repair round, still invalid, or
@@ -237,6 +244,13 @@ npm run eval:verifier -w @briefklar/api                          # the verifier 
   deadline, an invented date, a changed reference number, a shifted letter date, a flipped objection
   right, a wrong sender) and counts how many the verifier catches, and how often it reports an
   error in an analysis that passes every check (false alarm).
+- `eval:pipeline` runs the whole agent plan of an upload with the production models, once without
+  the intake agent and once with it, as real agent runs in the database (a temporary guest and its
+  documents, deleted afterwards). It compares accuracy, model requests, cost and latency for official
+  letters and for other documents, scores the intake's decisions, and checks each run's trace: at
+  most `MAX_AGENT_HOPS` messages and `MAX_LLM_CALLS_PER_RUN` requests, at most one correction round,
+  no request by the deadline agent, and no extractor or verifier for a document that is not an
+  official letter.
 - The letters are plain text sent like an uploaded file. Scans and PDFs (`.pdf`, `.jpg`, `.png`) can be
   added to `letters/` with a case in `cases.ts`; keep real letters out of the repository.
 

@@ -11,7 +11,7 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 | Folder | What is in it |
 | --- | --- |
 | `auth/` | Sign-up, sign-in, guest, sign-out, profile and password routes; scrypt hashing (`password.ts`), database sessions and the cookie (`sessions.ts`), the middleware that requires a session or an account (`requireUser.ts`), rate limits, and moving a guest's letters to an account (`moveUserData.ts`) |
-| `agents/` | The orchestrator and the agents that analyse a letter (extractor, deadline, translator), the messages between them and where they are stored |
+| `agents/` | The orchestrator and the agents that analyse a letter (intake, extractor, verifier, deadline, translator), the messages between them and where they are stored |
 | `documents/` | Upload, list, delete; the BullMQ queue, the worker job (`processDocument.ts`), the letter analysis prompt (`extractLetter.ts`) and progress events over SSE |
 | `explanation/` | Plain-language explanation: route, prompt, and the checked facts the model gets |
 | `translation/` | The analysis texts in the reader's language, translated once and cached |
@@ -70,6 +70,13 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 2. The worker (`worker.ts`) runs `documents/processDocument.ts`, which starts an agent run
    (`AgentRun`) and lets the orchestrator (`agents/orchestrator.ts`) carry out the plan in
    `agents/analyseLetter.ts`:
+   - The **intake agent** (`agents/intakeAgent.ts`) sorts the upload with one short request
+     (`documents/classifyLetter.ts`): official letter or not, type, language, scan quality. An
+     unreadable scan ends the run (`SCAN_UNREADABLE`). For a document that is not an official
+     letter it writes a short analysis itself, and the plan goes straight to the deadline agent;
+     the extractor and the verifier never run. The scan quality is stored on the `Document`, so the
+     page can warn about a poor scan. `POST /api/documents/:id/retry` with `{ "skipIntake": true }`
+     runs the plan without the intake agent (the page's "analyse in full" button).
    - The **extractor** (`agents/extractorAgent.ts`) runs `extractLetter.ts`, which sends the file to
      the model through `llm/generateStructured.ts` → `ProviderFallback.generateJson` → `ClaudeProvider` (or `OpenAIProvider` when Claude is down).
      Every attempt is logged by `llm/logCall.ts`, with the run and the agent.
