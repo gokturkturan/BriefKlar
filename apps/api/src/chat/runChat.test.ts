@@ -5,11 +5,7 @@ import { MAX_TOOL_ROUNDS, runChat } from "./runChat";
 import type { ChatTool, ToolContext } from "./tools";
 
 // Model calls are logged to the database; tests must not write there
-vi.mock("../llm/logCall", () => ({
-  logCall: vi.fn(),
-  logFailedAttempts: vi.fn(),
-  logFailure: vi.fn(),
-}));
+vi.mock("../lib/prisma", () => ({ prisma: { llmCall: { create: vi.fn() } } }));
 
 type Round = ChatRoundResult["parts"];
 

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { LLMInputPart, LLMProvider } from "./LLMProvider";
-import { logCall, logFailedAttempts, logFailure } from "./logCall";
+import { loggedCall } from "./logCall";
 
 interface GenerateStructuredOptions<T> {
   provider: LLMProvider;
@@ -29,12 +29,16 @@ function toJsonSchema(schema: z.ZodType): Record<string, unknown> {
   return jsonSchema;
 }
 
-function parseJson(text: string): unknown {
+/** The answer as validated data, or what is wrong with it */
+function validate<T>(schema: z.ZodType<T>, text: string): { data: T; error?: undefined } | { error: string } {
+  let json: unknown;
   try {
-    return JSON.parse(text);
+    json = JSON.parse(text);
   } catch {
-    return undefined;
+    return { error: "The response was not valid JSON." };
   }
+  const parsed = schema.safeParse(json);
+  return parsed.success ? { data: parsed.data } : { error: z.prettifyError(parsed.error) };
 }
 
 /**
@@ -67,36 +71,21 @@ export async function generateStructured<T>(
   const usage = { inputTokens: 0, outputTokens: 0, latencyMs: 0 };
 
   for (let attempt = 0; attempt <= maxRepairAttempts; attempt++) {
-    const startedAt = Date.now();
-    let result;
-    try {
-      result = await provider.generateJson({ system, input, jsonSchema, timeoutMs: options.timeoutMs });
-    } catch (err) {
-      await logFailure(context, err, startedAt);
-      throw err; // LLMError: the caller decides whether to retry
-    }
-
+    // An LLMError is thrown on: the caller decides whether to retry
+    const result = await loggedCall(
+      context,
+      () => provider.generateJson({ system, input, jsonSchema, timeoutMs: options.timeoutMs }),
+      { errorOf: (answer) => validate(schema, answer.text).error },
+    );
     usage.inputTokens += result.inputTokens;
     usage.outputTokens += result.outputTokens;
     usage.latencyMs += result.latencyMs;
 
-    const json = parseJson(result.text);
-    const parsed = schema.safeParse(json);
-    if (json === undefined) lastError = "The response was not valid JSON.";
-    else lastError = parsed.success ? "" : z.prettifyError(parsed.error);
-
-    await logFailedAttempts(context, result.failedAttempts);
-    await logCall({
-      ...context,
-      model: result.model,
-      inputTokens: result.inputTokens,
-      outputTokens: result.outputTokens,
-      latencyMs: result.latencyMs,
-      success: parsed.success,
-      errorMessage: parsed.success ? undefined : lastError.slice(0, 2000),
-    });
-
-    if (parsed.success) return { data: parsed.data, model: result.model, attempts: attempt + 1, ...usage };
+    const checked = validate(schema, result.text);
+    if (checked.error === undefined) {
+      return { data: checked.data, model: result.model, attempts: attempt + 1, ...usage };
+    }
+    lastError = checked.error;
 
     // Repair attempt: show the model its own answer and what was wrong with it
     input = [

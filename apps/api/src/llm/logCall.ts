@@ -4,36 +4,41 @@ import type { FailedAttempt } from "./fallback";
 import type { LLMProvider } from "./LLMProvider";
 import { costOf } from "./pricing";
 
-/**
- * Every LLM request is logged to the LlmCall table (tokens, cost, latency, success).
- * The cost comes from the price table; a model without a price is logged with cost 0.
- */
-export async function logCall(data: {
+/** What a log row says about the request, apart from the outcome */
+export interface CallContext {
   provider: LLMProvider;
-  model: string;
   purpose: string;
   promptVersion: string;
   documentId?: string;
+}
+
+interface CallOutcome {
+  model: string;
   inputTokens: number;
   outputTokens: number;
   latencyMs: number;
   success: boolean;
   errorMessage?: string;
-}) {
+}
+
+/** Marks a failed call after which the fallback model answered (read by the usage dashboard) */
+export const FALLBACK_SWITCH_NOTE = "(switched to the fallback model)";
+
+/**
+ * Writes one row to the LlmCall table (tokens, cost, latency, success).
+ * The cost comes from the price table; a model without a price is logged with cost 0.
+ */
+async function logCall(context: CallContext, outcome: CallOutcome) {
   try {
     await prisma.llmCall.create({
       data: {
-        documentId: data.documentId,
-        purpose: data.purpose,
-        provider: data.provider.name,
-        model: data.model,
-        promptVersion: data.promptVersion,
-        inputTokens: data.inputTokens,
-        outputTokens: data.outputTokens,
-        costUsd: costOf(data.model, data.inputTokens, data.outputTokens) ?? 0,
-        latencyMs: data.latencyMs,
-        success: data.success,
-        errorMessage: data.errorMessage,
+        documentId: context.documentId,
+        purpose: context.purpose,
+        provider: context.provider.name,
+        promptVersion: context.promptVersion,
+        ...outcome,
+        errorMessage: outcome.errorMessage?.slice(0, 2000),
+        costUsd: costOf(outcome.model, outcome.inputTokens, outcome.outputTokens) ?? 0,
       },
     });
   } catch (err) {
@@ -42,20 +47,13 @@ export async function logCall(data: {
   }
 }
 
-/** Marks a failed call after which the fallback model answered (read by the usage dashboard) */
-export const FALLBACK_SWITCH_NOTE = "(switched to the fallback model)";
-
-export type CallContext = Pick<Parameters<typeof logCall>[0], "provider" | "purpose" | "promptVersion" | "documentId">;
-
 /**
- * Logs each model that failed before another one answered as its own failed call, so a switch
- * to the fallback model shows up in the log (with the primary's error and wasted time) instead
- * of only the model that answered.
+ * Each model that failed before another one answered is logged as its own failed call, so a
+ * switch to the fallback model shows up in the log (with the primary's error and wasted time).
  */
-export async function logFailedAttempts(context: CallContext, attempts: FailedAttempt[]) {
+async function logFailedAttempts(context: CallContext, attempts: FailedAttempt[] = []) {
   for (const attempt of attempts) {
-    await logCall({
-      ...context,
+    await logCall(context, {
       model: attempt.model,
       inputTokens: 0,
       outputTokens: 0,
@@ -67,17 +65,55 @@ export async function logFailedAttempts(context: CallContext, attempts: FailedAt
   }
 }
 
-/** Logs a request that failed: the models that failed first, then the last one */
-export async function logFailure(context: CallContext, err: unknown, startedAt: number, errorMessage?: string) {
-  const llmError = err instanceof LLMError ? err : undefined;
-  await logFailedAttempts(context, llmError?.failedAttempts ?? []);
-  await logCall({
-    ...context,
-    model: llmError?.model ?? context.provider.model,
-    inputTokens: 0,
-    outputTokens: 0,
-    latencyMs: llmError?.latencyMs ?? Date.now() - startedAt,
-    success: false,
-    errorMessage: errorMessage ?? (err instanceof Error ? err.message : String(err)),
+/** The parts of a provider result that are logged */
+export interface LoggableResult {
+  model: string;
+  latencyMs: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  failedAttempts?: FailedAttempt[];
+}
+
+/**
+ * Runs one model request and logs it: first the models that failed before the answer, then
+ * the answer itself, or the failure. `errorOf` can mark an answer as failed, e.g. invalid JSON.
+ */
+export async function loggedCall<R extends LoggableResult>(
+  context: CallContext,
+  request: () => Promise<R>,
+  options: { signal?: AbortSignal; errorOf?: (result: R) => string | undefined } = {},
+): Promise<R> {
+  const startedAt = Date.now();
+  let result: R;
+  try {
+    result = await request();
+  } catch (err) {
+    const llmError = err instanceof LLMError ? err : undefined;
+    await logFailedAttempts(context, llmError?.failedAttempts);
+    await logCall(context, {
+      model: llmError?.model ?? context.provider.model,
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: llmError?.latencyMs ?? Date.now() - startedAt,
+      success: false,
+      errorMessage: options.signal?.aborted
+        ? "Aborted by the client"
+        : err instanceof Error
+          ? err.message
+          : String(err),
+    });
+    throw err;
+  }
+
+  const errorMessage = options.errorOf?.(result);
+  await logFailedAttempts(context, result.failedAttempts);
+  await logCall(context, {
+    model: result.model,
+    inputTokens: result.inputTokens ?? 0,
+    outputTokens: result.outputTokens ?? 0,
+    latencyMs: result.latencyMs,
+    success: errorMessage === undefined,
+    errorMessage,
   });
+  return result;
 }

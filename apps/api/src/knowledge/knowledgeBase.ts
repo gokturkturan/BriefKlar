@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { EMBEDDING_DIMENSIONS, llm, type LLMProvider } from "../llm";
-import { logCall, logFailure } from "../llm/logCall";
+import { loggedCall } from "../llm/logCall";
 import { KNOWLEDGE_ENTRIES, type KnowledgeSeed } from "./entries";
 
 /** Version of the embedded text format (title + content); changing it re-embeds every entry */
@@ -67,15 +67,9 @@ export async function syncKnowledgeBase(
   for (let i = 0; i < changed.length; i += EMBED_BATCH_SIZE) {
     const batch = changed.slice(i, i + EMBED_BATCH_SIZE);
     const context = { provider, purpose: "embed-knowledge", promptVersion: KNOWLEDGE_EMBEDDING_VERSION };
-    const startedAt = Date.now();
-    let result;
-    try {
-      result = await provider.embed({ texts: batch.map(embeddingText), kind: "document" });
-    } catch (err) {
-      await logFailure(context, err, startedAt);
-      throw err;
-    }
-    await logCall({ ...context, model, inputTokens: 0, outputTokens: 0, latencyMs: result.latencyMs, success: true });
+    const result = await loggedCall(context, () =>
+      provider.embed({ texts: batch.map(embeddingText), kind: "document" }),
+    );
 
     await prisma.$transaction(async (tx) => {
       for (const [j, entry] of batch.entries()) {
@@ -117,21 +111,8 @@ export async function searchKnowledge(query: string, options: SearchOptions = {}
   const { limit = 4, minSimilarity = 0.6, documentId, signal, provider = llm } = options;
   const context = { provider, purpose: "embed-query", promptVersion: KNOWLEDGE_EMBEDDING_VERSION, documentId };
 
-  const startedAt = Date.now();
-  let result;
-  try {
-    result = await provider.embed({ texts: [query], kind: "query", signal });
-  } catch (err) {
-    await logFailure(context, err, startedAt, signal?.aborted ? "Aborted by the client" : undefined);
-    throw err;
-  }
-  await logCall({
-    ...context,
-    model: result.model,
-    inputTokens: 0,
-    outputTokens: 0,
-    latencyMs: result.latencyMs,
-    success: true,
+  const result = await loggedCall(context, () => provider.embed({ texts: [query], kind: "query", signal }), {
+    signal,
   });
 
   const vector = toVectorLiteral(result.vectors[0]!);

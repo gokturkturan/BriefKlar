@@ -1,6 +1,6 @@
 import { isChatToolName, type ChatSourceDto, type ChatStreamEvent, type ChatToolCallDto } from "@briefklar/shared";
 import type { ChatPart, ChatTurn, LLMProvider } from "../llm/LLMProvider";
-import { logCall, logFailedAttempts, logFailure } from "../llm/logCall";
+import { loggedCall } from "../llm/logCall";
 import { CHAT_TOOLS, runTool, toolDeclarations, type ChatTool, type ToolContext } from "./tools";
 
 /** Tool rounds before the model must answer with what it has */
@@ -59,32 +59,21 @@ export async function runChat(options: RunChatOptions): Promise<ChatAnswer> {
       onEvent({ type: "delta", text: delta });
     };
 
-    const startedAt = Date.now();
-    let result;
-    try {
-      result = await provider.chatRound(
-        {
-          system,
-          turns,
-          tools: declarations,
-          toolChoice: round < MAX_TOOL_ROUNDS ? "auto" : "none",
-          signal: context.signal,
-        },
-        onDelta,
-      );
-    } catch (err) {
-      await logFailure(logContext, err, startedAt, context.signal?.aborted ? "Aborted by the client" : undefined);
-      throw err;
-    }
-    await logFailedAttempts(logContext, result.failedAttempts);
-    await logCall({
-      ...logContext,
-      model: result.model,
-      inputTokens: result.inputTokens,
-      outputTokens: result.outputTokens,
-      latencyMs: result.latencyMs,
-      success: true,
-    });
+    const result = await loggedCall(
+      logContext,
+      () =>
+        provider.chatRound(
+          {
+            system,
+            turns,
+            tools: declarations,
+            toolChoice: round < MAX_TOOL_ROUNDS ? "auto" : "none",
+            signal: context.signal,
+          },
+          onDelta,
+        ),
+      { signal: context.signal },
+    );
 
     turns.push({ role: "model", parts: result.parts, model: result.model });
     const calls = result.parts.filter((part) => part.type === "toolCall");
