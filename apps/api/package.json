@@ -23,7 +23,8 @@
     "eval": "tsx src/evals/runEval.ts",
     "eval:verifier": "tsx src/evals/runVerifierEval.ts",
     "eval:pipeline": "tsx src/evals/runPipelineEval.ts",
-    "eval:questions": "tsx src/evals/runQuestionEval.ts"
+    "eval:questions": "tsx src/evals/runQuestionEval.ts",
+    "eval:replies": "tsx src/evals/runReplyEval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.11.0",
