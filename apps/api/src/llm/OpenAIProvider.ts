@@ -211,6 +211,9 @@ export class OpenAIProvider implements LLMProvider {
             function: { name: tool.name, description: tool.description, parameters: tool.parameters },
           })),
           tool_choice: request.toolChoice === "none" ? "none" : "auto",
+          // Chat Completions refuses function tools together with reasoning on reasoning models
+          // such as gpt-6-luna ("use /v1/responses or set reasoning_effort to 'none'")
+          reasoning_effort: "none",
         },
         request.signal,
         emit,
@@ -265,7 +268,7 @@ export class OpenAIProvider implements LLMProvider {
   private async stream(
     model: string,
     messages: ChatMessage[],
-    extra: Partial<Pick<OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming, "tools" | "tool_choice">>,
+    extra: Partial<Pick<OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming, "tools" | "tool_choice" | "reasoning_effort">>,
     signal: AbortSignal | undefined,
     onText: (text: string) => void,
   ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
