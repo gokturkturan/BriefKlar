@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { HealthDto } from "@briefklar/shared";
 import { prisma } from "../lib/prisma";
 import { createRedisConnection } from "../lib/redis";
-import { documentQueue } from "../queue/documentQueue";
+import { documentQueue } from "../documents/documentQueue";
 
 const redisClient = createRedisConnection();
 

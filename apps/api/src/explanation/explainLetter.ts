@@ -3,10 +3,10 @@ import {
   EXPLAIN_LETTER_PROMPT_VERSION,
   explainLetterInstruction,
   explainLetterSystemPrompt,
-} from "../prompts/explainLetter";
+} from "./explainLetterPrompt";
 import { explanationFacts, type DeadlineFact } from "./explanationFacts";
-import { llm } from "./index";
-import { streamText } from "./streamText";
+import { llm } from "../llm/index";
+import { streamText } from "../llm/streamText";
 
 export async function explainLetter(params: {
   documentId: string;

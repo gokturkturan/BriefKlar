@@ -11,13 +11,13 @@ import { z } from "zod";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
-import { draftReply } from "../llm/draftReply";
+import { draftReply } from "./draftReply";
 import { LLMValidationError } from "../llm/generateStructured";
-import { REPLY_DRAFT_PROMPT_VERSION } from "../prompts/replyDraft";
+import { REPLY_DRAFT_PROMPT_VERSION } from "./draftReplyPrompt";
 import { todayInGermany } from "../deadlines/calendarDate";
-import { composeReplyLetter, replyWarnings } from "../replies/composeReplyLetter";
-import { requireExtraction } from "../lib/extractions";
-import { findOwnedDocument, routeParam } from "./ownedDocument";
+import { composeReplyLetter, replyWarnings } from "./composeReplyLetter";
+import { requireExtraction } from "../documents/extractions";
+import { findOwnedDocument, routeParam } from "../documents/ownedDocument";
 
 /** Mounted at /api/documents/:id/reply-drafts */
 export const replyDraftsRouter = Router({ mergeParams: true });

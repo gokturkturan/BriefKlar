@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { isUsagePeriod } from "@briefklar/shared";
 import { HttpError } from "../lib/httpError";
-import { getUsage } from "../usage/usage";
+import { getUsage } from "./usage";
 
 export const usageRouter = Router();
 

@@ -9,9 +9,9 @@ import {
   TRANSLATE_ANALYSIS_PROMPT_VERSION,
   translateAnalysisInput,
   translateAnalysisSystemPrompt,
-} from "../prompts/translateAnalysis";
-import { generateStructured, type StructuredResult } from "./generateStructured";
-import { llm } from "./index";
+} from "./translateAnalysisPrompt";
+import { generateStructured, type StructuredResult } from "../llm/generateStructured";
+import { llm } from "../llm/index";
 
 export async function translateAnalysis(params: {
   documentId: string;

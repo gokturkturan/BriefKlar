@@ -4,11 +4,11 @@ import { parseArgs } from "node:util";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm/errors";
-import { extractLetter } from "../llm/extractLetter";
+import { extractLetter } from "../documents/extractLetter";
 import { GeminiProvider } from "../llm/GeminiProvider";
 import { LLMValidationError } from "../llm/generateStructured";
 import { costOf } from "../llm/pricing";
-import { EXTRACT_LETTER_PROMPT_VERSION } from "../prompts/extractLetter";
+import { EXTRACT_LETTER_PROMPT_VERSION } from "../documents/extractLetterPrompt";
 import { EVAL_CASES, type EvalCase } from "./cases";
 import { scoreExtraction, summarize, type CaseResult, type EvalSummary } from "./score";
 

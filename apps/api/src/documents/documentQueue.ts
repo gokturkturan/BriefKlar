@@ -1,7 +1,7 @@
 import { Queue } from "bullmq";
 import { createRedisConnection } from "../lib/redis";
 
-import { DOCUMENT_QUEUE, type DocumentJobData } from "./constants";
+import { DOCUMENT_QUEUE, type DocumentJobData } from "./queueConstants";
 
 export { DOCUMENT_QUEUE, type DocumentJobData };
 

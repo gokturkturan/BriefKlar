@@ -2,10 +2,10 @@ import { LetterExtractionSchema, type LetterExtraction } from "@briefklar/shared
 import {
   EXTRACT_LETTER_PROMPT_VERSION,
   EXTRACT_LETTER_SYSTEM_PROMPT,
-} from "../prompts/extractLetter";
-import { generateStructured, type StructuredResult } from "./generateStructured";
-import { llm } from "./index";
-import type { LLMProvider } from "./LLMProvider";
+} from "./extractLetterPrompt";
+import { generateStructured, type StructuredResult } from "../llm/generateStructured";
+import { llm } from "../llm/index";
+import type { LLMProvider } from "../llm/LLMProvider";
 
 export async function extractLetter(params: {
   file: Buffer;

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import { documentQueue } from "../queue/documentQueue";
+import { documentQueue } from "../documents/documentQueue";
 
 /**
  * Development-only overview of documents, queue jobs and LLM calls.

@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { QueueEvents } from "bullmq";
 import type { ProgressEvent } from "@briefklar/shared";
 import { createRedisConnection } from "../lib/redis";
-import { DOCUMENT_QUEUE } from "./constants";
+import { DOCUMENT_QUEUE } from "./queueConstants";
 
 /**
  * Bridges BullMQ progress events (published by the worker process via Redis)

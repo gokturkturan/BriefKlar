@@ -10,11 +10,11 @@ import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { openSse } from "../lib/sse";
 import { LLMError } from "../llm";
-import { explainLetter } from "../llm/explainLetter";
-import { EXPLAIN_LETTER_PROMPT_VERSION } from "../prompts/explainLetter";
+import { explainLetter } from "./explainLetter";
+import { EXPLAIN_LETTER_PROMPT_VERSION } from "./explainLetterPrompt";
 import { storage } from "../storage";
-import { requireExtraction } from "../lib/extractions";
-import { findOwnedDocument } from "./ownedDocument";
+import { requireExtraction } from "../documents/extractions";
+import { findOwnedDocument } from "../documents/ownedDocument";
 
 /** Mounted at /api/documents/:id/explanation */
 export const explanationRouter = Router({ mergeParams: true });

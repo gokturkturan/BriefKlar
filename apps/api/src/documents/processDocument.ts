@@ -4,14 +4,14 @@ import { isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@brie
 import { deadlineContext, deadlineRows } from "../deadlines";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
-import { extractLetter } from "../llm/extractLetter";
+import { extractLetter } from "./extractLetter";
 import { LLMValidationError } from "../llm/generateStructured";
-import { EXTRACT_LETTER_PROMPT_VERSION } from "../prompts/extractLetter";
-import type { DocumentJobData } from "../queue/constants";
+import { EXTRACT_LETTER_PROMPT_VERSION } from "./extractLetterPrompt";
+import type { DocumentJobData } from "./queueConstants";
 import { syncDeadlineReminders } from "../reminders/deadlineReminders";
 import { todayInGermany } from "../deadlines/calendarDate";
 import { storage } from "../storage";
-import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "../translations/analysisTranslations";
+import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "../translation/analysisTranslations";
 
 async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<void> {
   await job.updateProgress(event);

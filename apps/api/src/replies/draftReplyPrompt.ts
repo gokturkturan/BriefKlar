@@ -4,7 +4,7 @@ import {
   type LetterExtraction,
   type ReplyType,
 } from "@briefklar/shared";
-import { objectionTerm } from "../replies/composeReplyLetter";
+import { objectionTerm } from "./composeReplyLetter";
 
 export const REPLY_DRAFT_PROMPT_VERSION = "reply-draft@1";
 

@@ -1,11 +1,11 @@
 import { Queue, Worker } from "bullmq";
 import "./config/env";
 import { todayInGermany } from "./deadlines/calendarDate";
-import { processDocument } from "./jobs/processDocument";
+import { processDocument } from "./documents/processDocument";
 import { prisma } from "./lib/prisma";
 import { createRedisConnection } from "./lib/redis";
 import { deleteExpiredDocuments } from "./privacy/userData";
-import { DOCUMENT_QUEUE, type DocumentJobData } from "./queue/constants";
+import { DOCUMENT_QUEUE, type DocumentJobData } from "./documents/queueConstants";
 import { fireDueReminders } from "./reminders/reminders";
 
 /**

@@ -6,8 +6,8 @@ import {
   type ExplanationLanguage,
 } from "@briefklar/shared";
 import { prisma } from "../lib/prisma";
-import { translateAnalysis } from "../llm/translateAnalysis";
-import { TRANSLATE_ANALYSIS_PROMPT_VERSION } from "../prompts/translateAnalysis";
+import { translateAnalysis } from "./translateAnalysis";
+import { TRANSLATE_ANALYSIS_PROMPT_VERSION } from "./translateAnalysisPrompt";
 
 /** The language the analysis itself is written in; it needs no translation */
 export const ANALYSIS_LANGUAGE: ExplanationLanguage = "en";

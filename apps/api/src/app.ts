@@ -1,20 +1,20 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { chatRouter } from "./chat/chatRoutes";
 import { env } from "./config/env";
+import { documentsRouter } from "./documents/documentRoutes";
+import { explanationRouter } from "./explanation/explanationRoutes";
 import { demoUser } from "./middleware/demoUser";
 import { errorHandler, notFound } from "./middleware/errorHandler";
-import { accountRouter } from "./routes/account";
-import { analysisTranslationRouter } from "./routes/analysisTranslation";
-import { chatRouter } from "./routes/chat";
-import { debugRouter } from "./routes/debug";
-import { documentsRouter } from "./routes/documents";
-import { explanationRouter } from "./routes/explanation";
-import { remindersRouter } from "./routes/reminders";
-import { replyDraftsRouter } from "./routes/replyDrafts";
-import { settingsRouter } from "./routes/settings";
-import { healthRouter } from "./routes/health";
-import { usageRouter } from "./routes/usage";
+import { accountRouter } from "./privacy/accountRoutes";
+import { remindersRouter } from "./reminders/reminderRoutes";
+import { replyDraftsRouter } from "./replies/replyDraftRoutes";
+import { settingsRouter } from "./settings/settingsRoutes";
+import { debugRouter } from "./system/debugRoutes";
+import { healthRouter } from "./system/healthRoutes";
+import { analysisTranslationRouter } from "./translation/translationRoutes";
+import { usageRouter } from "./usage/usageRoutes";
 
 export function createApp() {
   const app = express();

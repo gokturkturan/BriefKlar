@@ -17,14 +17,14 @@ import {
 } from "@briefklar/shared";
 import { prisma } from "../lib/prisma";
 import { openSse } from "../lib/sse";
-import { latestExtraction, letterOf } from "../lib/extractions";
+import { latestExtraction, letterOf } from "./extractions";
 import { HttpError } from "../lib/httpError";
-import { detectFileType } from "../lib/fileType";
+import { detectFileType } from "./fileType";
 import { storage } from "../storage";
 import { recomputeDeadlines } from "../deadlines";
 import { isIsoDate, todayInGermany } from "../deadlines/calendarDate";
-import { documentQueue, enqueueDocument } from "../queue/documentQueue";
-import { isProgressEvent, subscribeToDocument } from "../queue/documentEvents";
+import { documentQueue, enqueueDocument } from "./documentQueue";
+import { isProgressEvent, subscribeToDocument } from "./documentEvents";
 import { getUserId } from "../middleware/demoUser";
 import { deleteDocuments } from "../privacy/userData";
 import { findOwnedDocument, routeParam } from "./ownedDocument";

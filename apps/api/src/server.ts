@@ -2,8 +2,8 @@ import { env } from "./config/env";
 import { createApp } from "./app";
 import { prisma } from "./lib/prisma";
 import { ensureDemoUser } from "./middleware/demoUser";
-import { documentQueue } from "./queue/documentQueue";
-import { startDocumentEvents, stopDocumentEvents } from "./queue/documentEvents";
+import { documentQueue } from "./documents/documentQueue";
+import { startDocumentEvents, stopDocumentEvents } from "./documents/documentEvents";
 import { initStorage } from "./storage";
 
 async function main() {

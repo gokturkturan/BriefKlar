@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
-import { documentQueue } from "../queue/documentQueue";
+import { documentQueue } from "../documents/documentQueue";
 import { storage } from "../storage";
 import { expiredDocumentsWhere } from "./retention";
 

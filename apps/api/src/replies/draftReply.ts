@@ -9,9 +9,9 @@ import {
   REPLY_DRAFT_PROMPT_VERSION,
   REPLY_DRAFT_SYSTEM_PROMPT,
   replyDraftInput,
-} from "../prompts/replyDraft";
-import { generateStructured, type StructuredResult } from "./generateStructured";
-import { llm } from "./index";
+} from "./draftReplyPrompt";
+import { generateStructured, type StructuredResult } from "../llm/generateStructured";
+import { llm } from "../llm/index";
 
 /** The model only writes the body; composeReplyLetter builds the letter around it */
 export async function draftReply(params: {

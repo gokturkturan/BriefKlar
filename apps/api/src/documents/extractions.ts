@@ -1,7 +1,7 @@
 import type { Extraction, Prisma } from "@prisma/client";
 import { LetterExtractionSchema, type LetterExtraction } from "@briefklar/shared";
-import { HttpError } from "./httpError";
-import { prisma } from "./prisma";
+import { HttpError } from "../lib/httpError";
+import { prisma } from "../lib/prisma";
 
 /** The Prisma client, or the client of a running transaction */
 export type Db = Prisma.TransactionClient | typeof prisma;

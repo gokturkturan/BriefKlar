@@ -1,5 +1,5 @@
 import { isGermanState } from "@briefklar/shared";
-import { latestExtraction, letterOf, type Db } from "../lib/extractions";
+import { latestExtraction, letterOf, type Db } from "../documents/extractions";
 import { prisma } from "../lib/prisma";
 import { syncDeadlineReminders } from "../reminders/deadlineReminders";
 import { todayInGermany, toIsoDate } from "./calendarDate";
