@@ -52,9 +52,8 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 | File | Role |
 | --- | --- |
 | `LLMProvider.ts` | The provider-neutral interface. Nothing outside `llm/` imports a vendor SDK. |
-| `GeminiProvider.ts` | The Gemini implementation: JSON answers, streamed text, chat rounds with tools, embeddings |
-| `ClaudeProvider.ts` | The Claude implementation (Anthropic API, e.g. Claude Haiku 5.5); no embeddings |
-| `OpenAIProvider.ts` | The OpenAI implementation (Chat Completions, e.g. GPT-6 luna) and OpenAI embeddings |
+| `ClaudeProvider.ts` | The Claude implementation (Anthropic API, Claude Haiku 5.5 by default): JSON answers, streamed text, chat rounds with tools; no embeddings |
+| `OpenAIProvider.ts` | The OpenAI implementation (Chat Completions, GPT-6 luna by default) and OpenAI embeddings |
 | `ProviderFallback.ts` | Puts the configured providers behind one: `LLM_PROVIDER` answers, `LLM_FALLBACK_PROVIDER` takes over when it is down, `LLM_EMBEDDING_PROVIDER` embeds |
 | `fallback.ts` | Circuit breaker: when the primary model is overloaded, the fallback model answers for a while |
 | `generateStructured.ts` | Asks for JSON, validates it with Zod, and lets the model repair an invalid answer once |
@@ -72,7 +71,7 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
    (`AgentRun`) and lets the orchestrator (`agents/orchestrator.ts`) carry out the plan in
    `agents/analyseLetter.ts`:
    - The **extractor** (`agents/extractorAgent.ts`) runs `extractLetter.ts`, which sends the file to
-     the model through `llm/generateStructured.ts` → `GeminiProvider.generateJson` → `fallback.ts`.
+     the model through `llm/generateStructured.ts` → `ProviderFallback.generateJson` → `ClaudeProvider` (or `OpenAIProvider` when Claude is down).
      Every attempt is logged by `llm/logCall.ts`, with the run and the agent.
    - The **deadline agent** (`agents/deadlineAgent.ts`, no AI) turns the deadline wording into due
      dates (`deadlines/deadlineRows.ts`) and stores the analysis, action items, deadlines and
@@ -97,7 +96,7 @@ latest runs with their messages in order.
 1. `chat/chatRoutes.ts` (`POST /api/documents/:id/chat`) loads the analysis, deadlines and the
    last messages, and opens an SSE stream (`lib/sse.ts`).
 2. `chat/runChat.ts` sends the conversation and the tool declarations to the model
-   (`GeminiProvider.chatRound`). When the model asks for tools, `chat/tools.ts` runs them (deadline
+   (`chatRound` of the configured provider). When the model asks for tools, `chat/tools.ts` runs them (deadline
    engine, holiday calendar, knowledge base search, reminders) and sends the results back, until
    the model answers with text.
 3. Tool activity and text chunks go to the browser as they arrive (`apps/web/src/hooks/useChat.ts`);

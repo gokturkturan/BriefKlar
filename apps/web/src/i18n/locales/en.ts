@@ -115,7 +115,7 @@ export const en = {
         "Only you can see your letters.",
         "Letters can be deleted automatically after 30 to 365 days.",
         "Download all your data or delete your account at any time.",
-        "To analyse a letter, BriefKlar sends it to Google's Gemini API.",
+        "To analyse a letter, BriefKlar sends it to the AI services of Anthropic (Claude) and OpenAI.",
       ],
     },
     final: {
@@ -423,7 +423,7 @@ export const en = {
     privacy: {
       title: "Your data and privacy",
       processing:
-        "To analyze a letter, BriefKlar sends it to Google's Gemini API. Everything else (your letters, analyses, " +
+        "To analyze a letter, BriefKlar sends it to the APIs of Anthropic (Claude) and OpenAI: one reads it, the other checks the analysis. Everything else (your letters, analyses, " +
         "chats and reminders) is stored by BriefKlar until you delete it.",
       retention: "Delete letters automatically",
       retentionHint:
@@ -505,8 +505,8 @@ export const en = {
     DATE_IN_PAST: "The date is in the past.",
     AI_RATE_LIMITED: "The AI service has too many requests right now. Please try again in a few minutes.",
     AI_OVERLOADED: "The AI service is temporarily overloaded. Please try again in a few minutes.",
-    AI_KEY_REJECTED: "The AI service rejected the API key. Check GEMINI_API_KEY.",
-    AI_MODEL_NOT_FOUND: "The configured AI model was not found. Check GEMINI_MODEL.",
+    AI_KEY_REJECTED: "The AI service rejected the API key. Check ANTHROPIC_API_KEY and OPENAI_API_KEY.",
+    AI_MODEL_NOT_FOUND: "The configured AI model was not found. Check ANTHROPIC_MODEL and OPENAI_MODEL.",
     AI_FAILED: "The AI service could not process this request.",
     AI_INCOMPLETE: "The AI returned an incomplete answer. Please try again.",
     PROCESSING_FAILED: "Something went wrong while processing this letter.",

@@ -98,7 +98,7 @@ export const uk: Messages = {
         "Ваші листи бачите лише ви.",
         "Листи можна автоматично видаляти через 30–365 днів.",
         "Завантажте всі свої дані або видаліть обліковий запис будь-коли.",
-        "Для аналізу BriefKlar надсилає лист до Gemini API від Google.",
+        "Для аналізу BriefKlar надсилає лист до сервісів ШІ Anthropic (Claude) та OpenAI.",
       ],
     },
     final: {
@@ -408,7 +408,7 @@ export const uk: Messages = {
     privacy: {
       title: "Ваші дані та конфіденційність",
       processing:
-        "Щоб проаналізувати лист, BriefKlar надсилає його до Gemini API від Google. Усе інше (ваші листи, аналізи, " +
+        "Щоб проаналізувати лист, BriefKlar надсилає його до API Anthropic (Claude) та OpenAI: один читає лист, інший перевіряє аналіз. Усе інше (ваші листи, аналізи, " +
         "чати й нагадування) BriefKlar зберігає, доки ви це не видалите.",
       retention: "Видаляти листи автоматично",
       retentionHint:
@@ -490,8 +490,8 @@ export const uk: Messages = {
     DATE_IN_PAST: "Ця дата вже минула.",
     AI_RATE_LIMITED: "Сервіс ШІ зараз отримує забагато запитів. Спробуйте за кілька хвилин.",
     AI_OVERLOADED: "Сервіс ШІ зараз перевантажений. Спробуйте за кілька хвилин.",
-    AI_KEY_REJECTED: "Сервіс ШІ відхилив ключ API. Перевірте GEMINI_API_KEY.",
-    AI_MODEL_NOT_FOUND: "Указану модель ШІ не знайдено. Перевірте GEMINI_MODEL.",
+    AI_KEY_REJECTED: "Сервіс ШІ відхилив ключ API. Перевірте ANTHROPIC_API_KEY та OPENAI_API_KEY.",
+    AI_MODEL_NOT_FOUND: "Указану модель ШІ не знайдено. Перевірте ANTHROPIC_MODEL та OPENAI_MODEL.",
     AI_FAILED: "Сервіс ШІ не зміг обробити цей запит.",
     AI_INCOMPLETE: "ШІ повернув неповну відповідь. Будь ласка, спробуйте ще раз.",
     PROCESSING_FAILED: "Під час обробки листа сталася помилка.",

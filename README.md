@@ -34,7 +34,7 @@
 | Database | PostgreSQL 17 + pgvector, Prisma ORM |
 | Background jobs | Redis + BullMQ (separate worker process) |
 | Realtime | Server-Sent Events (SSE) |
-| LLM | Google Gemini via `@google/genai`, behind a provider-agnostic `LLMProvider` interface |
+| LLM | Claude Haiku 5.5 (Anthropic) with GPT-6 luna (OpenAI) as fallback and verifier, OpenAI embeddings, behind a provider-agnostic `LLMProvider` interface |
 | Shared | `@briefklar/shared` — Zod schemas & types used by both API and web |
 | Tests | Vitest, plus an evaluation set for the model's letter analysis |
 | Deployment | Docker images, Docker Compose, Caddy (HTTPS, reverse proxy), GitHub Actions CI |
@@ -46,7 +46,7 @@
 ```
 React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
      ▲                    │  │
-     │ SSE (progress)     │  └─ enqueue ─▶ Redis (BullMQ) ─▶ Worker ──▶ Gemini
+     │ SSE (progress)     │  └─ enqueue ─▶ Redis (BullMQ) ─▶ Worker ──▶ Claude / OpenAI
      └────────────────────┘◀──── progress events ─────────────┘
 ```
 
@@ -59,14 +59,14 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 
 ### How a letter is analyzed
 
-1. The worker sends the PDF or photo directly to the model. Gemini reads documents natively,
-   so there is no separate OCR step.
+1. The worker sends the PDF or photo directly to the model. Claude and GPT read documents and
+   images natively, so there is no separate OCR step.
 2. The model must answer with JSON that follows `LetterExtractionSchema` (a Zod schema in
    `packages/shared`, converted to JSON Schema for the API call).
 3. The answer is validated with Zod. If it is invalid, the validation errors are sent back to the
    model once so it can repair its answer.
 4. Every call is logged to the `LlmCall` table (model, prompt version, tokens, estimated cost, latency, success).
-   When the primary model is overloaded or times out and the fallback model answers, the failed
+   When the primary provider is overloaded or times out and the fallback provider answers, the failed
    attempt is logged as its own row, so the log shows each switch and the time it cost.
 5. The model never calculates dates: it only copies deadline wording from the letter.
    Due dates are decided by deterministic, tested code (see below).
@@ -107,7 +107,7 @@ languages (English, simple German, Turkish, Arabic, Ukrainian, Russian) over SSE
 - The finished text is stored per language; the next request gets it at once. It is removed
   when the letter is analyzed again or a due date changes.
 - Closing the page aborts the model call. If the model sends nothing for 20 seconds, the
-  smaller fallback model takes over (only before the first chunk, so an answer is never mixed
+  fallback provider takes over (only before the first chunk, so an answer is never mixed
   from two models).
 - The text is rendered with React elements, never as HTML.
 
@@ -156,7 +156,7 @@ benefits, residence permits and where to get advice. Every entry names an offici
 mostly the law on gesetze-im-internet.de.
 
 - The entries live in `apps/api/src/knowledge/entries.ts`. `npm run knowledge:seed -w @briefklar/api`
-  embeds them with `gemini-embedding-001` (1536 dimensions, normalized) into a pgvector column.
+  embeds them with OpenAI's `text-embedding-3-small` (1536 dimensions, normalized) into a pgvector column.
   Only new or changed entries are embedded again; a hash of text, source and model decides.
 - A question is embedded as a query and compared by cosine distance (`<=>`). Matches below a
   similarity threshold are left out, so an unrelated question finds nothing instead of noise.
@@ -167,7 +167,7 @@ mostly the law on gesetze-im-internet.de.
 
 ### Chat with tool calling
 
-Each letter has a chat. The model (Gemini function calling) decides which tools to call; the
+Each letter has a chat. The model (function calling) decides which tools to call; the
 tools run in the API with checked code and data, and their results go back to the model until
 it answers:
 
@@ -179,15 +179,15 @@ it answers:
 | `check_date` / `list_public_holidays` | The holiday calendar of the user's federal state |
 | `list_reminders` / `create_reminder` | Reminders for this letter; days are counted back in code |
 
-- The loop is provider-neutral (`apps/api/src/chat/runChat.ts`); `GeminiProvider.chatRound` maps
-  it to Gemini. Arguments are validated with Zod; invalid arguments and unknown tools go back to
+- The loop is provider-neutral (`apps/api/src/chat/runChat.ts`); `chatRound` of each provider maps
+  it to Claude's or OpenAI's tool calls. Arguments are validated with Zod; invalid arguments and unknown tools go back to
   the model as errors. After five tool rounds the model must answer.
 - The model never calculates a date, holiday or legal rule from memory: the prompt requires the
   tools, and the answer shows which tools ran and which sources it used.
 - Answers stream over SSE (a POST read with `fetch`), with an event for each tool. They are written
   in the language chosen in the settings and stored with the tools used and the sources.
-- Each round is a logged model call. Gemini's thought signatures are sent back with tool calls;
-  after a switch to the fallback model, calls written by the other model get Gemini's placeholder.
+- Each round is a logged model call. Claude gets its own turns back unchanged, thinking blocks
+  included; after a switch to the other provider, tool calls without an id get one.
 - Text from the letter and tool results is treated as data, not as instructions.
 
 ### Reminders
@@ -206,7 +206,7 @@ invitation) with the values a correct analysis must contain.
 
 ```bash
 npm run eval -w @briefklar/api                                   # the configured model, no fallback
-npm run eval -w @briefklar/api -- --model gemini-flash-lite-latest
+npm run eval -w @briefklar/api -- --provider openai              # GPT-6 luna
 npm run eval -w @briefklar/api -- --with-fallback --only 01,09   # production setup, two letters
 ```
 
@@ -288,10 +288,10 @@ Letters contain personal data, so users control what is kept and for how long.
   the link to a letter; they hold no letter content.
 - **Storage limitation (Art. 5 (1) e):** users can have letters deleted 30, 90, 180 or 365 days after
   upload. A scheduled worker job checks every hour and deletes the letter with everything that belongs to it.
-- **Transparency:** the profile page says that letters are sent to Google's Gemini API for analysis.
-- Under the Gemini API terms, users in the EEA, Switzerland and the UK get the paid-tier data terms even on
-  the free quota, but an app offered to users in these regions must use the paid tier. The free tier is
-  used here for development only.
+- **Transparency:** the profile page says that letters are sent to the APIs of Anthropic (Claude) and
+  OpenAI for analysis: one reads the letter, the other checks the analysis.
+- Both APIs do not train on API data by default. An app offered to users in the EU still needs a data
+  processing agreement with both providers before it handles real letters.
 
 ## Getting started
 
@@ -304,8 +304,8 @@ npm install
 # 2. Start PostgreSQL (port 5433) and Redis (port 6380)
 npm run infra:up
 
-# 3. Configure the API: choose LLM_PROVIDER (gemini, anthropic or openai) and add its key
-#    (GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY); see the comments in the file
+# 3. Configure the API: add ANTHROPIC_API_KEY (Claude analyses) and OPENAI_API_KEY (fallback,
+#    verifier and embeddings); see the comments in the file
 cp apps/api/.env.example apps/api/.env
 
 # 4. Create the database schema (Prisma asks for a migration name, e.g. "init")

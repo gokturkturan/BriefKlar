@@ -96,7 +96,7 @@ export const de: Messages = {
         "Nur Sie sehen Ihre Briefe.",
         "Briefe können nach 30 bis 365 Tagen automatisch gelöscht werden.",
         "Laden Sie jederzeit alle Ihre Daten herunter oder löschen Sie Ihr Konto.",
-        "Zur Analyse sendet BriefKlar den Brief an die Gemini API von Google.",
+        "Zur Analyse sendet BriefKlar den Brief an die KI-Dienste von Anthropic (Claude) und OpenAI.",
       ],
     },
     final: {
@@ -408,7 +408,7 @@ export const de: Messages = {
     privacy: {
       title: "Ihre Daten und Datenschutz",
       processing:
-        "Um einen Brief zu analysieren, schickt BriefKlar ihn an die Gemini-API von Google. Alles andere (Ihre Briefe, " +
+        "Um einen Brief zu analysieren, schickt BriefKlar ihn an die APIs von Anthropic (Claude) und OpenAI: Die eine liest ihn, die andere prüft die Auswertung. Alles andere (Ihre Briefe, " +
         "Analysen, Chats und Erinnerungen) speichert BriefKlar, bis Sie es löschen.",
       retention: "Briefe automatisch löschen",
       retentionHint:
@@ -490,8 +490,8 @@ export const de: Messages = {
     DATE_IN_PAST: "Das Datum liegt in der Vergangenheit.",
     AI_RATE_LIMITED: "Der KI-Dienst hat gerade zu viele Anfragen. Bitte versuchen Sie es in ein paar Minuten noch einmal.",
     AI_OVERLOADED: "Der KI-Dienst ist gerade voll. Bitte versuchen Sie es in ein paar Minuten noch einmal.",
-    AI_KEY_REJECTED: "Der KI-Dienst hat den API-Schlüssel abgelehnt. Prüfen Sie GEMINI_API_KEY.",
-    AI_MODEL_NOT_FOUND: "Das KI-Modell wurde nicht gefunden. Prüfen Sie GEMINI_MODEL.",
+    AI_KEY_REJECTED: "Der KI-Dienst hat den API-Schlüssel abgelehnt. Prüfen Sie ANTHROPIC_API_KEY und OPENAI_API_KEY.",
+    AI_MODEL_NOT_FOUND: "Das KI-Modell wurde nicht gefunden. Prüfen Sie ANTHROPIC_MODEL und OPENAI_MODEL.",
     AI_FAILED: "Der KI-Dienst konnte die Anfrage nicht bearbeiten.",
     AI_INCOMPLETE: "Die Antwort der KI war nicht vollständig. Bitte versuchen Sie es noch einmal.",
     PROCESSING_FAILED: "Beim Bearbeiten des Briefs ist ein Fehler passiert.",

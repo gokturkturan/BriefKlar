@@ -95,7 +95,7 @@ export const tr: Messages = {
         "Mektuplarınızı yalnızca siz görebilirsiniz.",
         "Mektuplar 30 ila 365 gün sonra otomatik olarak silinebilir.",
         "Tüm verilerinizi istediğiniz zaman indirebilir veya hesabınızı silebilirsiniz.",
-        "Bir mektubu analiz etmek için BriefKlar onu Google'ın Gemini API'sine gönderir.",
+        "Bir mektubu analiz etmek için BriefKlar onu Anthropic (Claude) ve OpenAI yapay zekâ servislerine gönderir.",
       ],
     },
     final: {
@@ -406,7 +406,7 @@ export const tr: Messages = {
     privacy: {
       title: "Verileriniz ve gizlilik",
       processing:
-        "BriefKlar bir mektubu analiz etmek için onu Google'ın Gemini API'sine gönderir. Diğer her şey (mektuplarınız, " +
+        "BriefKlar bir mektubu analiz etmek için onu Anthropic (Claude) ve OpenAI API'lerine gönderir: biri mektubu okur, diğeri analizi kontrol eder. Diğer her şey (mektuplarınız, " +
         "analizler, sohbetler ve hatırlatıcılar) siz silene kadar BriefKlar'da saklanır.",
       retention: "Mektupları otomatik sil",
       retentionHint:
@@ -488,8 +488,8 @@ export const tr: Messages = {
     DATE_IN_PAST: "Bu tarih geçmişte kalıyor.",
     AI_RATE_LIMITED: "Yapay zekâ servisine şu an çok fazla istek geliyor. Lütfen birkaç dakika sonra tekrar deneyin.",
     AI_OVERLOADED: "Yapay zekâ servisi şu an aşırı yoğun. Lütfen birkaç dakika sonra tekrar deneyin.",
-    AI_KEY_REJECTED: "Yapay zekâ servisi API anahtarını reddetti. GEMINI_API_KEY ayarını kontrol edin.",
-    AI_MODEL_NOT_FOUND: "Ayarlanan yapay zekâ modeli bulunamadı. GEMINI_MODEL ayarını kontrol edin.",
+    AI_KEY_REJECTED: "Yapay zekâ servisi API anahtarını reddetti. ANTHROPIC_API_KEY ve OPENAI_API_KEY ayarlarını kontrol edin.",
+    AI_MODEL_NOT_FOUND: "Ayarlanan yapay zekâ modeli bulunamadı. ANTHROPIC_MODEL ve OPENAI_MODEL ayarlarını kontrol edin.",
     AI_FAILED: "Yapay zekâ servisi bu isteği işleyemedi.",
     AI_INCOMPLETE: "Yapay zekâ eksik bir cevap verdi. Lütfen tekrar deneyin.",
     PROCESSING_FAILED: "Mektup işlenirken bir hata oluştu.",
