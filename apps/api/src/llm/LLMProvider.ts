@@ -18,10 +18,9 @@ export interface JsonGenerationRequest {
   timeoutMs?: number;
 }
 
-export interface JsonGenerationResult {
-  /** Raw model output, expected to be a JSON string (validated by the caller) */
-  text: string;
-  /** The model that actually answered (may be a fallback model) */
+/** What every answer reports besides its content */
+interface AnswerMeta {
+  /** The model that actually answered (may be the fallback model) */
   model: string;
   inputTokens: number;
   outputTokens: number;
@@ -29,6 +28,11 @@ export interface JsonGenerationResult {
   latencyMs: number;
   /** Models that failed before the one that answered (the primary, after a switch to the fallback) */
   failedAttempts: FailedAttempt[];
+}
+
+export interface JsonGenerationResult extends AnswerMeta {
+  /** Raw model output, expected to be a JSON string (validated by the caller) */
+  text: string;
 }
 
 export interface TextGenerationRequest {
@@ -38,17 +42,9 @@ export interface TextGenerationRequest {
   signal?: AbortSignal;
 }
 
-export interface TextGenerationResult {
+export interface TextGenerationResult extends AnswerMeta {
   /** The full text, i.e. all chunks joined */
   text: string;
-  /** The model that actually answered (may be a fallback model) */
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  /** How long the answering model took */
-  latencyMs: number;
-  /** Models that failed before the one that answered (the primary, after a switch to the fallback) */
-  failedAttempts: FailedAttempt[];
 }
 
 /** One piece of a chat turn: text, a tool call by the model, or the result the app sends back */
@@ -85,14 +81,9 @@ export interface ChatRoundRequest {
   signal?: AbortSignal;
 }
 
-export interface ChatRoundResult {
+export interface ChatRoundResult extends AnswerMeta {
   /** Text and tool calls of the model's turn, in order */
   parts: Extract<ChatPart, { type: "text" | "toolCall" }>[];
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  latencyMs: number;
-  failedAttempts: FailedAttempt[];
 }
 
 export interface EmbeddingRequest {
