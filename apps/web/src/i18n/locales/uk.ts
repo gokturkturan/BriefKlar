@@ -11,6 +11,22 @@ export const uk: Messages = {
     dueReminders: (count) => `Нагадування на сьогодні: ${count}`,
   },
 
+  auth: {
+    loginTitle: "Увійти",
+    registerTitle: "Створити обліковий запис",
+    intro: "BriefKlar пояснює листи від німецьких установ простою мовою. Ваші листи бачите лише ви.",
+    email: "Електронна адреса",
+    password: "Пароль",
+    passwordHint: (min) => `Щонайменше ${min} символів.`,
+    name: "Ім'я (необов'язково)",
+    login: "Увійти",
+    register: "Створити обліковий запис",
+    logout: "Вийти",
+    submitting: "Зачекайте…",
+    noAccount: "Ще немає облікового запису?",
+    haveAccount: "Уже маєте обліковий запис?",
+  },
+
   common: {
     loading: "Завантаження…",
     saving: "Збереження…",

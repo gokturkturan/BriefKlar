@@ -7,10 +7,18 @@ import {
   type UpdateSettingsInput,
 } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
+import { useAccount } from "./useAccount";
 
+/** The signed-in user's settings */
 export function useSettings() {
   const queryClient = useQueryClient();
-  const settings = useQuery({ queryKey: queryKeys.settings, queryFn: api.getSettings, staleTime: Infinity });
+  const account = useAccount();
+  const settings = useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: api.getSettings,
+    staleTime: Infinity,
+    enabled: Boolean(account.data),
+  });
 
   const update = useMutation({
     mutationFn: (input: UpdateSettingsInput) => api.updateSettings(input),
@@ -31,16 +39,6 @@ export function useSettings() {
   });
 
   return { settings, update };
-}
-
-/** Changes the language of the whole site, stored in the user's settings */
-export function useChangeLanguage(): (value: string) => void {
-  const { settings, update } = useSettings();
-  return (value: string) => {
-    if (isExplanationLanguage(value) && value !== settings.data?.preferredLanguage) {
-      update.mutate({ preferredLanguage: value });
-    }
-  };
 }
 
 /**

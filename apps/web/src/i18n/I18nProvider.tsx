@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   isExplanationLanguage,
   RTL_LANGUAGES,
@@ -26,7 +26,7 @@ const LOCALES: Record<ExplanationLanguage, string> = {
 
 const STORAGE_KEY = "briefklar.language";
 
-/** Last language used on this device, so the page does not flash in English while settings load */
+/** Last language used on this device: shown before signing in and while the settings load */
 function storedLanguage(): ExplanationLanguage | null {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
@@ -53,6 +53,8 @@ export interface I18n {
   formatDate: (isoDate: string, style?: "long" | "weekday") => string;
   formatDateTime: (iso: string) => string;
   formatMoney: (value: number, currency: string) => string;
+  /** Changes the language of the whole site; stored in the settings once signed in */
+  setLanguage: (value: string) => void;
 }
 
 const I18nContext = createContext<I18n | null>(null);
@@ -62,8 +64,11 @@ export function dirOf(language: ExplanationLanguage): "ltr" | "rtl" {
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const { settings } = useSettings();
-  const language = settings.data?.preferredLanguage ?? storedLanguage() ?? browserLanguage();
+  const { settings, update } = useSettings();
+  const saveLanguage = update.mutate;
+  const [deviceLanguage, setDeviceLanguage] = useState(() => storedLanguage() ?? browserLanguage());
+  const language = settings.data?.preferredLanguage ?? deviceLanguage;
+  const signedIn = settings.data !== undefined;
 
   const value = useMemo<I18n>(() => {
     const locale = LOCALES[language];
@@ -86,10 +91,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       formatDateTime: (iso) => dateTime.format(new Date(iso)),
       formatMoney: (amount, currency) =>
         new Intl.NumberFormat(locale, { style: "currency", currency: currency || "EUR" }).format(amount),
+      setLanguage: (value) => {
+        if (!isExplanationLanguage(value) || value === language) return;
+        setDeviceLanguage(value);
+        if (signedIn) saveLanguage({ preferredLanguage: value });
+      },
     };
-  }, [language]);
+  }, [language, signedIn, saveLanguage]);
 
   useEffect(() => {
+    // After signing out, the site stays in the language the user had
+    setDeviceLanguage(language);
     document.documentElement.lang = language;
     document.documentElement.dir = value.dir;
     try {

@@ -28,6 +28,22 @@ export const en = {
     dueReminders: (count: number) => `Due reminders: ${count}`,
   },
 
+  auth: {
+    loginTitle: "Sign in",
+    registerTitle: "Create your account",
+    intro: "BriefKlar explains letters from German authorities in plain language. Only you can see your letters.",
+    email: "E-mail address",
+    password: "Password",
+    passwordHint: (min: number) => `At least ${min} characters.`,
+    name: "Name (optional)",
+    login: "Sign in",
+    register: "Create account",
+    logout: "Sign out",
+    submitting: "Please wait…",
+    noAccount: "No account yet?",
+    haveAccount: "Already have an account?",
+  },
+
   common: {
     loading: "Loading…",
     saving: "Saving…",

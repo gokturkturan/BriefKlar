@@ -12,6 +12,22 @@ export const ar: Messages = {
     dueReminders: (count) => `تذكيرات حان وقتها: ${count}`,
   },
 
+  auth: {
+    loginTitle: "تسجيل الدخول",
+    registerTitle: "إنشاء حساب",
+    intro: "يشرح BriefKlar رسائل الجهات الرسمية الألمانية بلغة بسيطة. لا يرى رسائلك أحد غيرك.",
+    email: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    passwordHint: (min) => `${min} أحرف على الأقل.`,
+    name: "الاسم (اختياري)",
+    login: "تسجيل الدخول",
+    register: "إنشاء حساب",
+    logout: "تسجيل الخروج",
+    submitting: "يُرجى الانتظار…",
+    noAccount: "ليس لديك حساب بعد؟",
+    haveAccount: "لديك حساب بالفعل؟",
+  },
+
   common: {
     loading: "جارٍ التحميل…",
     saving: "جارٍ الحفظ…",

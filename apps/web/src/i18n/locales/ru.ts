@@ -11,6 +11,22 @@ export const ru: Messages = {
     dueReminders: (count) => `Напоминания на сегодня: ${count}`,
   },
 
+  auth: {
+    loginTitle: "Войти",
+    registerTitle: "Создать аккаунт",
+    intro: "BriefKlar объясняет письма от немецких ведомств простым языком. Ваши письма видите только вы.",
+    email: "Адрес электронной почты",
+    password: "Пароль",
+    passwordHint: (min) => `Не менее ${min} символов.`,
+    name: "Имя (необязательно)",
+    login: "Войти",
+    register: "Создать аккаунт",
+    logout: "Выйти",
+    submitting: "Подождите…",
+    noAccount: "Ещё нет аккаунта?",
+    haveAccount: "Уже есть аккаунт?",
+  },
+
   common: {
     loading: "Загрузка…",
     saving: "Сохранение…",

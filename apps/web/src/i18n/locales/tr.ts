@@ -8,6 +8,22 @@ export const tr: Messages = {
     dueReminders: (count) => `Zamanı gelen hatırlatıcılar: ${count}`,
   },
 
+  auth: {
+    loginTitle: "Giriş yap",
+    registerTitle: "Hesap oluştur",
+    intro: "BriefKlar, Alman resmi kurumlarından gelen mektupları sade bir dille açıklar. Mektuplarınızı yalnızca siz görebilirsiniz.",
+    email: "E-posta adresi",
+    password: "Şifre",
+    passwordHint: (min) => `En az ${min} karakter.`,
+    name: "Ad (isteğe bağlı)",
+    login: "Giriş yap",
+    register: "Hesap oluştur",
+    logout: "Çıkış yap",
+    submitting: "Lütfen bekleyin…",
+    noAccount: "Henüz hesabınız yok mu?",
+    haveAccount: "Zaten hesabınız var mı?",
+  },
+
   common: {
     loading: "Yükleniyor…",
     saving: "Kaydediliyor…",

@@ -1,4 +1,5 @@
 import type {
+  AccountDto,
   AnalysisTranslationDto,
   ApiErrorBody,
   ChatMessageDto,
@@ -9,6 +10,8 @@ import type {
   ErrorCode,
   ExplanationLanguage,
   HealthDto,
+  LoginInput,
+  RegisterInput,
   ReminderDto,
   RemindersDto,
   ReplyDraftDto,
@@ -49,6 +52,12 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   getHealth: () => request<HealthDto>("/api/health"),
+
+  // Account (the session is a cookie the browser sends along)
+  getAccount: () => request<AccountDto>("/api/auth/me"),
+  register: (input: RegisterInput) => request<AccountDto>("/api/auth/register", json("POST", input)),
+  login: (input: LoginInput) => request<AccountDto>("/api/auth/login", json("POST", input)),
+  logout: () => request<void>("/api/auth/logout", { method: "POST" }),
 
   // Letters
   listDocuments: () => request<DocumentDto[]>("/api/documents"),
@@ -104,6 +113,7 @@ export const api = {
 };
 
 export const queryKeys = {
+  account: ["account"] as const,
   documents: ["documents"] as const,
   document: (id: string) => ["documents", id] as const,
   replyDrafts: (id: string) => ["documents", id, "reply-drafts"] as const,

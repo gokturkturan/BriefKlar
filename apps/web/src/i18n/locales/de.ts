@@ -9,6 +9,22 @@ export const de: Messages = {
     dueReminders: (count) => `Fällige Erinnerungen: ${count}`,
   },
 
+  auth: {
+    loginTitle: "Anmelden",
+    registerTitle: "Konto erstellen",
+    intro: "BriefKlar erklärt Briefe von deutschen Behörden in einfacher Sprache. Nur Sie sehen Ihre Briefe.",
+    email: "E-Mail-Adresse",
+    password: "Passwort",
+    passwordHint: (min) => `Mindestens ${min} Zeichen.`,
+    name: "Name (optional)",
+    login: "Anmelden",
+    register: "Konto erstellen",
+    logout: "Abmelden",
+    submitting: "Bitte warten…",
+    noAccount: "Noch kein Konto?",
+    haveAccount: "Sie haben schon ein Konto?",
+  },
+
   common: {
     loading: "Wird geladen …",
     saving: "Wird gespeichert …",
