@@ -10,6 +10,7 @@
     "start:worker": "tsx src/worker.ts",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",

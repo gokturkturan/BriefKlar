@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+apps/api/uploads
+apps/api/eval-results
+.git
+.github
+*.log

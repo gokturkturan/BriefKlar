@@ -1,0 +1,32 @@
+# DOMAIN=briefklar.example.com gets a Let's Encrypt certificate automatically.
+# DOMAIN=:80 serves plain HTTP (local test, or behind another proxy that terminates TLS).
+{$DOMAIN} {
+	encode zstd gzip
+
+	# There are no user accounts yet: every visitor would share one demo user's letters.
+	# Until real authentication exists, the whole site sits behind one password.
+	basic_auth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+
+	handle /api/* {
+		reverse_proxy api:4000 {
+			# Send Server-Sent Events (progress, explanations, chat) chunk by chunk
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv
+		# Client-side routes like /documents/123 load index.html
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
