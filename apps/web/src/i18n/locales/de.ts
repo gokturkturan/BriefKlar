@@ -55,6 +55,56 @@ export const de: Messages = {
     queued: "Wartet in der Reihe …",
   },
 
+  landing: {
+    eyebrow: "Für Briefe von deutschen Behörden",
+    title: "Jeden Behördenbrief verstehen, in Ihrer Sprache",
+    intro: "Laden Sie einen Brief vom Finanzamt, Jobcenter oder von der Ausländerbehörde hoch. BriefKlar sagt Ihnen, was darin steht, was Sie tun müssen und bis wann.",
+    tryCta: "Mit einem Brief ausprobieren",
+    registerCta: "Kostenloses Konto erstellen",
+    ctaNote: "Zum Ausprobieren kein Konto nötig · PDF, JPG oder PNG",
+    sample: {
+      label: "Beispiel für einen analysierten Brief",
+      summary: (amount) => `Ihre Einkommensteuer für 2025 wurde festgesetzt. Sie bekommen ${amount} zurück. Wenn etwas nicht stimmt, können Sie innerhalb eines Monats Einspruch einlegen.`,
+      deadline: "Einspruch möglich bis",
+      deadlineHint: "Ein Monat nach Zugang, berechnet von Code, nicht von KI",
+      todos: ["Bescheid mit der Steuererklärung vergleichen", "Schriftlich Einspruch einlegen, wenn etwas falsch ist"],
+    },
+    how: {
+      title: "So funktioniert es",
+      steps: [
+        { title: "Brief hochladen", text: "Fotografieren Sie den Brief oder laden Sie das PDF hoch. Sie müssen nichts ausfüllen." },
+        { title: "In einfachen Worten lesen", text: "Zusammenfassung, Aufgaben, Beträge und Fristen erscheinen in Sekunden in Ihrer Sprache." },
+        { title: "Rechtzeitig handeln", text: "Lassen Sie sich vor Fristen erinnern, stellen Sie Fragen zum Brief und entwerfen Sie eine Antwort auf Deutsch." },
+      ],
+    },
+    features: {
+      title: "Alles, was ein Brief von Ihnen verlangt",
+      items: [
+        { title: "Erklärung in einfacher Sprache", text: "Was der Brief für Sie bedeutet, ohne Amtsdeutsch, live geschrieben." },
+        { title: "Verlässliche Fristen", text: "Fristen berechnet Code, nicht die KI: Zugangsregeln, gesetzliche Fristen und die Feiertage Ihres Bundeslandes." },
+        { title: "Antworten auf Deutsch", text: "Einspruch, Bitte um Fristverlängerung oder Begleitschreiben: ein korrekter deutscher Brief mit Übersetzung." },
+        { title: "Antworten auf Ihre Fragen", text: "Fragen Sie im Chat zu Ihrem Brief. Er prüft Fristen und nennt offizielle Quellen." },
+        { title: "Erinnerungen", text: "Jede Frist bekommt eine Erinnerung, und Sie können eigene hinzufügen." },
+        { title: "Sechs Sprachen", text: "Die ganze Seite, die Analyse und die Erklärungen in Ihrer Sprache, wo nötig von rechts nach links." },
+      ],
+    },
+    languages: "Sprachen",
+    privacy: {
+      title: "Ihre Briefe bleiben Ihre",
+      intro: "Behördenbriefe sind persönlich. Sie entscheiden, was gespeichert wird und wie lange.",
+      items: [
+        "Nur Sie sehen Ihre Briefe.",
+        "Briefe können nach 30 bis 365 Tagen automatisch gelöscht werden.",
+        "Laden Sie jederzeit alle Ihre Daten herunter oder löschen Sie Ihr Konto.",
+        "Zur Analyse sendet BriefKlar den Brief an die Gemini API von Google.",
+      ],
+    },
+    final: {
+      title: "Ein Brief, den Sie nicht verstehen?",
+      text: "Laden Sie ihn jetzt hoch und wissen Sie in einer Minute, was er bedeutet und was zu tun ist. Ohne Konto.",
+    },
+  },
+
   upload: {
     title: "Verstehen Sie Ihren Brief vom Amt",
     intro:

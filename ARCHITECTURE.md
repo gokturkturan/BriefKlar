@@ -89,7 +89,7 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 
 | Folder | What is in it |
 | --- | --- |
-| `pages/` | One component per route (sign-in and sign-up, upload, letters, letter detail, reminders, usage, profile) |
+| `pages/` | One component per route (landing page for visitors, sign-in and sign-up, upload, letters, letter detail, reminders, usage, profile) |
 | `components/` | Panels of the letter page; `components/analysis/` holds the parts of the analysis panel |
 | `hooks/` | The signed-in account, settings, and Server-Sent Events (progress, explanation, chat) |
 | `api/client.ts` | Every API call and the TanStack Query keys |

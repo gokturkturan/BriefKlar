@@ -54,6 +54,56 @@ export const tr: Messages = {
     queued: "Sırada bekliyor…",
   },
 
+  landing: {
+    eyebrow: "Alman resmi kurumlarından gelen mektuplar için",
+    title: "Her resmi mektubu kendi dilinizde anlayın",
+    intro: "Finanzamt, Jobcenter veya Ausländerbehörde'den gelen bir mektubu yükleyin. BriefKlar size mektupta ne yazdığını, ne yapmanız gerektiğini ve son tarihi söyler.",
+    tryCta: "Bir mektupla deneyin",
+    registerCta: "Ücretsiz hesap oluşturun",
+    ctaNote: "Denemek için hesap gerekmez · PDF, JPG veya PNG",
+    sample: {
+      label: "Analiz edilmiş bir mektup örneği",
+      summary: (amount) => `2025 yılı gelir verginiz hesaplandı. ${amount} geri alıyorsunuz. Bir hata olduğunu düşünüyorsanız bir ay içinde itiraz edebilirsiniz.`,
+      deadline: "İtiraz için son tarih",
+      deadlineHint: "Tebliğden bir ay sonra, yapay zekâ değil kod hesapladı",
+      todos: ["Kararı vergi beyannamenizle karşılaştırın", "Bir hata varsa yazılı olarak itiraz edin"],
+    },
+    how: {
+      title: "Nasıl çalışır?",
+      steps: [
+        { title: "Mektubu yükleyin", text: "Fotoğrafını çekin veya PDF'i yükleyin. Doldurmanız gereken bir şey yok." },
+        { title: "Sade bir dille okuyun", text: "Özet, yapmanız gerekenler, tutarlar ve son tarihler saniyeler içinde kendi dilinizde görünür." },
+        { title: "Zamanında harekete geçin", text: "Son tarihlerden önce hatırlatma alın, mektup hakkında soru sorun ve Almanca bir cevap taslağı hazırlayın." },
+      ],
+    },
+    features: {
+      title: "Bir mektubun sizden istediği her şey",
+      items: [
+        { title: "Sade dille açıklama", text: "Mektubun sizin için ne anlama geldiği, hukuk dili olmadan, siz izlerken yazılır." },
+        { title: "Güvenilir son tarihler", text: "Son tarihleri yapay zekâ tahmin etmez, kod hesaplar: tebliğ kuralları, yasal süreler ve eyaletinizin resmi tatilleri." },
+        { title: "Almanca cevaplar", text: "İtiraz, ek süre talebi veya belge ön yazısı: çevirisiyle birlikte düzgün bir Almanca mektup." },
+        { title: "Sorularınıza cevaplar", text: "Mektubunuzu son tarihleri kontrol eden ve resmi kaynaklara dayanan bir sohbette sorun." },
+        { title: "Hatırlatıcılar", text: "Her son tarih için bir hatırlatıcı oluşur, kendi hatırlatıcılarınızı da ekleyebilirsiniz." },
+        { title: "Altı dil", text: "Sitenin tamamı, analiz ve açıklamalar kendi dilinizde, gerektiğinde sağdan sola." },
+      ],
+    },
+    languages: "Diller",
+    privacy: {
+      title: "Mektuplarınız size ait",
+      intro: "Resmi mektuplar kişiseldir. Neyin ne kadar süre saklanacağına siz karar verirsiniz.",
+      items: [
+        "Mektuplarınızı yalnızca siz görebilirsiniz.",
+        "Mektuplar 30 ila 365 gün sonra otomatik olarak silinebilir.",
+        "Tüm verilerinizi istediğiniz zaman indirebilir veya hesabınızı silebilirsiniz.",
+        "Bir mektubu analiz etmek için BriefKlar onu Google'ın Gemini API'sine gönderir.",
+      ],
+    },
+    final: {
+      title: "Anlamadığınız bir mektup mu var?",
+      text: "Hemen yükleyin, bir dakika içinde ne anlama geldiğini ve ne yapmanız gerektiğini öğrenin. Hesap gerekmez.",
+    },
+  },
+
   upload: {
     title: "Resmî mektubunuzu anlayın",
     intro:

@@ -8,6 +8,7 @@ import { useI18n } from "./i18n/I18nProvider";
 import { AuthPage } from "./pages/AuthPage";
 import { DocumentDetailPage } from "./pages/DocumentDetailPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
+import { LandingPage } from "./pages/LandingPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RemindersPage, useDueReminderCount } from "./pages/RemindersPage";
 import { UploadPage } from "./pages/UploadPage";
@@ -61,7 +62,7 @@ export function App() {
   );
 }
 
-/** Everyone can upload; a guest sees their one letter; everything else asks to sign in */
+/** Visitors start on the landing page and can upload one letter; the rest asks to sign in */
 function AppRoutes({ member }: { member: boolean }) {
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/";
@@ -69,7 +70,8 @@ function AppRoutes({ member }: { member: boolean }) {
 
   return (
     <Routes>
-      <Route path="/" element={<UploadPage />} />
+      <Route path="/" element={member ? <Navigate to="/upload" replace /> : <LandingPage />} />
+      <Route path="/upload" element={<UploadPage />} />
       <Route path="/documents" element={membersOnly(<DocumentsPage />)} />
       <Route path="/documents/:id" element={<DocumentDetailPage />} />
       <Route path="/reminders" element={membersOnly(<RemindersPage />)} />
@@ -88,7 +90,7 @@ function Navigation({ member }: { member: boolean }) {
   const { t } = useI18n();
   return (
     <nav className="flex gap-1">
-      <NavLink to="/" end className={navClass}>
+      <NavLink to="/upload" className={navClass}>
         {t.app.nav.upload}
       </NavLink>
       <NavLink to="/documents" className={navClass}>

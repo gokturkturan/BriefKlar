@@ -74,6 +74,56 @@ export const en = {
     queued: "Waiting in queue…",
   },
 
+  landing: {
+    eyebrow: "For letters from German authorities",
+    title: "Understand every official letter, in your language",
+    intro: "Upload a letter from the Finanzamt, Jobcenter or Ausländerbehörde. BriefKlar tells you what it says, what you have to do and by when.",
+    tryCta: "Try it with one letter",
+    registerCta: "Create a free account",
+    ctaNote: "No account needed to try · PDF, JPG or PNG",
+    sample: {
+      label: "Example of an analysed letter",
+      summary: (amount: string) => `Your income tax for 2025 has been assessed. You get ${amount} back. If you think something is wrong, you can object within one month.`,
+      deadline: "Objection possible until",
+      deadlineHint: "One month after delivery, calculated by code, not by AI",
+      todos: ["Compare the assessment with your tax return", "Object in writing if something is wrong"],
+    },
+    how: {
+      title: "How it works",
+      steps: [
+        { title: "Upload the letter", text: "Take a photo or upload the PDF. There is nothing to fill in." },
+        { title: "Read it in plain words", text: "The summary, your tasks, amounts and deadlines appear in your language within seconds." },
+        { title: "Act in time", text: "Get reminded before deadlines, ask questions about the letter and draft a reply in German." },
+      ],
+    },
+    features: {
+      title: "Everything a letter asks of you",
+      items: [
+        { title: "Plain-language explanation", text: "What the letter means for you, without legal jargon, written while you watch." },
+        { title: "Deadlines you can trust", text: "Due dates are calculated by code, not guessed by AI: delivery rules, legal periods and the public holidays of your federal state." },
+        { title: "Replies in German", text: "An objection, a request for more time or a cover letter for documents: a proper German letter with a translation." },
+        { title: "Answers to your questions", text: "Ask about your letter in a chat that checks deadlines and points to official sources." },
+        { title: "Reminders", text: "Every deadline gets a reminder, and you can add your own." },
+        { title: "Six languages", text: "The whole site, the analysis and the explanations in your language, right to left where needed." },
+      ],
+    },
+    languages: "Languages",
+    privacy: {
+      title: "Your letters stay yours",
+      intro: "Official letters are personal. You decide what is kept and for how long.",
+      items: [
+        "Only you can see your letters.",
+        "Letters can be deleted automatically after 30 to 365 days.",
+        "Download all your data or delete your account at any time.",
+        "To analyse a letter, BriefKlar sends it to Google's Gemini API.",
+      ],
+    },
+    final: {
+      title: "Got a letter you don't understand?",
+      text: "Upload it now and know in a minute what it means and what to do. No account needed.",
+    },
+  },
+
   upload: {
     title: "Understand your official letter",
     intro:

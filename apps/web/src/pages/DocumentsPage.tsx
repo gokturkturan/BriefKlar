@@ -20,7 +20,7 @@ export function DocumentsPage() {
     return (
       <div className="text-center text-slate-600">
         <p>{t.documents.empty}</p>
-        <Link to="/" className="mt-2 inline-block font-medium text-emerald-700 hover:underline">
+        <Link to="/upload" className="mt-2 inline-block font-medium text-emerald-700 hover:underline">
           {t.documents.uploadFirst}
         </Link>
       </div>
