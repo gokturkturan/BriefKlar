@@ -48,85 +48,59 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  listDocuments: () => request<DocumentDto[]>("/api/documents"),
-
-  getDocument: (id: string) => request<DocumentDetailDto>(`/api/documents/${id}`),
-
-  getAnalysisTranslation: (id: string, language: ExplanationLanguage) =>
-    request<AnalysisTranslationDto>(`/api/documents/${id}/translation?language=${encodeURIComponent(language)}`),
-
-  updateDocument: (id: string, input: UpdateDocumentInput) =>
-    request<DocumentDto>(`/api/documents/${id}`, json("PATCH", input)),
-
-  getSettings: () => request<SettingsDto>("/api/settings"),
-
-  updateSettings: (input: UpdateSettingsInput) => request<SettingsDto>("/api/settings", json("PATCH", input)),
-
-  /** A plain link, so the browser downloads the file */
-  exportUrl: "/api/account/export",
-
-  deleteAccount: () => request<void>("/api/account", json("DELETE", { confirm: "DELETE" })),
-
-  deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
-
   getHealth: () => request<HealthDto>("/api/health"),
 
-  retryDocument: (id: string) =>
-    request<DocumentDto>(`/api/documents/${id}/retry`, { method: "POST" }),
-
-  updateActionItem: (documentId: string, itemId: string, done: boolean) =>
-    request<void>(`/api/documents/${documentId}/action-items/${itemId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ done }),
-    }),
-
-  listReplyDrafts: (documentId: string) =>
-    request<ReplyDraftDto[]>(`/api/documents/${documentId}/reply-drafts`),
-
-  createReplyDraft: (documentId: string, input: CreateReplyDraftInput) =>
-    request<ReplyDraftDto>(`/api/documents/${documentId}/reply-drafts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    }),
-
-  updateReplyDraft: (documentId: string, draftId: string, contentDe: string) =>
-    request<void>(`/api/documents/${documentId}/reply-drafts/${draftId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentDe }),
-    }),
-
-  deleteReplyDraft: (documentId: string, draftId: string) =>
-    request<void>(`/api/documents/${documentId}/reply-drafts/${draftId}`, { method: "DELETE" }),
-
+  // Letters
+  listDocuments: () => request<DocumentDto[]>("/api/documents"),
+  getDocument: (id: string) => request<DocumentDetailDto>(`/api/documents/${id}`),
   uploadDocument: (file: File) => {
     const form = new FormData();
     form.append("file", file);
     return request<DocumentDto>("/api/documents", { method: "POST", body: form });
   },
+  updateDocument: (id: string, input: UpdateDocumentInput) =>
+    request<DocumentDto>(`/api/documents/${id}`, json("PATCH", input)),
+  retryDocument: (id: string) => request<DocumentDto>(`/api/documents/${id}/retry`, { method: "POST" }),
+  deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
+  updateActionItem: (documentId: string, itemId: string, done: boolean) =>
+    request<void>(`/api/documents/${documentId}/action-items/${itemId}`, json("PATCH", { done })),
+  getAnalysisTranslation: (id: string, language: ExplanationLanguage) =>
+    request<AnalysisTranslationDto>(`/api/documents/${id}/translation?language=${encodeURIComponent(language)}`),
 
+  // Reply drafts
+  listReplyDrafts: (documentId: string) => request<ReplyDraftDto[]>(`/api/documents/${documentId}/reply-drafts`),
+  createReplyDraft: (documentId: string, input: CreateReplyDraftInput) =>
+    request<ReplyDraftDto>(`/api/documents/${documentId}/reply-drafts`, json("POST", input)),
+  updateReplyDraft: (documentId: string, draftId: string, contentDe: string) =>
+    request<void>(`/api/documents/${documentId}/reply-drafts/${draftId}`, json("PATCH", { contentDe })),
+  deleteReplyDraft: (documentId: string, draftId: string) =>
+    request<void>(`/api/documents/${documentId}/reply-drafts/${draftId}`, { method: "DELETE" }),
+
+  // Chat
   listChatMessages: (documentId: string) => request<ChatMessageDto[]>(`/api/documents/${documentId}/chat`),
-
   clearChat: (documentId: string) => request<void>(`/api/documents/${documentId}/chat`, { method: "DELETE" }),
 
+  // Reminders
   listReminders: () => request<RemindersDto>("/api/reminders"),
-
-  getUsage: (days: UsagePeriod) => request<UsageDto>(`/api/usage?days=${days}`),
-
   createReminder: (input: CreateReminderInput) => request<ReminderDto>("/api/reminders", json("POST", input)),
-
   updateReminder: (id: string, done: boolean) => request<ReminderDto>(`/api/reminders/${id}`, json("PATCH", { done })),
-
   deleteReminder: (id: string) => request<void>(`/api/reminders/${id}`, { method: "DELETE" }),
 
-  /** POST with a Server-Sent Events answer (EventSource only does GET), see useChat */
-  chatUrl: (documentId: string) => `/api/documents/${documentId}/chat`,
+  // Settings, account and usage
+  getSettings: () => request<SettingsDto>("/api/settings"),
+  updateSettings: (input: UpdateSettingsInput) => request<SettingsDto>("/api/settings", json("PATCH", input)),
+  deleteAccount: () => request<void>("/api/account", json("DELETE", { confirm: "DELETE" })),
+  getUsage: (days: UsagePeriod) => request<UsageDto>(`/api/usage?days=${days}`),
+
+  // Plain URLs: downloads, the file preview and Server-Sent Events
+  /** A plain link, so the browser downloads the file */
+  exportUrl: "/api/account/export",
   fileUrl: (id: string) => `/api/documents/${id}/file`,
   eventsUrl: (id: string) => `/api/documents/${id}/events`,
   explanationUrl: (id: string, language: string) =>
     `/api/documents/${id}/explanation?language=${encodeURIComponent(language)}`,
+  /** POST with a Server-Sent Events answer (EventSource only does GET), see useChat */
+  chatUrl: (documentId: string) => `/api/documents/${documentId}/chat`,
 };
 
 export const queryKeys = {
