@@ -1,3 +1,4 @@
+import { currentAgentScope } from "../agents/agentScope";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "./errors";
 import type { FailedAttempt } from "./fallback";
@@ -34,6 +35,9 @@ async function logCall(context: CallContext, outcome: CallOutcome) {
     const owner = context.documentId
       ? await prisma.document.findUnique({ where: { id: context.documentId }, select: { userId: true } })
       : null;
+    // Inside an agent run, the request counts towards the run's limit (agents/orchestrator.ts)
+    const scope = currentAgentScope();
+    const costUsd = costOf(outcome.model, outcome.inputTokens, outcome.outputTokens) ?? 0;
     await prisma.llmCall.create({
       data: {
         documentId: context.documentId,
@@ -43,9 +47,17 @@ async function logCall(context: CallContext, outcome: CallOutcome) {
         promptVersion: context.promptVersion,
         ...outcome,
         errorMessage: outcome.errorMessage?.slice(0, 2000),
-        costUsd: costOf(outcome.model, outcome.inputTokens, outcome.outputTokens) ?? 0,
+        costUsd,
+        agentRunId: scope?.runId,
+        agent: scope?.agent,
       },
     });
+    if (scope) {
+      await prisma.agentRun.update({
+        where: { id: scope.runId },
+        data: { llmCalls: { increment: 1 }, costUsd: { increment: costUsd } },
+      });
+    }
   } catch (err) {
     // Logging must never break the actual work
     console.error("Failed to log LLM call:", err);
