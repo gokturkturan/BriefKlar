@@ -5,7 +5,7 @@ import { processDocument } from "./documents/processDocument";
 import { prisma } from "./lib/prisma";
 import { createRedisConnection } from "./lib/redis";
 import { deleteExpiredDocuments } from "./privacy/userData";
-import { DOCUMENT_QUEUE, type DocumentJobData } from "./documents/queueConstants";
+import { DOCUMENT_QUEUE, type DocumentJobData } from "./documents/documentQueue";
 import { fireDueReminders } from "./reminders/reminders";
 
 /**

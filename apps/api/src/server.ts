@@ -4,10 +4,10 @@ import { prisma } from "./lib/prisma";
 import { ensureDemoUser } from "./middleware/demoUser";
 import { documentQueue } from "./documents/documentQueue";
 import { startDocumentEvents, stopDocumentEvents } from "./documents/documentEvents";
-import { initStorage } from "./storage";
+import { storage } from "./lib/storage";
 
 async function main() {
-  await initStorage();
+  await storage.init();
   await ensureDemoUser();
   startDocumentEvents();
 

@@ -1,5 +1,5 @@
 import type { LetterExtraction } from "@briefklar/shared";
-import { deadlineRows } from "../deadlines";
+import { deadlineRows } from "../deadlines/deadlineRows";
 import { toIsoDate } from "../deadlines/calendarDate";
 import type { EvalCase } from "./cases";
 

@@ -7,7 +7,7 @@ import {
   type SettingsDto,
 } from "@briefklar/shared";
 import type { User } from "@prisma/client";
-import { recomputeDeadlines } from "../deadlines";
+import { recomputeDeadlines } from "../deadlines/recomputeDeadlines";
 import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { getUserId } from "../middleware/demoUser";

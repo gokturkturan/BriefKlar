@@ -11,7 +11,7 @@ import { prisma } from "../lib/prisma";
 import { openSse } from "../lib/sse";
 import { LLMError } from "../llm";
 import { EXPLAIN_LETTER_PROMPT_VERSION, explainLetter } from "./explainLetter";
-import { storage } from "../storage";
+import { storage } from "../lib/storage";
 import { requireExtraction } from "../documents/extractions";
 import { findOwnedDocument } from "../documents/ownedDocument";
 

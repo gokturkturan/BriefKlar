@@ -9,9 +9,9 @@ import {
 } from "@briefklar/shared";
 import type { Deadline } from "@prisma/client";
 import { z } from "zod";
-import { computeRelativeDeadline, GERMAN_STATES } from "../deadlines";
+import { computeRelativeDeadline } from "../deadlines/computeDeadline";
 import { addDays, isIsoDate, toIsoDate, weekday, type IsoDate } from "../deadlines/calendarDate";
-import { holidayOn, isWorkingDay, nextWorkingDay, publicHolidays } from "../deadlines/holidays";
+import { GERMAN_STATES, holidayOn, isWorkingDay, nextWorkingDay, publicHolidays } from "../deadlines/holidays";
 import { searchKnowledge } from "../knowledge/knowledgeBase";
 import { HttpError } from "../lib/httpError";
 import { resolveExplicitDate } from "../lib/germanDates";

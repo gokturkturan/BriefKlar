@@ -1,15 +1,16 @@
 import { UnrecoverableError, type Job } from "bullmq";
 import { Prisma } from "@prisma/client";
 import { isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@briefklar/shared";
-import { deadlineContext, deadlineRows } from "../deadlines";
+import { deadlineRows } from "../deadlines/deadlineRows";
+import { deadlineContext } from "../deadlines/recomputeDeadlines";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
 import { LLMValidationError } from "../llm/generateStructured";
 import { EXTRACT_LETTER_PROMPT_VERSION, extractLetter } from "./extractLetter";
-import type { DocumentJobData } from "./queueConstants";
+import type { DocumentJobData } from "./documentQueue";
 import { syncDeadlineReminders } from "../reminders/deadlineReminders";
 import { todayInGermany } from "../deadlines/calendarDate";
-import { storage } from "../storage";
+import { storage } from "../lib/storage";
 import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "../translation/analysisTranslations";
 
 async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<void> {

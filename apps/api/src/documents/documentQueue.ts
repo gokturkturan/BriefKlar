@@ -1,9 +1,11 @@
 import { Queue } from "bullmq";
 import { createRedisConnection } from "../lib/redis";
 
-import { DOCUMENT_QUEUE, type DocumentJobData } from "./queueConstants";
+export const DOCUMENT_QUEUE = "document-processing";
 
-export { DOCUMENT_QUEUE, type DocumentJobData };
+export interface DocumentJobData {
+  documentId: string;
+}
 
 export const documentQueue = new Queue<DocumentJobData>(DOCUMENT_QUEUE, {
   connection: createRedisConnection(),

@@ -1,5 +1,5 @@
 import "../config/env";
-import { recomputeDeadlines } from "../deadlines";
+import { recomputeDeadlines } from "../deadlines/recomputeDeadlines";
 import { prisma } from "../lib/prisma";
 
 /**
