@@ -7,9 +7,16 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 200;
 export const NAME_MAX_LENGTH = 100;
 
+/** Guests try BriefKlar without an account: one letter, kept for a week */
+export const GUEST_MAX_LETTERS = 1;
+export const GUEST_DAYS = 7;
+
 export interface AccountDto {
-  email: string;
+  /** null for a guest */
+  email: string | null;
   name: string | null;
+  /** Can upload one letter and read its analysis; everything else needs an account */
+  guest: boolean;
   createdAt: string;
 }
 

@@ -1,3 +1,4 @@
+import { GUEST_DAYS } from "@briefklar/shared";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { documentQueue } from "../documents/documentQueue";
@@ -98,6 +99,16 @@ export async function deleteDocuments(where: Prisma.DocumentWhereInput): Promise
 export async function deleteUserData(userId: string): Promise<void> {
   await deleteDocuments({ userId });
   await prisma.user.delete({ where: { id: userId } }); // cascades to reminders and sessions
+}
+
+/** Deletes guests (users without an e-mail address) and their letters GUEST_DAYS after they started */
+export async function deleteExpiredGuests(now = new Date()): Promise<number> {
+  const guests = await prisma.user.findMany({
+    where: { email: null, createdAt: { lt: new Date(now.getTime() - GUEST_DAYS * 24 * 60 * 60 * 1000) } },
+    select: { id: true },
+  });
+  for (const guest of guests) await deleteUserData(guest.id);
+  return guests.length;
 }
 
 /** Deletes every letter whose retention period has passed; run by a scheduled worker job */

@@ -4,7 +4,7 @@ import { todayInGermany } from "./deadlines/calendarDate";
 import { processDocument } from "./documents/processDocument";
 import { prisma } from "./lib/prisma";
 import { createRedisConnection } from "./lib/redis";
-import { deleteExpiredDocuments } from "./privacy/userData";
+import { deleteExpiredDocuments, deleteExpiredGuests } from "./privacy/userData";
 import { DOCUMENT_QUEUE, type DocumentJobData } from "./documents/documentQueue";
 import { fireDueReminders } from "./reminders/reminders";
 
@@ -59,10 +59,15 @@ const stopReminders = runEvery("reminders", "fire-due-reminders", 5 * MINUTE, as
   return fired > 0 ? `Fired ${fired} reminder(s)` : null;
 });
 
-/** Letters whose retention period (chosen in the settings) has passed are deleted */
+/** Letters whose retention period (chosen in the settings) has passed are deleted, and old guests */
 const stopRetention = runEvery("maintenance", "delete-expired-letters", 60 * MINUTE, async () => {
   const deleted = await deleteExpiredDocuments();
-  return deleted > 0 ? `Deleted ${deleted} letter(s) after their retention period` : null;
+  const guests = await deleteExpiredGuests();
+  const lines = [
+    deleted > 0 ? `Deleted ${deleted} letter(s) after their retention period` : "",
+    guests > 0 ? `Deleted ${guests} guest(s) with their letters` : "",
+  ];
+  return lines.filter(Boolean).join("; ") || null;
 });
 
 const shutdown = async () => {

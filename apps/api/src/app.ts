@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import { authRouter } from "./auth/authRoutes";
-import { loadSession, requireUser } from "./auth/requireUser";
+import { loadSession, requireAccount, requireUser } from "./auth/requireUser";
 import { chatRouter } from "./chat/chatRoutes";
 import { env } from "./config/env";
 import { documentsRouter } from "./documents/documentRoutes";
@@ -31,16 +31,18 @@ export function createApp() {
   app.use("/api", loadSession);
   app.use("/api/auth", authRouter);
 
+  // Guests can upload a letter and read its analysis
   app.use("/api", requireUser);
-  app.use("/api/documents/:id/explanation", explanationRouter);
+  app.use("/api/documents/:id/explanation", requireAccount, explanationRouter);
   app.use("/api/documents/:id/translation", analysisTranslationRouter);
-  app.use("/api/documents/:id/reply-drafts", replyDraftsRouter);
-  app.use("/api/documents/:id/chat", chatRouter);
+  app.use("/api/documents/:id/reply-drafts", requireAccount, replyDraftsRouter);
+  app.use("/api/documents/:id/chat", requireAccount, chatRouter);
   app.use("/api/documents", documentsRouter);
   app.use("/api/settings", settingsRouter);
-  app.use("/api/account", accountRouter);
-  app.use("/api/reminders", remindersRouter);
-  app.use("/api/usage", usageRouter);
+  // The rest needs an account
+  app.use("/api/account", requireAccount, accountRouter);
+  app.use("/api/reminders", requireAccount, remindersRouter);
+  app.use("/api/usage", requireAccount, usageRouter);
   if (env.NODE_ENV === "development") app.use("/api/debug", debugRouter);
 
   app.use(notFound);

@@ -416,6 +416,8 @@ export const de: Messages = {
     INVALID_CREDENTIALS: "E-Mail-Adresse oder Passwort ist falsch.",
     EMAIL_TAKEN: "Diese E-Mail-Adresse ist schon registriert.",
     TOO_MANY_ATTEMPTS: "Zu viele Fehlversuche. Bitte warten Sie 15 Minuten und versuchen Sie es dann erneut.",
+    ACCOUNT_REQUIRED: "Melden Sie sich an oder erstellen Sie ein Konto, um das zu nutzen.",
+    GUEST_LIMIT: "Als Gast können Sie BriefKlar mit einem Brief ausprobieren. Erstellen Sie ein kostenloses Konto, um mehr hochzuladen.",
     NO_FILE: "Es wurde keine Datei hochgeladen.",
     UNSUPPORTED_TYPE: "Nur PDF-, JPG- und PNG-Dateien sind möglich.",
     LIMIT_FILE_SIZE: "Die Datei ist zu groß (höchstens 10 MB).",

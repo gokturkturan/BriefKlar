@@ -1,5 +1,5 @@
 import "../config/env";
-import { recomputeDeadlines } from "../deadlines/recomputeDeadlines";
+import { moveUserData } from "../auth/moveUserData";
 import { prisma } from "../lib/prisma";
 
 /**
@@ -25,32 +25,15 @@ async function main() {
   if (!account?.passwordHash) throw new Error(`There is no account for ${email}. Sign up in the web app first.`);
 
   // Settings the account has not chosen yet are taken from the demo user
-  const state = account.state ?? demo.state;
-  const move = { where: { userId: demo.id }, data: { userId: account.id } };
-  const [letters, reminders, llmCalls] = await prisma.$transaction([
-    prisma.document.updateMany(move),
-    prisma.reminder.updateMany(move),
-    prisma.llmCall.updateMany(move),
-    prisma.user.update({
-      where: { id: account.id },
-      data: { state, retentionDays: account.retentionDays ?? demo.retentionDays },
-    }),
-    prisma.user.delete({ where: { id: demo.id } }),
-  ]);
+  const updated = await prisma.user.update({
+    where: { id: account.id },
+    data: { state: account.state ?? demo.state, retentionDays: account.retentionDays ?? demo.retentionDays },
+  });
+  const moved = await moveUserData(demo, updated);
   console.log(
-    `Moved ${letters.count} letter(s), ${reminders.count} reminder(s) and ${llmCalls.count} AI call(s) ` +
+    `Moved ${moved.letters} letter(s), ${moved.reminders} reminder(s) and ${moved.llmCalls} AI call(s) ` +
       `to ${email} and deleted the demo user.`,
   );
-
-  // Regional holidays of another federal state can move due dates
-  if (state !== demo.state) {
-    const docs = await prisma.document.findMany({
-      where: { userId: account.id, status: "DONE" },
-      select: { id: true },
-    });
-    for (const doc of docs) await recomputeDeadlines(doc.id);
-    console.log(`Recalculated the deadlines of ${docs.length} letter(s) for the account's federal state.`);
-  }
 }
 
 main()

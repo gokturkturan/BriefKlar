@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LoginAttempts } from "./loginAttempts";
+import { RateLimit } from "./rateLimit";
 import { readCookie } from "./sessions";
 
 describe("readCookie", () => {
@@ -10,19 +10,19 @@ describe("readCookie", () => {
   });
 });
 
-describe("LoginAttempts", () => {
-  it("blocks after too many failures until the window has passed", () => {
-    const attempts = new LoginAttempts(3, 1000);
-    for (let i = 0; i < 3; i++) attempts.recordFailure("a@example.com", 0);
+describe("RateLimit", () => {
+  it("blocks after too many events until the window has passed", () => {
+    const attempts = new RateLimit(3, 1000);
+    for (let i = 0; i < 3; i++) attempts.record("a@example.com", 0);
     expect(attempts.isBlocked("a@example.com", 500)).toBe(true);
     expect(attempts.isBlocked("b@example.com", 500)).toBe(false);
     expect(attempts.isBlocked("a@example.com", 1001)).toBe(false);
   });
 
-  it("forgets the failures after a successful sign-in", () => {
-    const attempts = new LoginAttempts(2, 1000);
-    attempts.recordFailure("a@example.com", 0);
-    attempts.recordFailure("a@example.com", 0);
+  it("forgets the events of a key after a reset", () => {
+    const attempts = new RateLimit(2, 1000);
+    attempts.record("a@example.com", 0);
+    attempts.record("a@example.com", 0);
     attempts.reset("a@example.com");
     expect(attempts.isBlocked("a@example.com", 1)).toBe(false);
   });

@@ -30,8 +30,8 @@ enum ChatRole {
 
 model User {
   id                String     @id @default(uuid())
-  /// Stored in lower case
-  email             String     @unique
+  /// Stored in lower case; null for a guest who has not signed up (deleted after GUEST_DAYS)
+  email             String?    @unique
   name              String?
   /// scrypt hash (src/auth/password.ts); null for the demo user from before accounts, who cannot sign in
   passwordHash      String?

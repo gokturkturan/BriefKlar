@@ -431,6 +431,8 @@ export const en = {
     INVALID_CREDENTIALS: "Wrong e-mail address or password.",
     EMAIL_TAKEN: "This e-mail address is already registered.",
     TOO_MANY_ATTEMPTS: "Too many failed attempts. Please wait 15 minutes and try again.",
+    ACCOUNT_REQUIRED: "Sign in or create an account to use this.",
+    GUEST_LIMIT: "Guests can try BriefKlar with one letter. Create a free account to upload more.",
     NO_FILE: "No file was uploaded.",
     UNSUPPORTED_TYPE: "Only PDF, JPG and PNG files are supported.",
     LIMIT_FILE_SIZE: "File is too large (max 10 MB).",

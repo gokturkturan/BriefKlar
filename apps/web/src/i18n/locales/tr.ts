@@ -414,6 +414,8 @@ export const tr: Messages = {
     INVALID_CREDENTIALS: "E-posta adresi veya şifre yanlış.",
     EMAIL_TAKEN: "Bu e-posta adresi zaten kayıtlı.",
     TOO_MANY_ATTEMPTS: "Çok fazla başarısız deneme. Lütfen 15 dakika bekleyip tekrar deneyin.",
+    ACCOUNT_REQUIRED: "Bunu kullanmak için giriş yapın veya hesap oluşturun.",
+    GUEST_LIMIT: "Misafir olarak BriefKlar'ı bir mektupla deneyebilirsiniz. Daha fazlası için ücretsiz bir hesap oluşturun.",
     NO_FILE: "Dosya yüklenmedi.",
     UNSUPPORTED_TYPE: "Yalnızca PDF, JPG ve PNG dosyaları destekleniyor.",
     LIMIT_FILE_SIZE: "Dosya çok büyük (en fazla 10 MB).",

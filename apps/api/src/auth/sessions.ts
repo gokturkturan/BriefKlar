@@ -40,12 +40,16 @@ export async function startSession(res: Response, userId: string): Promise<void>
   });
 }
 
-/** The user id of a valid session cookie, or null */
-export async function findSessionUser(req: Request): Promise<string | null> {
+/** The user of a valid session cookie (a guest has no e-mail address), or null */
+export async function findSession(req: Request): Promise<{ userId: string; isGuest: boolean } | null> {
   const token = readCookie(req.headers.cookie, SESSION_COOKIE);
   if (!token) return null;
-  const session = await prisma.session.findUnique({ where: { tokenHash: hashToken(token) } });
-  return session && session.expiresAt > new Date() ? session.userId : null;
+  const session = await prisma.session.findUnique({
+    where: { tokenHash: hashToken(token) },
+    include: { user: { select: { email: true } } },
+  });
+  if (!session || session.expiresAt <= new Date()) return null;
+  return { userId: session.userId, isGuest: session.user.email === null };
 }
 
 /** Ends the session of this request and removes its cookie */

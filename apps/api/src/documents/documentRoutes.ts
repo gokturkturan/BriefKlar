@@ -4,6 +4,7 @@ import multer from "multer";
 import type { ActionItem, Deadline, Document, Extraction } from "@prisma/client";
 import { z } from "zod";
 import {
+  GUEST_MAX_LETTERS,
   isErrorCode,
   isTerminalStatus,
   parseDeadlineSteps,
@@ -90,11 +91,16 @@ documentsRouter.post("/", upload.single("file"), async (req, res) => {
   const originalName = Buffer.from(file.originalname, "latin1").toString("utf8");
   const fileKey = `${randomUUID()}${detected.ext}`;
 
+  const userId = getUserId(req);
+  if (req.isGuest && (await prisma.document.count({ where: { userId } })) >= GUEST_MAX_LETTERS) {
+    throw new HttpError(403, `Guests can upload ${GUEST_MAX_LETTERS} letter`, "GUEST_LIMIT");
+  }
+
   await storage.save(fileKey, file.buffer);
 
   const doc = await prisma.document.create({
     data: {
-      userId: getUserId(req),
+      userId,
       originalName,
       fileKey,
       mimeType: detected.mime,
