@@ -73,6 +73,12 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
    - The **extractor** (`agents/extractorAgent.ts`) runs `extractLetter.ts`, which sends the file to
      the model through `llm/generateStructured.ts` → `ProviderFallback.generateJson` → `ClaudeProvider` (or `OpenAIProvider` when Claude is down).
      Every attempt is logged by `llm/logCall.ts`, with the run and the agent.
+   - The **verifier** (`agents/verifierAgent.ts`) sends the file and the analysis to another model
+     (`documents/verifyExtraction.ts`, `verifierLlm` in `llm/index.ts`). Errors it can prove come
+     back as a `revise` message; the orchestrator gives them to the extractor as notes for one
+     correction round (`extractLetter.ts` with a revision) and lets the verifier check again.
+     Fields still disputed are added to `uncertainFields`. The plan is `extractAndVerify` in
+     `agents/analyseLetter.ts`.
    - The **deadline agent** (`agents/deadlineAgent.ts`, no AI) turns the deadline wording into due
      dates (`deadlines/deadlineRows.ts`) and stores the analysis, action items, deadlines and
      deadline reminders in one transaction.

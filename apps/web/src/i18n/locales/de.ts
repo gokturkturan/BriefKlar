@@ -459,6 +459,7 @@ export const de: Messages = {
       "embed-knowledge": "Wissen einrichten",
       "eval-extract-letter": "Test-Lauf (Evaluation)",
       "eval-verify-letter": "Test-Lauf (Prüfung)",
+      "eval-revise-letter": "Test-Lauf (Korrektur)",
     },
     unpriced: "kein Preis bekannt, zählt als 0",
     recentFailures: "Letzte Fehler",

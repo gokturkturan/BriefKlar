@@ -459,6 +459,7 @@ export const uk: Messages = {
       "embed-knowledge": "Наповнення бази знань",
       "eval-extract-letter": "Запуск оцінювання",
       "eval-verify-letter": "Запуск оцінювання (перевірка)",
+      "eval-revise-letter": "Запуск оцінювання (виправлення)",
     },
     unpriced: "ціна невідома, враховано як 0",
     recentFailures: "Останні помилки",

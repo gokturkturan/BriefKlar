@@ -70,6 +70,12 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
    attempt is logged as its own row, so the log shows each switch and the time it cost.
 5. The model never calculates dates: it only copies deadline wording from the letter.
    Due dates are decided by deterministic, tested code (see below).
+6. A second model checks the analysis (the verifier agent, GPT-6 luna by default): it reads the
+   original file again and reports only errors it can prove, each with the sentence of the letter
+   that shows it. The extractor gets these issues and corrects its analysis once; the verifier
+   checks the correction, and fields it still disputes are marked as uncertain, so the page asks
+   the user to check them in the letter. A run makes at most six model requests; the correction
+   is left out when it would take the translation's request.
 
 ### How deadlines are calculated
 
@@ -208,6 +214,7 @@ invitation) with the values a correct analysis must contain.
 npm run eval -w @briefklar/api                                   # the configured model, no fallback
 npm run eval -w @briefklar/api -- --provider openai              # GPT-6 luna
 npm run eval -w @briefklar/api -- --with-fallback --only 01,09   # production setup, two letters
+npm run eval:verifier -w @briefklar/api                          # the verifier agent (see below)
 ```
 
 - **Schema conformance**: was the answer valid at once, valid after the repair round, still invalid, or
@@ -223,6 +230,12 @@ npm run eval -w @briefklar/api -- --with-fallback --only 01,09   # production se
   model answered each letter, and comparing two runs shows what the fallback costs in accuracy.
 - Reports (Markdown and JSON) go to `apps/api/eval-results/`, which is not committed. Runs are logged
   as `eval-extract-letter` calls, so they appear in the cost dashboard.
+- `eval:verifier` runs the extractor, the verifier and the correction round on every letter and
+  compares the scores before and after the check, with the extra time and cost. It also puts
+  deliberate errors into the first analyses (`evals/corruptions.ts`: a wrong amount, a missing
+  deadline, an invented date, a changed reference number, a shifted letter date, a flipped objection
+  right, a wrong sender) and counts how many the verifier catches, and how often it reports an
+  error in an analysis that passes every check (false alarm).
 - The letters are plain text sent like an uploaded file. Scans and PDFs (`.pdf`, `.jpg`, `.png`) can be
   added to `letters/` with a case in `cases.ts`; keep real letters out of the repository.
 

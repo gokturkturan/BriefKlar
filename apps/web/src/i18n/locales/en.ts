@@ -474,6 +474,7 @@ export const en = {
       "embed-knowledge": "Knowledge base setup",
       "eval-extract-letter": "Evaluation run",
       "eval-verify-letter": "Evaluation run (check)",
+      "eval-revise-letter": "Evaluation run (correction)",
     } as Record<string, string>,
     unpriced: "no price known, counted as 0",
     recentFailures: "Latest failures",

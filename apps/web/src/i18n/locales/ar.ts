@@ -459,6 +459,7 @@ export const ar: Messages = {
       "embed-knowledge": "إعداد قاعدة المعرفة",
       "eval-extract-letter": "تشغيل التقييم",
       "eval-verify-letter": "تشغيل التقييم (التحقق)",
+      "eval-revise-letter": "تشغيل التقييم (التصحيح)",
     },
     unpriced: "السعر غير معروف، احتُسب 0",
     recentFailures: "آخر الأخطاء",

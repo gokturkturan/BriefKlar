@@ -457,6 +457,7 @@ export const tr: Messages = {
       "embed-knowledge": "Bilgi bankası kurulumu",
       "eval-extract-letter": "Değerlendirme çalıştırması",
       "eval-verify-letter": "Değerlendirme çalıştırması (kontrol)",
+      "eval-revise-letter": "Değerlendirme çalıştırması (düzeltme)",
     },
     unpriced: "fiyatı bilinmiyor, 0 sayıldı",
     recentFailures: "Son hatalar",

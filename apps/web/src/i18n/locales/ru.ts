@@ -460,6 +460,7 @@ export const ru: Messages = {
       "embed-knowledge": "Наполнение базы знаний",
       "eval-extract-letter": "Прогон оценки",
       "eval-verify-letter": "Прогон оценки (проверка)",
+      "eval-revise-letter": "Прогон оценки (исправление)",
     },
     unpriced: "цена неизвестна, учтено как 0",
     recentFailures: "Последние ошибки",
