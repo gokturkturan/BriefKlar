@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router";
-import { EXPLANATION_LANGUAGES } from "@briefklar/shared";
+import { LanguageMenu } from "./components/LanguageMenu";
 import { SignInRequired } from "./components/SignInRequired";
 import { useAccount, useIsMember, useSignOut } from "./hooks/useAccount";
 import { useErrorText } from "./i18n/errors";
@@ -15,7 +15,7 @@ import { UploadPage } from "./pages/UploadPage";
 import { UsagePage } from "./pages/UsagePage";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-3 py-1.5 text-sm font-medium ${
+  `shrink-0 rounded-md px-3 py-1.5 text-sm font-medium ${
     isActive ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-200"
   }`;
 
@@ -28,14 +28,15 @@ export function App() {
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        {/* Phones: brand and the language and account buttons on top, the navigation below */}
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
           {/* The brand name reads left to right in every language */}
           <NavLink to="/" dir="ltr" className="text-lg font-semibold tracking-tight">
             Brief<span className="text-emerald-600">Klar</span>
           </NavLink>
-          <div className="flex flex-wrap items-center gap-3">
-            <Navigation member={member} />
-            <LanguageSelect />
+          <Navigation member={member} />
+          <div className="order-2 ms-auto flex items-center gap-2 md:order-3 md:ms-0">
+            <LanguageMenu />
             {member ? (
               <SignOutButton />
             ) : (
@@ -89,7 +90,7 @@ function AppRoutes({ member }: { member: boolean }) {
 function Navigation({ member }: { member: boolean }) {
   const { t } = useI18n();
   return (
-    <nav className="flex gap-1">
+    <nav className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto md:order-2 md:mx-0 md:ms-auto md:w-auto">
       <NavLink to="/upload" className={navClass}>
         {t.app.nav.upload}
       </NavLink>
@@ -123,24 +124,6 @@ function DueReminders() {
     >
       {count}
     </span>
-  );
-}
-
-function LanguageSelect() {
-  const { t, language, setLanguage } = useI18n();
-  return (
-    <select
-      value={language}
-      onChange={(e) => setLanguage(e.target.value)}
-      aria-label={t.app.language}
-      className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
-    >
-      {Object.entries(EXPLANATION_LANGUAGES).map(([code, name]) => (
-        <option key={code} value={code} lang={code}>
-          {name}
-        </option>
-      ))}
-    </select>
   );
 }
 
