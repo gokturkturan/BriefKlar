@@ -8,7 +8,7 @@ import { extractLetter } from "../documents/extractLetter";
 import { GeminiProvider } from "../llm/GeminiProvider";
 import { LLMValidationError } from "../llm/generateStructured";
 import { costOf } from "../llm/pricing";
-import { EXTRACT_LETTER_PROMPT_VERSION } from "../documents/extractLetterPrompt";
+import { EXTRACT_LETTER_PROMPT_VERSION } from "../documents/extractLetter";
 import { EVAL_CASES, type EvalCase } from "./cases";
 import { scoreExtraction, summarize, type CaseResult, type EvalSummary } from "./score";
 

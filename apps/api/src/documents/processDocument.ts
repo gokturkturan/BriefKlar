@@ -4,9 +4,8 @@ import { isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@brie
 import { deadlineContext, deadlineRows } from "../deadlines";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
-import { extractLetter } from "./extractLetter";
 import { LLMValidationError } from "../llm/generateStructured";
-import { EXTRACT_LETTER_PROMPT_VERSION } from "./extractLetterPrompt";
+import { EXTRACT_LETTER_PROMPT_VERSION, extractLetter } from "./extractLetter";
 import type { DocumentJobData } from "./queueConstants";
 import { syncDeadlineReminders } from "../reminders/deadlineReminders";
 import { todayInGermany } from "../deadlines/calendarDate";
