@@ -23,7 +23,7 @@ import { plural } from "../plural";
  */
 export const en = {
   app: {
-    nav: { upload: "Upload", documents: "My letters", settings: "Settings", reminders: "Reminders", usage: "Usage" },
+    nav: { upload: "Upload", documents: "My letters", reminders: "Reminders", usage: "Usage", profile: "Profile" },
     language: "Language",
     dueReminders: (count: number) => `Due reminders: ${count}`,
   },
@@ -337,6 +337,21 @@ export const en = {
     save: "Add reminder",
   },
 
+  profile: {
+    title: "Profile",
+    account: "Account",
+    email: "E-mail address",
+    name: "Name",
+    saveName: "Save name",
+    memberSince: (date: string) => `Member since ${date}`,
+    password: "Change password",
+    currentPassword: "Current password",
+    newPassword: "New password",
+    savePassword: "Change password",
+    passwordChanged: "Password changed. Other devices were signed out.",
+    wrongPassword: "The current password is wrong.",
+  },
+
   settings: {
     title: "Settings",
     state: "Federal state (Bundesland)",
@@ -363,11 +378,10 @@ export const en = {
       exportHint:
         "A JSON file with your settings and every letter, including the original file, the analysis, reply drafts, " +
         "chat and reminders.",
-      delete: "Delete all my data",
-      deleteHint: "Deletes every letter, file, analysis, chat, reminder and your settings.",
+      delete: "Delete my account",
+      deleteHint: "Deletes your account with every letter, file, analysis, chat and reminder.",
       deleteConfirm: "This cannot be undone. Delete everything now?",
       deleteYes: "Yes, delete everything",
-      deleted: "All your data was deleted.",
     },
   },
 

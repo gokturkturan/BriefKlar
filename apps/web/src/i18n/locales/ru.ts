@@ -6,7 +6,7 @@ const dot = (date: string) => (date.endsWith(".") ? date : `${date}.`);
 
 export const ru: Messages = {
   app: {
-    nav: { upload: "Загрузить", documents: "Мои письма", settings: "Настройки", reminders: "Напоминания", usage: "Расходы" },
+    nav: { upload: "Загрузить", documents: "Мои письма", reminders: "Напоминания", usage: "Расходы", profile: "Профиль" },
     language: "Язык",
     dueReminders: (count) => `Напоминания на сегодня: ${count}`,
   },
@@ -322,6 +322,21 @@ export const ru: Messages = {
     save: "Добавить напоминание",
   },
 
+  profile: {
+    title: "Профиль",
+    account: "Аккаунт",
+    email: "Адрес электронной почты",
+    name: "Имя",
+    saveName: "Сохранить имя",
+    memberSince: (date) => `Участник с ${date}`,
+    password: "Сменить пароль",
+    currentPassword: "Текущий пароль",
+    newPassword: "Новый пароль",
+    savePassword: "Сменить пароль",
+    passwordChanged: "Пароль изменён. На других устройствах выполнен выход.",
+    wrongPassword: "Текущий пароль неверный.",
+  },
+
   settings: {
     title: "Настройки",
     state: "Федеральная земля (Bundesland)",
@@ -349,11 +364,10 @@ export const ru: Messages = {
       exportHint:
         "Файл JSON с вашими настройками и всеми письмами, включая исходный файл, анализ, черновики ответов, чат " +
         "и напоминания.",
-      delete: "Удалить все мои данные",
-      deleteHint: "Удаляет все письма, файлы, анализы, чаты, напоминания и ваши настройки.",
+      delete: "Удалить аккаунт",
+      deleteHint: "Удаляет ваш аккаунт вместе со всеми письмами, файлами, анализами, чатами и напоминаниями.",
       deleteConfirm: "Это нельзя отменить. Удалить всё сейчас?",
       deleteYes: "Да, удалить всё",
-      deleted: "Все ваши данные удалены.",
     },
   },
 

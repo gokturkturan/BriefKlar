@@ -19,7 +19,7 @@ export function useAccount() {
  * Nothing cached for an earlier account is kept. The account query itself stays (with the new
  * value), so the components that watch it render again.
  */
-function switchAccount(queryClient: QueryClient, account: AccountDto | null) {
+export function switchAccount(queryClient: QueryClient, account: AccountDto | null) {
   queryClient.setQueryData<AccountDto | null>(queryKeys.account, account);
   queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== queryKeys.account[0] });
 }

@@ -6,8 +6,8 @@ import { useI18n } from "./i18n/I18nProvider";
 import { AuthPage } from "./pages/AuthPage";
 import { DocumentDetailPage } from "./pages/DocumentDetailPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { RemindersPage, useDueReminderCount } from "./pages/RemindersPage";
-import { SettingsPage } from "./pages/SettingsPage";
 import { UploadPage } from "./pages/UploadPage";
 import { UsagePage } from "./pages/UsagePage";
 
@@ -62,7 +62,8 @@ function SignedInRoutes() {
       <Route path="/documents/:id" element={<DocumentDetailPage />} />
       <Route path="/reminders" element={<RemindersPage />} />
       <Route path="/usage" element={<UsagePage />} />
-      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/settings" element={<Navigate to="/profile" replace />} />
       {/* Just signed in: back to the page that asked for it */}
       <Route path="/login" element={<Navigate to={from} replace />} />
       <Route path="/register" element={<Navigate to={from} replace />} />
@@ -109,8 +110,8 @@ function Navigation() {
       <NavLink to="/usage" className={navClass}>
         {t.app.nav.usage}
       </NavLink>
-      <NavLink to="/settings" className={navClass}>
-        {t.app.nav.settings}
+      <NavLink to="/profile" className={navClass}>
+        {t.app.nav.profile}
       </NavLink>
     </nav>
   );

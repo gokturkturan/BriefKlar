@@ -6,7 +6,7 @@ const dot = (date: string) => (date.endsWith(".") ? date : `${date}.`);
 
 export const uk: Messages = {
   app: {
-    nav: { upload: "Завантажити", documents: "Мої листи", settings: "Налаштування", reminders: "Нагадування", usage: "Використання" },
+    nav: { upload: "Завантажити", documents: "Мої листи", reminders: "Нагадування", usage: "Використання", profile: "Профіль" },
     language: "Мова",
     dueReminders: (count) => `Нагадування на сьогодні: ${count}`,
   },
@@ -322,6 +322,21 @@ export const uk: Messages = {
     save: "Додати нагадування",
   },
 
+  profile: {
+    title: "Профіль",
+    account: "Обліковий запис",
+    email: "Електронна адреса",
+    name: "Ім'я",
+    saveName: "Зберегти ім'я",
+    memberSince: (date) => `Учасник з ${date}`,
+    password: "Змінити пароль",
+    currentPassword: "Поточний пароль",
+    newPassword: "Новий пароль",
+    savePassword: "Змінити пароль",
+    passwordChanged: "Пароль змінено. На інших пристроях виконано вихід.",
+    wrongPassword: "Поточний пароль неправильний.",
+  },
+
   settings: {
     title: "Налаштування",
     state: "Федеральна земля (Bundesland)",
@@ -348,11 +363,10 @@ export const uk: Messages = {
       exportHint:
         "Файл JSON з вашими налаштуваннями та всіма листами, включно з оригінальним файлом, аналізом, чернетками " +
         "відповідей, чатом і нагадуваннями.",
-      delete: "Видалити всі мої дані",
-      deleteHint: "Видаляє всі листи, файли, аналізи, чати, нагадування та ваші налаштування.",
+      delete: "Видалити обліковий запис",
+      deleteHint: "Видаляє ваш обліковий запис разом з усіма листами, файлами, аналізами, чатами й нагадуваннями.",
       deleteConfirm: "Це не можна скасувати. Видалити все зараз?",
       deleteYes: "Так, видалити все",
-      deleted: "Усі ваші дані видалено.",
     },
   },
 

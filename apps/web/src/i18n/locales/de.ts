@@ -4,7 +4,7 @@ import type { Messages } from "./en";
 /** Einfaches Deutsch: kurze Sätze, bekannte Wörter, Sie-Form */
 export const de: Messages = {
   app: {
-    nav: { upload: "Hochladen", documents: "Meine Briefe", settings: "Einstellungen", reminders: "Erinnerungen", usage: "Verbrauch" },
+    nav: { upload: "Hochladen", documents: "Meine Briefe", reminders: "Erinnerungen", usage: "Verbrauch", profile: "Profil" },
     language: "Sprache",
     dueReminders: (count) => `Fällige Erinnerungen: ${count}`,
   },
@@ -321,6 +321,21 @@ export const de: Messages = {
     save: "Erinnerung speichern",
   },
 
+  profile: {
+    title: "Profil",
+    account: "Konto",
+    email: "E-Mail-Adresse",
+    name: "Name",
+    saveName: "Namen speichern",
+    memberSince: (date) => `Mitglied seit ${date}`,
+    password: "Passwort ändern",
+    currentPassword: "Aktuelles Passwort",
+    newPassword: "Neues Passwort",
+    savePassword: "Passwort ändern",
+    passwordChanged: "Das Passwort wurde geändert. Andere Geräte wurden abgemeldet.",
+    wrongPassword: "Das aktuelle Passwort ist falsch.",
+  },
+
   settings: {
     title: "Einstellungen",
     state: "Bundesland",
@@ -348,11 +363,10 @@ export const de: Messages = {
       exportHint:
         "Eine JSON-Datei mit Ihren Einstellungen und allen Briefen, mit Original-Datei, Analyse, Antwort-Entwürfen, " +
         "Chat und Erinnerungen.",
-      delete: "Alle meine Daten löschen",
-      deleteHint: "Löscht alle Briefe, Dateien, Analysen, Chats, Erinnerungen und Ihre Einstellungen.",
+      delete: "Konto löschen",
+      deleteHint: "Löscht Ihr Konto mit allen Briefen, Dateien, Analysen, Chats und Erinnerungen.",
       deleteConfirm: "Das kann man nicht rückgängig machen. Jetzt alles löschen?",
       deleteYes: "Ja, alles löschen",
-      deleted: "Alle Ihre Daten wurden gelöscht.",
     },
   },
 

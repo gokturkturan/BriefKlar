@@ -7,7 +7,7 @@ const ltr = (text: string) => `⁦${text}⁩`;
 /** Modern Standard Arabic in simple words. German terms stay in Latin script. */
 export const ar: Messages = {
   app: {
-    nav: { upload: "رفع رسالة", documents: "رسائلي", settings: "الإعدادات", reminders: "التذكيرات", usage: "الاستخدام" },
+    nav: { upload: "رفع رسالة", documents: "رسائلي", reminders: "التذكيرات", usage: "الاستخدام", profile: "الملف الشخصي" },
     language: "اللغة",
     dueReminders: (count) => `تذكيرات حان وقتها: ${count}`,
   },
@@ -327,6 +327,21 @@ export const ar: Messages = {
     save: "إضافة التذكير",
   },
 
+  profile: {
+    title: "الملف الشخصي",
+    account: "الحساب",
+    email: "البريد الإلكتروني",
+    name: "الاسم",
+    saveName: "حفظ الاسم",
+    memberSince: (date) => `عضو منذ ${date}`,
+    password: "تغيير كلمة المرور",
+    currentPassword: "كلمة المرور الحالية",
+    newPassword: "كلمة المرور الجديدة",
+    savePassword: "تغيير كلمة المرور",
+    passwordChanged: "تم تغيير كلمة المرور. تم تسجيل الخروج من الأجهزة الأخرى.",
+    wrongPassword: "كلمة المرور الحالية غير صحيحة.",
+  },
+
   settings: {
     title: "الإعدادات",
     state: "الولاية الألمانية (Bundesland)",
@@ -348,11 +363,10 @@ export const ar: Messages = {
       retentionDays: (days) => `بعد ${days} يومًا`,
       export: "تنزيل بياناتي",
       exportHint: "ملف JSON يحتوي على إعداداتك وكل رسائلك، بما في ذلك الملف الأصلي والتحليل ومسودات الرد والمحادثة والتذكيرات.",
-      delete: "حذف كل بياناتي",
-      deleteHint: "يحذف كل الرسائل والملفات والتحليلات والمحادثات والتذكيرات وإعداداتك.",
+      delete: "حذف حسابي",
+      deleteHint: "يحذف حسابك مع كل الرسائل والملفات والتحليلات والمحادثات والتذكيرات.",
       deleteConfirm: "لا يمكن التراجع عن ذلك. هل تريد حذف كل شيء الآن؟",
       deleteYes: "نعم، احذف كل شيء",
-      deleted: "تم حذف كل بياناتك.",
     },
   },
 

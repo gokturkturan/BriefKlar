@@ -83,7 +83,7 @@ export function ReceivedDateForm({
       {settings.data && settings.data.state === null && (
         <p className="text-slate-500">
           {t.receivedDate.noState}{" "}
-          <Link to="/settings" className="font-medium text-emerald-700 hover:underline">
+          <Link to="/profile" className="font-medium text-emerald-700 hover:underline">
             {t.receivedDate.setState}
           </Link>
         </p>

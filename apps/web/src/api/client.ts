@@ -1,6 +1,7 @@
 import type {
   AccountDto,
   AnalysisTranslationDto,
+  ChangePasswordInput,
   ApiErrorBody,
   ChatMessageDto,
   CreateReminderInput,
@@ -16,6 +17,7 @@ import type {
   RemindersDto,
   ReplyDraftDto,
   SettingsDto,
+  UpdateAccountInput,
   UpdateDocumentInput,
   UpdateSettingsInput,
   UsageDto,
@@ -58,6 +60,8 @@ export const api = {
   register: (input: RegisterInput) => request<AccountDto>("/api/auth/register", json("POST", input)),
   login: (input: LoginInput) => request<AccountDto>("/api/auth/login", json("POST", input)),
   logout: () => request<void>("/api/auth/logout", { method: "POST" }),
+  updateAccount: (input: UpdateAccountInput) => request<AccountDto>("/api/auth/me", json("PATCH", input)),
+  changePassword: (input: ChangePasswordInput) => request<void>("/api/auth/password", json("POST", input)),
 
   // Letters
   listDocuments: () => request<DocumentDto[]>("/api/documents"),
@@ -95,7 +99,7 @@ export const api = {
   updateReminder: (id: string, done: boolean) => request<ReminderDto>(`/api/reminders/${id}`, json("PATCH", { done })),
   deleteReminder: (id: string) => request<void>(`/api/reminders/${id}`, { method: "DELETE" }),
 
-  // Settings, account and usage
+  // Settings, data and usage
   getSettings: () => request<SettingsDto>("/api/settings"),
   updateSettings: (input: UpdateSettingsInput) => request<SettingsDto>("/api/settings", json("PATCH", input)),
   deleteAccount: () => request<void>("/api/account", json("DELETE", { confirm: "DELETE" })),

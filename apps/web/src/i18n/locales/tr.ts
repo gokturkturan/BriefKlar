@@ -3,7 +3,7 @@ import type { Messages } from "./en";
 
 export const tr: Messages = {
   app: {
-    nav: { upload: "Yükle", documents: "Mektuplarım", settings: "Ayarlar", reminders: "Hatırlatıcılar", usage: "Kullanım" },
+    nav: { upload: "Yükle", documents: "Mektuplarım", reminders: "Hatırlatıcılar", usage: "Kullanım", profile: "Profil" },
     language: "Dil",
     dueReminders: (count) => `Zamanı gelen hatırlatıcılar: ${count}`,
   },
@@ -319,6 +319,21 @@ export const tr: Messages = {
     save: "Hatırlatıcıyı ekle",
   },
 
+  profile: {
+    title: "Profil",
+    account: "Hesap",
+    email: "E-posta adresi",
+    name: "Ad",
+    saveName: "Adı kaydet",
+    memberSince: (date) => `Üyelik tarihi: ${date}`,
+    password: "Şifreyi değiştir",
+    currentPassword: "Mevcut şifre",
+    newPassword: "Yeni şifre",
+    savePassword: "Şifreyi değiştir",
+    passwordChanged: "Şifre değiştirildi. Diğer cihazlarda oturum kapatıldı.",
+    wrongPassword: "Mevcut şifre yanlış.",
+  },
+
   settings: {
     title: "Ayarlar",
     state: "Eyalet (Bundesland)",
@@ -346,11 +361,10 @@ export const tr: Messages = {
       exportHint:
         "Ayarlarınızı ve tüm mektuplarınızı (orijinal dosya, analiz, yanıt taslakları, sohbet ve hatırlatıcılar " +
         "dahil) içeren bir JSON dosyası.",
-      delete: "Tüm verilerimi sil",
-      deleteHint: "Tüm mektupları, dosyaları, analizleri, sohbetleri, hatırlatıcıları ve ayarlarınızı siler.",
+      delete: "Hesabımı sil",
+      deleteHint: "Hesabınızı tüm mektuplar, dosyalar, analizler, sohbetler ve hatırlatıcılarla birlikte siler.",
       deleteConfirm: "Bu işlem geri alınamaz. Her şey şimdi silinsin mi?",
       deleteYes: "Evet, her şeyi sil",
-      deleted: "Tüm verileriniz silindi.",
     },
   },
 
