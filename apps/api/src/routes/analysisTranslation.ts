@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { isExplanationLanguage } from "@briefklar/shared";
 import { HttpError } from "../lib/httpError";
-import { prisma } from "../lib/prisma";
+import { latestExtraction } from "../lib/extractions";
 import { LLMError } from "../llm";
 import { LLMValidationError } from "../llm/generateStructured";
 import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "../translations/analysisTranslations";
@@ -19,10 +19,7 @@ analysisTranslationRouter.get("/", async (req, res) => {
   }
 
   const doc = await findOwnedDocument(req);
-  const extraction = await prisma.extraction.findFirst({
-    where: { documentId: doc.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const extraction = await latestExtraction(doc.id);
   if (doc.status !== "DONE" || !extraction) {
     throw new HttpError(409, "This letter has not been analyzed yet.", "NOT_ANALYZED");
   }

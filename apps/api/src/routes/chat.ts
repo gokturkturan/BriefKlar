@@ -17,7 +17,8 @@ import { prisma } from "../lib/prisma";
 import { llm, LLMError } from "../llm";
 import type { ChatTurn } from "../llm/LLMProvider";
 import { chatSystemPrompt, chatTurnInstruction, CHAT_PROMPT_VERSION } from "../prompts/chat";
-import { findOwnedDocument, requireExtraction } from "./ownedDocument";
+import { requireExtraction } from "../lib/extractions";
+import { findOwnedDocument } from "./ownedDocument";
 
 /** Mounted at /api/documents/:id/chat */
 export const chatRouter = Router({ mergeParams: true });

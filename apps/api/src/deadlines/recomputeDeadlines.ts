@@ -1,12 +1,9 @@
-import { isGermanState, LetterExtractionSchema } from "@briefklar/shared";
-import type { Prisma } from "@prisma/client";
+import { isGermanState } from "@briefklar/shared";
+import { latestExtraction, letterOf, type Db } from "../lib/extractions";
 import { prisma } from "../lib/prisma";
 import { syncDeadlineReminders } from "../reminders/deadlineReminders";
-import { todayInGermany } from "./calendarDate";
-import { toIsoDate } from "./calendarDate";
+import { todayInGermany, toIsoDate } from "./calendarDate";
 import { deadlineRows, type DeadlineContext, type DeadlineRow } from "./deadlineRows";
-
-type Db = Prisma.TransactionClient | typeof prisma;
 
 /** The delivery date and federal state the user entered for this document */
 export async function deadlineContext(documentId: string, db: Db = prisma): Promise<DeadlineContext> {
@@ -32,14 +29,10 @@ const rowKey = (row: Pick<DeadlineRow, "kind" | "sourceText" | "dueDate" | "isEs
  */
 export async function recomputeDeadlines(documentId: string): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
-    const latest = await tx.extraction.findFirst({
-      where: { documentId },
-      orderBy: { createdAt: "desc" },
-    });
-    const parsed = LetterExtractionSchema.safeParse(latest?.data);
-    if (!parsed.success) return false;
+    const letter = letterOf(await latestExtraction(documentId, tx));
+    if (!letter) return false;
 
-    const rows = deadlineRows(documentId, parsed.data, await deadlineContext(documentId, tx));
+    const rows = deadlineRows(documentId, letter, await deadlineContext(documentId, tx));
     const existing = await tx.deadline.findMany({ where: { documentId } });
 
     await syncDeadlineReminders(tx, documentId, rows, todayInGermany());

@@ -16,7 +16,8 @@ import { LLMValidationError } from "../llm/generateStructured";
 import { REPLY_DRAFT_PROMPT_VERSION } from "../prompts/replyDraft";
 import { todayInGermany } from "../deadlines/calendarDate";
 import { composeReplyLetter, replyWarnings } from "../replies/composeReplyLetter";
-import { findOwnedDocument, requireExtraction, routeParam } from "./ownedDocument";
+import { requireExtraction } from "../lib/extractions";
+import { findOwnedDocument, routeParam } from "./ownedDocument";
 
 /** Mounted at /api/documents/:id/reply-drafts */
 export const replyDraftsRouter = Router({ mergeParams: true });

@@ -6,7 +6,6 @@ import { z } from "zod";
 import {
   isErrorCode,
   isTerminalStatus,
-  LetterExtractionSchema,
   parseDeadlineSteps,
   UPLOAD_LIMITS,
   UpdateDocumentSchema,
@@ -17,6 +16,7 @@ import {
   type ProgressEvent,
 } from "@briefklar/shared";
 import { prisma } from "../lib/prisma";
+import { latestExtraction, letterOf } from "../lib/extractions";
 import { HttpError } from "../lib/httpError";
 import { detectFileType } from "../lib/fileType";
 import { storage } from "../storage";
@@ -55,12 +55,11 @@ function toAnalysisDto(
   deadlines: Deadline[],
 ): LetterAnalysisDto | null {
   if (!extraction) return null;
-  // Stored JSON is validated again when read: old rows may come from an older schema version
-  const parsed = LetterExtractionSchema.safeParse(extraction.data);
-  if (!parsed.success) return null;
+  const letter = letterOf(extraction);
+  if (!letter) return null;
 
   return {
-    extraction: parsed.data,
+    extraction: letter,
     model: extraction.model,
     promptVersion: extraction.promptVersion,
     createdAt: extraction.createdAt.toISOString(),
@@ -150,11 +149,7 @@ documentsRouter.patch("/:id", async (req, res) => {
     if (receivedDate > todayInGermany()) {
       throw new HttpError(400, "The delivery date cannot be in the future.", "DATE_IN_FUTURE");
     }
-    const latest = await prisma.extraction.findFirst({
-      where: { documentId: doc.id },
-      orderBy: { createdAt: "desc" },
-    });
-    const letterDate = LetterExtractionSchema.safeParse(latest?.data).data?.letterDate;
+    const letterDate = letterOf(await latestExtraction(doc.id))?.letterDate;
     if (letterDate && receivedDate < letterDate) {
       throw new HttpError(400, "The letter cannot have arrived before its own date.", "DATE_BEFORE_LETTER");
     }

@@ -12,7 +12,8 @@ import { LLMError } from "../llm";
 import { explainLetter } from "../llm/explainLetter";
 import { EXPLAIN_LETTER_PROMPT_VERSION } from "../prompts/explainLetter";
 import { storage } from "../storage";
-import { findOwnedDocument, requireExtraction } from "./ownedDocument";
+import { requireExtraction } from "../lib/extractions";
+import { findOwnedDocument } from "./ownedDocument";
 
 /** Mounted at /api/documents/:id/explanation */
 export const explanationRouter = Router({ mergeParams: true });
