@@ -26,6 +26,7 @@ import { todayInGermany } from "../replies/composeReplyLetter";
 import { documentQueue, enqueueDocument } from "../queue/documentQueue";
 import { subscribeToDocument } from "../queue/documentEvents";
 import { getUserId } from "../middleware/demoUser";
+import { deleteDocuments } from "../privacy/userData";
 import { findOwnedDocument, routeParam } from "./ownedDocument";
 
 export const documentsRouter = Router();
@@ -175,11 +176,7 @@ documentsRouter.delete("/:id", async (req, res) => {
     throw new HttpError(409, "This letter is being processed. Try again in a moment.", "ALREADY_PROCESSING");
   }
 
-  const job = await documentQueue.getJob(doc.id);
-  await job?.remove().catch(() => undefined); // a job that just started will finish and find no document
-
-  await prisma.document.delete({ where: { id: doc.id } }); // cascades to extractions, items, deadlines...
-  await storage.delete(doc.fileKey);
+  await deleteDocuments({ id: doc.id });
   res.status(204).end();
 });
 

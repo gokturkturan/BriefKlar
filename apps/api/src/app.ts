@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { env } from "./config/env";
 import { demoUser } from "./middleware/demoUser";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+import { accountRouter } from "./routes/account";
 import { analysisTranslationRouter } from "./routes/analysisTranslation";
 import { chatRouter } from "./routes/chat";
 import { debugRouter } from "./routes/debug";
@@ -31,6 +32,7 @@ export function createApp() {
   app.use("/api/documents/:id/chat", chatRouter);
   app.use("/api/documents", documentsRouter);
   app.use("/api/settings", settingsRouter);
+  app.use("/api/account", accountRouter);
   app.use("/api/reminders", remindersRouter);
   app.use("/api/usage", usageRouter);
   if (env.NODE_ENV === "development") app.use("/api/debug", debugRouter);
