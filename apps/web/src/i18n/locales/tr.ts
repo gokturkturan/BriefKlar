@@ -46,6 +46,7 @@ export const tr: Messages = {
   status: { UPLOADED: "Sırada", PROCESSING: "İşleniyor", DONE: "Hazır", FAILED: "Başarısız" },
 
   processing: {
+    classifying: "Belgenin türü kontrol ediliyor",
     preprocessing: "Dosya hazırlanıyor",
     extracting: "Mektup okunuyor ve inceleniyor",
     verifying: "Analiz mektupla karşılaştırılıyor",
@@ -133,6 +134,8 @@ export const tr: Messages = {
     originalLetter: "Orijinal mektup",
     failed: "İşlem başarısız oldu.",
     noAnalysis: "Bu mektup için bir analiz yok.",
+    poorScan: "Bu fotoğrafın bazı yerleri zor okunuyor. Sonuçları mektupla karşılaştırın ya da daha güvenilir sonuç için daha net bir fotoğraf yükleyin.",
+    readAnyway: "Yine de okumayı dene",
   },
 
   analysis: {
@@ -195,6 +198,8 @@ export const tr: Messages = {
       chat: "Bu mektup hakkında sorun",
     },
     notOfficial: "Bu resmî bir mektup gibi görünmüyor. Sonuçlar işinize yaramayabilir.",
+    screenedOut: "Bu resmî bir mektup gibi görünmüyor, bu yüzden BriefKlar onu yalnızca kısaca anlatıyor. Bu mektup için bir şey yapmanız gerekiyorsa tam analiz ettirin.",
+    analyseAnyway: "Tam analiz et",
     uncertain: (fields: string) =>
       `Lütfen kontrol edin: ${fields}. Mektubun bazı kısımları zor okunuyordu veya belirsizdi.`,
     nothingToDo: "Yapmanız gereken bir şey yok. Bu mektup bilgilendirme amaçlı.",
@@ -449,6 +454,7 @@ export const tr: Messages = {
     purposes: {
       "extract-letter": "Mektup analizi",
       "verify-letter": "Analiz kontrolü",
+      "classify-letter": "Belge kontrolü",
       "revise-letter": "Analiz düzeltmesi",
       "translate-analysis": "Çeviri",
       "explain-letter": "Açıklama",
@@ -482,6 +488,7 @@ export const tr: Messages = {
     NO_FILE: "Dosya yüklenmedi.",
     UNSUPPORTED_TYPE: "Yalnızca PDF, JPG ve PNG dosyaları destekleniyor.",
     LIMIT_FILE_SIZE: "Dosya çok büyük (en fazla 10 MB).",
+    SCAN_UNREADABLE: "Fotoğraf okunamayacak kadar bulanık veya karanlık. Lütfen iyi ışıkta çekilmiş daha net bir fotoğraf yükleyin.",
     DOCUMENT_NOT_FOUND: "Bu mektup bulunamadı.",
     ACTION_ITEM_NOT_FOUND: "Bu görev bulunamadı.",
     DRAFT_NOT_FOUND: "Bu taslak bulunamadı.",

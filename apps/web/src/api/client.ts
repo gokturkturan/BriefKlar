@@ -76,7 +76,9 @@ export const api = {
   },
   updateDocument: (id: string, input: UpdateDocumentInput) =>
     request<DocumentDto>(`/api/documents/${id}`, json("PATCH", input)),
-  retryDocument: (id: string) => request<DocumentDto>(`/api/documents/${id}/retry`, { method: "POST" }),
+  /** skipIntake: the full analysis, also for a document the intake did not take for an official letter */
+  retryDocument: (id: string, options: { skipIntake?: boolean } = {}) =>
+    request<DocumentDto>(`/api/documents/${id}/retry`, json("POST", options)),
   deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
   updateActionItem: (documentId: string, itemId: string, done: boolean) =>
     request<void>(`/api/documents/${documentId}/action-items/${itemId}`, json("PATCH", { done })),

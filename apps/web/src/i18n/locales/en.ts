@@ -66,6 +66,7 @@ export const en = {
   status: { UPLOADED: "Queued", PROCESSING: "Processing", DONE: "Ready", FAILED: "Failed" },
 
   processing: {
+    classifying: "Checking what kind of document this is",
     preprocessing: "Preparing the file",
     extracting: "Reading and analyzing the letter",
     verifying: "Checking the analysis against the letter",
@@ -153,6 +154,8 @@ export const en = {
     originalLetter: "Original letter",
     failed: "Processing failed.",
     noAnalysis: "No analysis available for this letter.",
+    poorScan: "Parts of this photo are hard to read. Check the results against the letter, or upload a clearer photo for more reliable results.",
+    readAnyway: "Try to read it anyway",
   },
 
   analysis: {
@@ -216,6 +219,8 @@ export const en = {
       chat: "Ask about this letter",
     },
     notOfficial: "This does not look like an official letter. The results may not be useful.",
+    screenedOut: "This does not look like an official letter, so BriefKlar only describes it briefly. If it is a letter you need to act on, have it analysed in full.",
+    analyseAnyway: "Analyse it in full",
     uncertain: (fields: string) =>
       `Please double-check: ${fields}. Parts of the letter were hard to read or unclear.`,
     nothingToDo: "Nothing to do. This letter is for your information.",
@@ -466,6 +471,7 @@ export const en = {
     purposes: {
       "extract-letter": "Letter analysis",
       "verify-letter": "Analysis check",
+      "classify-letter": "Document check",
       "revise-letter": "Analysis correction",
       "translate-analysis": "Translation",
       "explain-letter": "Explanation",
@@ -499,6 +505,7 @@ export const en = {
     NO_FILE: "No file was uploaded.",
     UNSUPPORTED_TYPE: "Only PDF, JPG and PNG files are supported.",
     LIMIT_FILE_SIZE: "File is too large (max 10 MB).",
+    SCAN_UNREADABLE: "The photo is too blurry or dark to read. Please upload a clearer photo, taken in good light.",
     DOCUMENT_NOT_FOUND: "This letter was not found.",
     ACTION_ITEM_NOT_FOUND: "This task was not found.",
     DRAFT_NOT_FOUND: "This draft was not found.",

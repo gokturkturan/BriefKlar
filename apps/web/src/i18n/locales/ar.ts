@@ -50,6 +50,7 @@ export const ar: Messages = {
   status: { UPLOADED: "في الانتظار", PROCESSING: "قيد المعالجة", DONE: "جاهزة", FAILED: "فشلت" },
 
   processing: {
+    classifying: "جارٍ التحقق من نوع المستند",
     preprocessing: "جارٍ تجهيز الملف",
     extracting: "جارٍ قراءة الرسالة وتحليلها",
     verifying: "جارٍ مطابقة التحليل مع الرسالة",
@@ -137,6 +138,8 @@ export const ar: Messages = {
     originalLetter: "الرسالة الأصلية",
     failed: "فشلت المعالجة.",
     noAnalysis: "لا يوجد تحليل لهذه الرسالة.",
+    poorScan: "يصعب قراءة بعض أجزاء هذه الصورة. قارن النتائج بالرسالة، أو ارفع صورة أوضح للحصول على نتائج أدق.",
+    readAnyway: "محاولة القراءة على أي حال",
   },
 
   analysis: {
@@ -199,6 +202,8 @@ export const ar: Messages = {
       chat: "اسأل عن هذه الرسالة",
     },
     notOfficial: "لا يبدو هذا رسالة رسمية. قد لا تكون النتائج مفيدة.",
+    screenedOut: "لا يبدو هذا رسالة رسمية، لذلك يصفه BriefKlar باختصار فقط. إذا كان عليك اتخاذ إجراء بشأن هذه الرسالة، فاطلب تحليلها بالكامل.",
+    analyseAnyway: "تحليل كامل",
     uncertain: (fields: string) =>
       `يرجى التحقق من: ${fields}. كانت بعض أجزاء الرسالة صعبة القراءة أو غير واضحة.`,
     nothingToDo: "لا يلزمك فعل شيء. هذه الرسالة للعلم فقط.",
@@ -451,6 +456,7 @@ export const ar: Messages = {
     purposes: {
       "extract-letter": "تحليل الرسالة",
       "verify-letter": "التحقق من التحليل",
+      "classify-letter": "فحص المستند",
       "revise-letter": "تصحيح التحليل",
       "translate-analysis": "الترجمة",
       "explain-letter": "الشرح",
@@ -484,6 +490,7 @@ export const ar: Messages = {
     NO_FILE: "لم يتم رفع أي ملف.",
     UNSUPPORTED_TYPE: "يمكن رفع ملفات PDF وJPG وPNG فقط.",
     LIMIT_FILE_SIZE: "الملف كبير جدًا (الحد الأقصى 10 ميغابايت).",
+    SCAN_UNREADABLE: "الصورة غير واضحة أو مظلمة جدًا ولا يمكن قراءتها. يرجى رفع صورة أوضح ملتقطة في إضاءة جيدة.",
     DOCUMENT_NOT_FOUND: "لم يتم العثور على هذه الرسالة.",
     ACTION_ITEM_NOT_FOUND: "لم يتم العثور على هذه المهمة.",
     DRAFT_NOT_FOUND: "لم يتم العثور على هذه المسودة.",

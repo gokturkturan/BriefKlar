@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import { isTerminalStatus, type DocumentDetailDto } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
 import { AnalysisPanel } from "../components/AnalysisPanel";
+import { ScreenedOutPanel } from "../components/ScreenedOutPanel";
 import { SignInRequired } from "../components/SignInRequired";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAccount } from "../hooks/useAccount";
@@ -49,7 +50,7 @@ export function DocumentDetailPage() {
   });
 
   const retry = useMutation({
-    mutationFn: () => api.retryDocument(id),
+    mutationFn: (options: { skipIntake?: boolean } = {}) => api.retryDocument(id, options),
     onSuccess: (updated) => {
       // Back to a non-terminal status: useDocumentEvents reconnects to the SSE stream
       queryClient.setQueryData<DocumentDetailDto>(queryKeys.document(id), (old) =>
@@ -58,14 +59,16 @@ export function DocumentDetailPage() {
     },
   });
 
+  // An unreadable scan stays unreadable for the intake agent: the retry goes straight to the analysis
+  const unreadable = doc?.errorCode === "SCAN_UNREADABLE";
   const retryButton = (
     <button
       type="button"
-      onClick={() => retry.mutate()}
+      onClick={() => retry.mutate({ skipIntake: unreadable })}
       disabled={retry.isPending}
       className="mt-3 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
     >
-      {retry.isPending ? t.common.starting : t.common.tryAgain}
+      {retry.isPending ? t.common.starting : unreadable ? t.detail.readAnyway : t.common.tryAgain}
     </button>
   );
 
@@ -164,8 +167,19 @@ export function DocumentDetailPage() {
             </div>
           )}
 
+          {doc.status === "DONE" && doc.scanQuality === "POOR" && doc.analysis?.screenedOut === false && (
+            <p className="mb-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">{t.detail.poorScan}</p>
+          )}
+
           {doc.status === "DONE" &&
-            (doc.analysis ? (
+            (doc.analysis?.screenedOut ? (
+              <ScreenedOutPanel
+                documentId={doc.id}
+                analysis={doc.analysis}
+                onAnalyseInFull={() => retry.mutate({ skipIntake: true })}
+                analysingInFull={retry.isPending}
+              />
+            ) : doc.analysis ? (
               <AnalysisPanel documentId={doc.id} analysis={doc.analysis} receivedDate={doc.receivedDate} />
             ) : (
               <div>

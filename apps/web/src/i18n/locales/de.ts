@@ -47,6 +47,7 @@ export const de: Messages = {
   status: { UPLOADED: "Wartet", PROCESSING: "In Arbeit", DONE: "Fertig", FAILED: "Fehler" },
 
   processing: {
+    classifying: "Wir prüfen, was für ein Dokument das ist",
     preprocessing: "Die Datei wird vorbereitet",
     extracting: "Der Brief wird gelesen und geprüft",
     verifying: "Die Auswertung wird mit dem Brief abgeglichen",
@@ -134,6 +135,8 @@ export const de: Messages = {
     originalLetter: "Original-Brief",
     failed: "Die Bearbeitung hat nicht geklappt.",
     noAnalysis: "Für diesen Brief gibt es keine Auswertung.",
+    poorScan: "Einige Stellen auf dem Foto sind schwer zu lesen. Prüfen Sie die Ergebnisse mit dem Brief. Oder laden Sie ein deutlicheres Foto hoch.",
+    readAnyway: "Trotzdem versuchen",
   },
 
   analysis: {
@@ -196,6 +199,8 @@ export const de: Messages = {
       chat: "Fragen zu diesem Brief",
     },
     notOfficial: "Das sieht nicht wie ein Brief vom Amt aus. Die Ergebnisse helfen vielleicht nicht.",
+    screenedOut: "Das sieht nicht wie ein Brief vom Amt oder von einer Firma aus. Darum beschreibt BriefKlar es nur kurz. Müssen Sie wegen dieses Briefs etwas tun? Dann lassen Sie ihn ganz auswerten.",
+    analyseAnyway: "Ganz auswerten",
     uncertain: (fields: string) =>
       `Bitte prüfen Sie: ${fields}. Teile vom Brief waren schwer zu lesen oder unklar.`,
     nothingToDo: "Sie müssen nichts tun. Der Brief ist nur zur Information.",
@@ -451,6 +456,7 @@ export const de: Messages = {
     purposes: {
       "extract-letter": "Brief-Analyse",
       "verify-letter": "Prüfung der Analyse",
+      "classify-letter": "Dokument-Prüfung",
       "revise-letter": "Korrektur der Analyse",
       "translate-analysis": "Übersetzung",
       "explain-letter": "Erklärung",
@@ -484,6 +490,7 @@ export const de: Messages = {
     NO_FILE: "Es wurde keine Datei hochgeladen.",
     UNSUPPORTED_TYPE: "Nur PDF-, JPG- und PNG-Dateien sind möglich.",
     LIMIT_FILE_SIZE: "Die Datei ist zu groß (höchstens 10 MB).",
+    SCAN_UNREADABLE: "Das Foto ist zu unscharf oder zu dunkel. Bitte laden Sie ein deutlicheres Foto hoch, bei gutem Licht.",
     DOCUMENT_NOT_FOUND: "Dieser Brief wurde nicht gefunden.",
     ACTION_ITEM_NOT_FOUND: "Diese Aufgabe wurde nicht gefunden.",
     DRAFT_NOT_FOUND: "Dieser Entwurf wurde nicht gefunden.",
