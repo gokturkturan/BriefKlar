@@ -5,12 +5,14 @@ import { LLMValidationError } from "../llm/generateStructured";
 import { deadlineAgent } from "./deadlineAgent";
 import type { DocumentCaseFile } from "./documentCaseFile";
 import { extractorAgent } from "./extractorAgent";
+import { intakeAgent } from "./intakeAgent";
 import { AgentLimitError, type Orchestrator } from "./orchestrator";
 import { translatorAgent } from "./translatorAgent";
 import type { Agent, AgentReply } from "./types";
 import { verifierAgent } from "./verifierAgent";
 
 export interface LetterAgents {
+  intake: Agent<DocumentCaseFile>;
   extractor: Agent<DocumentCaseFile>;
   verifier: Agent<DocumentCaseFile>;
   deadline: Agent<DocumentCaseFile>;
@@ -18,11 +20,20 @@ export interface LetterAgents {
 }
 
 export const LETTER_AGENTS: LetterAgents = {
+  intake: intakeAgent,
   extractor: extractorAgent,
   verifier: verifierAgent,
   deadline: deadlineAgent,
   translator: translatorAgent,
 };
+
+/** The intake agent could not read the upload; a clearer photo is needed, trying again would not help */
+export class UnreadableScanError extends Error {
+  constructor(documentId: string) {
+    super(`The upload of ${documentId} cannot be read`);
+    this.name = "UnreadableScanError";
+  }
+}
 
 /** Correction rounds between the verifier and the extractor */
 export const MAX_REVISIONS = 1;
@@ -88,19 +99,31 @@ export async function extractAndVerify(
 }
 
 /**
- * The plan for an uploaded letter: the extractor analyses it and the verifier checks it (with
- * at most one correction round), the deadline agent computes the deadlines and stores
- * everything, the translator translates the analysis into the user's language. The analysis is
- * written in English, so English readers need no translation.
+ * The plan for an uploaded letter. The intake agent looks at the upload first: an unreadable
+ * scan stops the run (the user is asked for a clearer photo), and a document that is not an
+ * official letter skips the extractor and the verifier, keeping only the intake's short
+ * description. A letter is analysed by the extractor and checked by the verifier (with at most
+ * one correction round). The deadline agent computes the deadlines and stores everything, the
+ * translator translates the analysis into the user's language. The analysis is written in
+ * English, so English readers need no translation.
  */
 export async function analyseLetter(
   orchestrator: Orchestrator<DocumentCaseFile>,
   agents: LetterAgents = LETTER_AGENTS,
 ): Promise<void> {
-  const { language } = orchestrator.caseFile;
+  const { caseFile } = orchestrator;
+  const { language } = caseFile;
   const needsTranslation = Boolean(language && language !== ANALYSIS_LANGUAGE);
 
-  await extractAndVerify(orchestrator, agents, needsTranslation ? 1 : 0);
+  // The user asked for the full analysis of a screened-out document
+  if (!caseFile.skipIntake) {
+    await orchestrator.dispatch(agents.intake, "Classify the upload");
+    if (caseFile.intake?.scanQuality === "UNREADABLE") throw new UnreadableScanError(caseFile.documentId);
+  }
+
+  // The intake agent wrote the analysis of a document that is not an official letter
+  const screenedOut = caseFile.intake?.isOfficialLetter === false && caseFile.extraction !== undefined;
+  if (!screenedOut) await extractAndVerify(orchestrator, agents, needsTranslation ? 1 : 0);
 
   const saved = await orchestrator.dispatch(agents.deadline, "Compute the deadlines and store the analysis");
   if (saved.kind !== "result") throw new Error(`Unexpected ${saved.kind} from the deadline agent`);

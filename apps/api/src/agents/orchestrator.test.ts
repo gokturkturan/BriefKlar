@@ -3,13 +3,14 @@ import {
   AgentMessageSchema,
   type AgentIssue,
   type AgentMessage,
+  type IntakeResult,
   type LetterExtraction,
   type ProgressEvent,
 } from "@briefklar/shared";
 import { LLMError } from "../llm/errors";
 import { currentAgentScope } from "./agentScope";
 import type { AgentStore } from "./agentStore";
-import { analyseLetter, type LetterAgents } from "./analyseLetter";
+import { analyseLetter, UnreadableScanError, type LetterAgents } from "./analyseLetter";
 import type { DocumentCaseFile } from "./documentCaseFile";
 import { AgentLimitError, Orchestrator } from "./orchestrator";
 import type { Agent, AgentReply, AgentTask } from "./types";
@@ -149,6 +150,24 @@ const ANALYSIS: LetterExtraction = {
   uncertainFields: [],
 };
 
+const OFFICIAL: IntakeResult = {
+  isOfficialLetter: true,
+  letterType: "BESCHEID",
+  language: "de",
+  scanQuality: "GOOD",
+  senderName: "Finanzamt",
+  summary: "A tax assessment.",
+};
+
+const INVITATION: IntakeResult = {
+  isOfficialLetter: false,
+  letterType: "OTHER",
+  language: "de",
+  scanQuality: "GOOD",
+  senderName: "Anna",
+  summary: "A private invitation to a birthday party.",
+};
+
 const ISSUE: AgentIssue = {
   field: "amounts[0].value",
   problem: "The letter says 1,240.00 EUR",
@@ -156,18 +175,32 @@ const ISSUE: AgentIssue = {
 };
 
 describe("analyseLetter", () => {
-  /** Fake agents that note their order; the extractor writes an analysis, each one uses `calls` model requests */
-  function agents(order: string[], verdicts: AgentReply[] = [], calls = { used: 0 }): LetterAgents {
+  /**
+   * Fake agents that note their order; the intake agent classifies the upload as `intake` (and
+   * writes a short analysis when it is not an official letter), the extractor writes an
+   * analysis, each one uses `calls` model requests
+   */
+  function agents(
+    order: string[],
+    verdicts: AgentReply[] = [],
+    calls = { used: 0 },
+    intake: IntakeResult | null = OFFICIAL,
+  ): LetterAgents {
     const track =
       (name: Agent<DocumentCaseFile>["name"], requests: number) =>
       async (task: AgentTask, { caseFile }: { caseFile: DocumentCaseFile }): Promise<AgentReply> => {
         order.push(task.notes.length > 0 ? `${name}+notes` : name);
         calls.used += requests;
         if (name === "extractor") caseFile.extraction = { ...ANALYSIS };
+        if (name === "intake" && intake) {
+          caseFile.intake = { ...intake, model: "fake" };
+          if (!intake.isOfficialLetter) caseFile.extraction = { ...ANALYSIS, isOfficialLetter: false };
+        }
         if (name === "verifier") return verdicts.shift() ?? { kind: "result", wrote: ["verdict"], summary: "ok" };
         return { kind: "result", wrote: [], summary: "" };
       };
     return {
+      intake: fakeAgent("intake", track("intake", 1)),
       extractor: fakeAgent("extractor", track("extractor", 1)),
       verifier: fakeAgent("verifier", track("verifier", 1)),
       deadline: fakeAgent("deadline", track("deadline", 0)),
@@ -184,13 +217,66 @@ describe("analyseLetter", () => {
 
   const revise: AgentReply = { kind: "revise", target: "extraction", issues: [ISSUE] };
 
-  it("extracts, verifies, stores with deadlines, then translates", async () => {
+  it("classifies, extracts, verifies, stores with deadlines, then translates", async () => {
     const order: string[] = [];
     const { store, messages } = memoryStore();
     await analyseLetter(orchestrator(store, caseFile("tr")), agents(order));
 
-    expect(order).toEqual(["extractor", "verifier", "deadline", "translator"]);
-    expect(messages).toHaveLength(8);
+    expect(order).toEqual(["intake", "extractor", "verifier", "deadline", "translator"]);
+    expect(messages).toHaveLength(10);
+  });
+
+  it("stores the intake's description of a document that is not an official letter, without the extractor", async () => {
+    const order: string[] = [];
+    const { store, messages } = memoryStore();
+    const file = caseFile("tr");
+    await analyseLetter(orchestrator(store, file), agents(order, [], { used: 0 }, INVITATION));
+
+    expect(order).toEqual(["intake", "deadline", "translator"]);
+    // Trace check: neither the extractor nor the verifier got a task
+    expect(messages.filter((m) => m.to === "extractor" || m.to === "verifier")).toEqual([]);
+    expect(file.extraction?.isOfficialLetter).toBe(false);
+  });
+
+  it("stops before the analysis when the scan cannot be read", async () => {
+    const order: string[] = [];
+    const { store } = memoryStore();
+    const unreadable: IntakeResult = { ...OFFICIAL, scanQuality: "UNREADABLE" };
+    // Unreadable wins over "not an official letter": nothing reliable can be said about it
+    for (const intake of [unreadable, { ...unreadable, isOfficialLetter: false }]) {
+      order.length = 0;
+      await expect(
+        analyseLetter(orchestrator(store, caseFile("tr")), agents(order, [], { used: 0 }, intake)),
+      ).rejects.toBeInstanceOf(UnreadableScanError);
+      expect(order).toEqual(["intake"]);
+    }
+  });
+
+  it("goes on with a poor scan; the page shows the warning", async () => {
+    const order: string[] = [];
+    const { store } = memoryStore();
+    const file = caseFile("en");
+    await analyseLetter(orchestrator(store, file), agents(order, [], { used: 0 }, { ...OFFICIAL, scanQuality: "POOR" }));
+
+    expect(order).toEqual(["intake", "extractor", "verifier", "deadline"]);
+    expect(file.intake?.scanQuality).toBe("POOR");
+  });
+
+  it("analyses the letter in full when the intake agent could not decide", async () => {
+    const order: string[] = [];
+    const { store } = memoryStore();
+    await analyseLetter(orchestrator(store, caseFile("en")), agents(order, [], { used: 0 }, null));
+
+    expect(order).toEqual(["intake", "extractor", "verifier", "deadline"]);
+  });
+
+  it("leaves the intake out when the user asked for the full analysis", async () => {
+    const order: string[] = [];
+    const { store } = memoryStore();
+    const file = { ...caseFile("en"), skipIntake: true };
+    await analyseLetter(orchestrator(store, file), agents(order, [], { used: 0 }, INVITATION));
+
+    expect(order).toEqual(["extractor", "verifier", "deadline"]);
   });
 
   it("skips the translator for English readers and unknown languages", async () => {
@@ -198,7 +284,7 @@ describe("analyseLetter", () => {
       const order: string[] = [];
       const { store } = memoryStore();
       await analyseLetter(orchestrator(store, caseFile(language)), agents(order));
-      expect(order).toEqual(["extractor", "verifier", "deadline"]);
+      expect(order).toEqual(["intake", "extractor", "verifier", "deadline"]);
     }
   });
 
@@ -209,14 +295,14 @@ describe("analyseLetter", () => {
     const letterAgents = agents(order, [revise]);
     await analyseLetter(orchestrator(store, file), letterAgents);
 
-    expect(order).toEqual(["extractor", "verifier", "extractor+notes", "verifier", "deadline", "translator"]);
+    expect(order).toEqual(["intake", "extractor", "verifier", "extractor+notes", "verifier", "deadline", "translator"]);
     const reviseMessage = messages.find((m) => m.payload.kind === "revise")!;
     const correction = messages[reviseMessage.hop + 1];
     expect(correction).toMatchObject({ from: "orchestrator", to: "extractor", parentId: reviseMessage.id });
     expect(correction.payload).toMatchObject({ kind: "task", notes: [ISSUE] });
     expect(file.extraction?.uncertainFields).toEqual([]);
     // The longest plan fits the message limit
-    expect(messages).toHaveLength(12);
+    expect(messages).toHaveLength(14);
     for (const message of messages) expect(AgentMessageSchema.parse(message)).toEqual(message);
   });
 
@@ -226,20 +312,20 @@ describe("analyseLetter", () => {
     const file = caseFile("en");
     await analyseLetter(orchestrator(store, file), agents(order, [revise, revise]));
 
-    expect(order).toEqual(["extractor", "verifier", "extractor+notes", "verifier", "deadline"]);
+    expect(order).toEqual(["intake", "extractor", "verifier", "extractor+notes", "verifier", "deadline"]);
     expect(file.extraction?.uncertainFields).toEqual(["amounts"]);
   });
 
   it("leaves the correction out when it would take the translation's model requests", async () => {
     const order: string[] = [];
-    // The extraction needed a repair: 2 requests, the check 1, so 3 of 6 are left
+    // The extraction needed a repair: with the intake 3 requests, the check 1, so 2 of 6 are left
     const calls = { used: 1 };
     const { store } = countingStore(calls);
     const file = caseFile("tr");
-    const run = new Orchestrator(RUN_ID, file, { store, onProgress: async () => {}, maxLlmCalls: 4 });
+    const run = new Orchestrator(RUN_ID, file, { store, onProgress: async () => {}, maxLlmCalls: 6 });
     await analyseLetter(run, agents(order, [revise], calls));
 
-    expect(order).toEqual(["extractor", "verifier", "deadline", "translator"]);
+    expect(order).toEqual(["intake", "extractor", "verifier", "deadline", "translator"]);
     expect(file.extraction?.uncertainFields).toEqual(["amounts"]);
   });
 
@@ -255,7 +341,7 @@ describe("analyseLetter", () => {
     });
     await analyseLetter(orchestrator(store, file), letterAgents);
 
-    expect(order).toEqual(["extractor", "verifier", "deadline"]);
+    expect(order).toEqual(["intake", "extractor", "verifier", "deadline"]);
     expect(file.extraction?.uncertainFields).toEqual(["amounts"]);
   });
 
@@ -263,10 +349,10 @@ describe("analyseLetter", () => {
     const order: string[] = [];
     const calls = { used: 0 };
     const { store } = countingStore(calls);
-    const run = new Orchestrator(RUN_ID, caseFile("en"), { store, onProgress: async () => {}, maxLlmCalls: 1 });
+    const run = new Orchestrator(RUN_ID, caseFile("en"), { store, onProgress: async () => {}, maxLlmCalls: 2 });
     await analyseLetter(run, agents(order, [], calls));
 
-    expect(order).toEqual(["extractor", "deadline"]);
+    expect(order).toEqual(["intake", "extractor", "deadline"]);
   });
 
   it("does not store anything when the extractor does not return an analysis", async () => {
@@ -281,6 +367,6 @@ describe("analyseLetter", () => {
     const { store } = memoryStore();
 
     await expect(analyseLetter(orchestrator(store), letterAgents)).rejects.toThrow("Unexpected question");
-    expect(order).toEqual([]);
+    expect(order).toEqual(["intake"]);
   });
 });

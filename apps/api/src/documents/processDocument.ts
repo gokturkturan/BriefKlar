@@ -1,6 +1,6 @@
 import { UnrecoverableError, type Job } from "bullmq";
 import { isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@briefklar/shared";
-import { analyseLetter } from "../agents/analyseLetter";
+import { analyseLetter, UnreadableScanError } from "../agents/analyseLetter";
 import { prismaAgentStore } from "../agents/agentStore";
 import type { DocumentCaseFile } from "../agents/documentCaseFile";
 import { AgentLimitError, Orchestrator } from "../agents/orchestrator";
@@ -15,6 +15,9 @@ async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<
 
 /** Stored on the document and shown in the UI: never raw provider errors */
 function userError(err: unknown): { message: string; code: ErrorCode } {
+  if (err instanceof UnreadableScanError) {
+    return { message: "The photo is too unclear to read. Please upload a clearer photo.", code: "SCAN_UNREADABLE" };
+  }
   if (err instanceof LLMError) return { message: err.userMessage, code: err.code };
   if (err instanceof LLMValidationError) {
     return { message: "The AI returned an incomplete analysis. Please try again.", code: "AI_INCOMPLETE" };
@@ -25,7 +28,13 @@ function userError(err: unknown): { message: string; code: ErrorCode } {
 function isRetryable(err: unknown): boolean {
   if (err instanceof LLMError) return err.retryable;
   if (err instanceof AgentLimitError) return false; // the same plan would hit the same limit
+  if (err instanceof UnreadableScanError) return false; // the same file stays unreadable
   return true; // validation, database, file errors: worth another try
+}
+
+/** The intake agent's view of the scan; kept as it was when the agent did not run */
+function scanQuality(caseFile: DocumentCaseFile | undefined): { scanQuality?: string } {
+  return caseFile?.intake ? { scanQuality: caseFile.intake.scanQuality } : {};
 }
 
 /**
@@ -34,9 +43,10 @@ function isRetryable(err: unknown): boolean {
  */
 export async function processDocument(job: Job<DocumentJobData>): Promise<void> {
   const store = prismaAgentStore;
-  const { documentId } = job.data;
+  const { documentId, skipIntake } = job.data;
   const isLastAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
   let runId: string | undefined;
+  let caseFile: DocumentCaseFile | undefined;
 
   try {
     const doc = await prisma.document.update({
@@ -46,11 +56,12 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
     });
 
     const language = doc.user.preferredLanguage;
-    const caseFile: DocumentCaseFile = {
+    caseFile = {
       documentId,
       fileKey: doc.fileKey,
       mimeType: doc.mimeType,
       language: isExplanationLanguage(language) ? language : null,
+      skipIntake,
     };
     runId = (await store.startRun(documentId, "UPLOAD")).id;
     const orchestrator = new Orchestrator(runId, caseFile, {
@@ -60,7 +71,7 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
 
     await analyseLetter(orchestrator);
 
-    await prisma.document.update({ where: { id: documentId }, data: { status: "DONE" } });
+    await prisma.document.update({ where: { id: documentId }, data: { status: "DONE", ...scanQuality(caseFile) } });
     await store.finishRun(runId, "DONE");
 
     await report(job, { status: "DONE" });
@@ -77,7 +88,7 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
     if (!retryable || isLastAttempt) {
       await prisma.document.update({
         where: { id: documentId },
-        data: { status: "FAILED", errorMessage: message, errorCode: code },
+        data: { status: "FAILED", errorMessage: message, errorCode: code, ...scanQuality(caseFile) },
       });
       await report(job, { status: "FAILED", message, code });
     } else {

@@ -71,6 +71,8 @@ model Document {
   rawText      String?
   /// Day the letter arrived, entered by the user; replaces the assumed delivery date
   receivedDate DateTime?      @db.Date
+  /// ScanQuality (packages/shared) as the intake agent saw it: GOOD, POOR or UNREADABLE
+  scanQuality  String?
   status       DocumentStatus @default(UPLOADED)
   errorMessage String?
   /// ErrorCode (packages/shared), so the web app can explain the error in the user's language

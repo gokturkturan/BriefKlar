@@ -5,6 +5,8 @@ export const DOCUMENT_QUEUE = "document-processing";
 
 export interface DocumentJobData {
   documentId: string;
+  /** Analyse the document in full, even if the intake agent would not see an official letter */
+  skipIntake?: boolean;
 }
 
 export const documentQueue = new Queue<DocumentJobData>(DOCUMENT_QUEUE, {
@@ -18,7 +20,7 @@ export const documentQueue = new Queue<DocumentJobData>(DOCUMENT_QUEUE, {
   },
 });
 
-export async function enqueueDocument(documentId: string): Promise<void> {
+export async function enqueueDocument(documentId: string, options: { skipIntake?: boolean } = {}): Promise<void> {
   // jobId = documentId, so progress events can be routed to the right SSE client.
   // BullMQ ignores a job whose id already exists, so a finished job is removed first.
   const existing = await documentQueue.getJob(documentId);
@@ -27,5 +29,5 @@ export async function enqueueDocument(documentId: string): Promise<void> {
     if (state === "active" || state === "waiting" || state === "delayed") return;
     await existing.remove();
   }
-  await documentQueue.add("process", { documentId }, { jobId: documentId });
+  await documentQueue.add("process", { documentId, ...(options.skipIntake && { skipIntake: true }) }, { jobId: documentId });
 }

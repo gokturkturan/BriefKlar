@@ -1,6 +1,7 @@
 import type { AgentName } from "./agents";
 import type { DeadlineStep } from "./deadlineSteps";
 import type { ErrorCode } from "./errors";
+import type { ScanQuality } from "./intake";
 import type { LetterExtraction } from "./letter";
 
 /**
@@ -35,6 +36,8 @@ export interface DocumentDto {
   errorCode: ErrorCode | null;
   /** Day the letter arrived (YYYY-MM-DD), entered by the user */
   receivedDate: string | null;
+  /** How readable the upload is, as the intake agent saw it; null before it ran */
+  scanQuality: ScanQuality | null;
   createdAt: string; // ISO date
 }
 
@@ -59,6 +62,11 @@ export interface LetterAnalysisDto {
   extraction: LetterExtraction;
   model: string;
   promptVersion: string;
+  /**
+   * true when the intake agent found no official letter and the full analysis was left out;
+   * the analysis then only says what the document is
+   */
+  screenedOut: boolean;
   createdAt: string;
   actionItems: ActionItemDto[];
   deadlines: DeadlineDto[];
@@ -69,7 +77,15 @@ export interface DocumentDetailDto extends DocumentDto {
 }
 
 /** Steps the background worker reports while processing a document. */
-export const PROCESSING_STEPS = ["preprocessing", "extracting", "verifying", "translating", "saving", "retrying"] as const;
+export const PROCESSING_STEPS = [
+  "classifying",
+  "preprocessing",
+  "extracting",
+  "verifying",
+  "translating",
+  "saving",
+  "retrying",
+] as const;
 export type ProcessingStep = (typeof PROCESSING_STEPS)[number];
 
 /** Payload of each Server-Sent Event sent to the browser. */

@@ -7,6 +7,7 @@ import {
   GUEST_MAX_LETTERS,
   isErrorCode,
   isTerminalStatus,
+  ScanQualitySchema,
   parseDeadlineSteps,
   UPLOAD_LIMITS,
   UpdateDocumentSchema,
@@ -18,6 +19,7 @@ import {
 } from "@briefklar/shared";
 import { prisma } from "../lib/prisma";
 import { openSse } from "../lib/sse";
+import { isScreenedOut } from "./classifyLetter";
 import { latestExtraction, letterOf } from "./extractions";
 import { HttpError } from "../lib/httpError";
 import { detectFileType } from "./fileType";
@@ -47,6 +49,7 @@ function toDto(doc: Document): DocumentDto {
     errorMessage: doc.errorMessage,
     errorCode: isErrorCode(doc.errorCode) ? doc.errorCode : null,
     receivedDate: doc.receivedDate ? doc.receivedDate.toISOString().slice(0, 10) : null,
+    scanQuality: ScanQualitySchema.safeParse(doc.scanQuality).data ?? null,
     createdAt: doc.createdAt.toISOString(),
   };
 }
@@ -64,6 +67,7 @@ function toAnalysisDto(
     extraction: letter,
     model: extraction.model,
     promptVersion: extraction.promptVersion,
+    screenedOut: isScreenedOut(extraction.promptVersion),
     createdAt: extraction.createdAt.toISOString(),
     actionItems: actionItems.map(({ id, text, done }) => ({ id, text, done })),
     deadlines: deadlines.map((d) => ({
@@ -181,8 +185,13 @@ documentsRouter.delete("/:id", async (req, res) => {
   res.status(204).end();
 });
 
-// POST /api/documents/:id/retry  -> process a failed (or stale) document again
+const RetrySchema = z.object({ skipIntake: z.boolean().optional() }).default({});
+
+// POST /api/documents/:id/retry  { skipIntake?: true }  -> process a failed (or stale) document again;
+// skipIntake analyses a document in full that the intake agent did not take for an official letter
 documentsRouter.post("/:id/retry", async (req, res) => {
+  const body = RetrySchema.safeParse(req.body ?? undefined);
+  if (!body.success) throw new HttpError(400, "Expected { skipIntake?: boolean }", "INVALID_BODY");
   const doc = await findOwnedDocument(req);
   if (doc.status === "PROCESSING") {
     throw new HttpError(409, "This letter is already being processed.", "ALREADY_PROCESSING");
@@ -192,7 +201,7 @@ documentsRouter.post("/:id/retry", async (req, res) => {
     where: { id: doc.id },
     data: { status: "UPLOADED", errorMessage: null, errorCode: null },
   });
-  await enqueueDocument(doc.id);
+  await enqueueDocument(doc.id, { skipIntake: body.data.skipIntake });
   res.status(202).json(toDto(updated));
 });
 

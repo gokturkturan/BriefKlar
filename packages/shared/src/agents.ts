@@ -112,8 +112,12 @@ export type AgentRunTrigger = (typeof AGENT_RUN_TRIGGERS)[number];
 export const AGENT_RUN_STATUSES = ["RUNNING", "DONE", "FAILED"] as const;
 export type AgentRunStatus = (typeof AGENT_RUN_STATUSES)[number];
 
-/** Messages per run; stops loops between agents */
-export const MAX_AGENT_HOPS = 12;
+/**
+ * Messages per run; stops loops between agents. The longest plan of an upload needs 14: intake,
+ * extractor, verifier, correction, second check, deadline agent and translator, a task and a
+ * reply each.
+ */
+export const MAX_AGENT_HOPS = 14;
 
 /** Model requests per run. Only free tiers are used for now, so the limit is a count, not money. */
 export const MAX_LLM_CALLS_PER_RUN = 6;
