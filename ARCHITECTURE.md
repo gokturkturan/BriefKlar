@@ -88,10 +88,18 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
      `agents/analyseLetter.ts`.
    - The **deadline agent** (`agents/deadlineAgent.ts`, no AI) turns the deadline wording into due
      dates (`deadlines/deadlineRows.ts`) and stores the analysis, action items, deadlines and
-     deadline reminders in one transaction.
+     deadline reminders in one transaction. When a due date had to be estimated because the user
+     has not entered the day the letter arrived (or their federal state), it also asks the user
+     (`agents/userQuestion.ts`): the run then waits, and the page shows the question as a card.
    - The **translator** (`agents/translatorAgent.ts`) translates the analysis into the user's
      language (`translation/analysisTranslations.ts`).
-   - Each step is reported as job progress, with the agent that runs it.
+   - Each step is reported as job progress, with the agent that runs it. A run that waits for the
+     user ends its job with `{ status: "DONE", phase: "waitingForUser", question }`.
+   - The answer (`POST /api/documents/:id/question`, `documents/answerQuestion.ts`) is stored where
+     the deadline engine reads it, and `agents/resumeRun.ts` goes on with the same run: it reads
+     the stored messages, records the answer as a message from `user`, and the plan starts again
+     at the deadline agent. Entering the date in the old form or the state in the profile answers
+     the question in the same way.
 
 ### How the agents talk
 
@@ -99,7 +107,9 @@ Agents never call each other. The orchestrator gives an agent a task and gets it
 stored as `AgentMessage` rows (schema: `AgentMessageSchema` in `packages/shared/src/agents.ts`).
 Large data (the file, the analysis) stays in the run's case file (`agents/documentCaseFile.ts`), a
 message only says what was asked or what changed. A run stops after `MAX_AGENT_HOPS` messages or
-`MAX_LLM_CALLS_PER_RUN` model requests. The development overview (`/api/debug/overview`) shows the
+`MAX_LLM_CALLS_PER_RUN` model requests. An agent that needs something only the user knows answers with a
+`question`; the orchestrator lets the plan finish, keeps at most one question per run
+(`MAX_USER_QUESTIONS_PER_RUN`) and leaves the run `WAITING_FOR_USER`. The development overview (`/api/debug/overview`) shows the
 latest runs with their messages in order.
 3. `documents/documentEvents.ts` passes the progress from Redis to `GET /api/documents/:id/events`,
    which streams it to the browser (`apps/web/src/hooks/useDocumentEvents.ts`).

@@ -109,6 +109,11 @@ Code in `apps/api/src/deadlines` turns the deadline wording into a due date:
    stored format, `npm run deadlines:recompute -w @briefklar/api` recalculates every letter.
 6. When the user enters the day the letter actually arrived, it replaces the assumed delivery
    date. Deadlines are then calculated again from the stored analysis, without another AI call.
+7. The deadline agent asks for that day itself: when a due date had to be estimated, it stores the
+   analysis anyway and answers the orchestrator with a question. The page shows it as one card in
+   place of the delivery date form ("When did this letter arrive?", or the federal state when a
+   due date falls on a holiday of only some states). The answer lets the agent run go on from the
+   deadline agent; "I don't know" keeps the estimated dates. One question per run at most.
 
 ### Plain-language explanation
 
@@ -223,6 +228,7 @@ npm run eval -w @briefklar/api -- --provider openai              # GPT-6 luna
 npm run eval -w @briefklar/api -- --with-fallback --only 01,09   # production setup, two letters
 npm run eval:verifier -w @briefklar/api                          # the verifier agent (see below)
 npm run eval:pipeline -w @briefklar/api                          # the whole agent plan, with and without intake
+npm run eval:questions -w @briefklar/api                         # the question to the user and the resumed run
 ```
 
 - **Schema conformance**: was the answer valid at once, valid after the repair round, still invalid, or
@@ -251,6 +257,12 @@ npm run eval:pipeline -w @briefklar/api                          # the whole age
   most `MAX_AGENT_HOPS` messages and `MAX_LLM_CALLS_PER_RUN` requests, at most one correction round,
   no request by the deadline agent, and no extractor or verifier for a document that is not an
   official letter.
+- `eval:questions` runs the plan for a user who entered neither a delivery date nor a federal
+  state, answers the deadline agent's question like a user would (the letter arrived two days after
+  its date) and lets the run go on through the same code as the question card. It counts the
+  estimated due dates before and after the answer, and checks the trace: one question at most, the
+  run waits and is done after the answer, and the resumed run makes no model request and gives no
+  task to the intake agent, the extractor, the verifier or the translator again.
 - The letters are plain text sent like an uploaded file. Scans and PDFs (`.pdf`, `.jpg`, `.png`) can be
   added to `letters/` with a case in `cases.ts`; keep real letters out of the repository.
 
