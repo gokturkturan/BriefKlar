@@ -49,13 +49,13 @@ describe("GeminiProvider", () => {
   it("streams text and reports the usage of the last chunk", async () => {
     api.stream = async function* () {
       yield textChunk("Hello ");
-      yield textChunk("world", { input: 100, output: 20 });
+      yield textChunk("world", { input: 100, output: 20, thoughts: 30 });
     };
     const deltas: string[] = [];
     const result = await provider().streamText(textRequest, (delta) => deltas.push(delta));
 
     expect(deltas).toEqual(["Hello ", "world"]);
-    expect(result).toMatchObject({ text: "Hello world", model: "big", inputTokens: 100, failedAttempts: [] });
+    expect(result).toMatchObject({ text: "Hello world", model: "big", inputTokens: 100, outputTokens: 50 });
   });
 
   it("falls back to the smaller model when the primary is overloaded", async () => {
@@ -112,9 +112,13 @@ describe("GeminiProvider", () => {
   });
 
   it("returns the JSON text and usage of a structured answer", async () => {
-    api.generate.mockResolvedValue({ text: '{"ok":true}', usageMetadata: { promptTokenCount: 7, candidatesTokenCount: 3 } });
+    api.generate.mockResolvedValue({
+      text: '{"ok":true}',
+      usageMetadata: { promptTokenCount: 7, candidatesTokenCount: 3, thoughtsTokenCount: 40 },
+    });
     const result = await provider().generateJson({ ...textRequest, jsonSchema: {} });
 
-    expect(result).toMatchObject({ text: '{"ok":true}', model: "big", inputTokens: 7, outputTokens: 3 });
+    // Thinking tokens are billed as output
+    expect(result).toMatchObject({ text: '{"ok":true}', model: "big", inputTokens: 7, outputTokens: 43 });
   });
 });

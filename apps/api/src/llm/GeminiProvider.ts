@@ -4,6 +4,7 @@ import {
   GoogleGenAI,
   type GenerateContentParameters,
   type GenerateContentResponse,
+  type GenerateContentResponseUsageMetadata,
   type Part,
 } from "@google/genai";
 import { isRetryableStatus, LLMError, userErrorForStatus } from "./errors";
@@ -66,6 +67,14 @@ function timeoutError(model: string, ms: number): LLMError {
 interface Usage {
   inputTokens: number;
   outputTokens: number;
+}
+
+/** Thinking tokens are billed as output, so they count as output */
+function usageOf(meta: GenerateContentResponseUsageMetadata | undefined): Usage {
+  return {
+    inputTokens: meta?.promptTokenCount ?? 0,
+    outputTokens: (meta?.candidatesTokenCount ?? 0) + (meta?.thoughtsTokenCount ?? 0),
+  };
 }
 
 /** Adds the model, latency and failed attempts the fallback runner recorded */
@@ -150,8 +159,6 @@ export class GeminiProvider implements LLMProvider {
           const delta = collected.add(chunk.candidates?.[0]?.content?.parts);
           if (delta) emit(delta);
         },
-        // Thinking tokens are billed as output
-        { countThoughts: true },
       );
       return { parts: collected.parts, ...usage };
     });
@@ -184,7 +191,6 @@ export class GeminiProvider implements LLMProvider {
     { contents, config }: Pick<GenerateContentParameters, "contents" | "config">,
     { signal, firstChunkMs }: { signal?: AbortSignal; firstChunkMs: number },
     onChunk: (chunk: GenerateContentResponse) => void,
-    { countThoughts = false } = {},
   ): Promise<Usage> {
     const timeout = new AbortController();
     const timer = setTimeout(() => timeout.abort(), firstChunkMs);
@@ -200,11 +206,10 @@ export class GeminiProvider implements LLMProvider {
         clearTimeout(timer);
         onChunk(chunk);
         // Usage is reported with the chunks; the last one has the totals
-        const meta = chunk.usageMetadata;
-        if (meta) {
-          usage.inputTokens = meta.promptTokenCount ?? usage.inputTokens;
-          const output = (meta.candidatesTokenCount ?? 0) + (countThoughts ? (meta.thoughtsTokenCount ?? 0) : 0);
-          usage.outputTokens = output || usage.outputTokens;
+        if (chunk.usageMetadata) {
+          const { inputTokens, outputTokens } = usageOf(chunk.usageMetadata);
+          usage.inputTokens = inputTokens || usage.inputTokens;
+          usage.outputTokens = outputTokens || usage.outputTokens;
         }
       }
     } catch (err) {
@@ -275,10 +280,6 @@ export class GeminiProvider implements LLMProvider {
       throw err;
     }
 
-    return {
-      text: response.text ?? "",
-      inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-      outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
-    };
+    return { text: response.text ?? "", ...usageOf(response.usageMetadata) };
   }
 }
