@@ -34,7 +34,7 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 - The worker reports progress through BullMQ; the API forwards it to the browser over **SSE**.
 - Plain-language explanations and chat answers are streamed over SSE as well, chunk by chunk while the model writes.
 - The worker also runs a scheduled job (BullMQ job scheduler) that fires due reminders.
-- File storage sits behind a `StorageService` interface (local disk today, S3-compatible later).
+- File storage is one small class on the local disk (`lib/storage.ts`); an S3-compatible store would offer the same methods.
 
 ### How a letter is analyzed
 
@@ -264,6 +264,8 @@ apps/
 packages/
   shared/     Zod schemas and TypeScript types shared by api and web
 ```
+
+[ARCHITECTURE.md](ARCHITECTURE.md) maps the folders and the files a request passes through.
 
 ## Getting started
 
