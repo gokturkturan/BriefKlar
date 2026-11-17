@@ -1,0 +1,154 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  TOOL
+}
+
+model User {
+  id                String     @id @default(uuid())
+  email             String     @unique
+  name              String?
+  preferredLanguage String     @default("en")
+  createdAt         DateTime   @default(now())
+  documents         Document[]
+}
+
+model Document {
+  id           String         @id @default(uuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  originalName String
+  fileKey      String         @unique
+  mimeType     String
+  sizeBytes    Int
+  pageCount    Int?
+  rawText      String?
+  status       DocumentStatus @default(UPLOADED)
+  errorMessage String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  extractions  Extraction[]
+  deadlines    Deadline[]
+  actionItems  ActionItem[]
+  replyDrafts  ReplyDraft[]
+  chatMessages ChatMessage[]
+  llmCalls     LLMCall[]
+
+  @@index([userId, createdAt])
+}
+
+/// Structured LLM output, validated with LetterExtractionSchema (packages/shared)
+model Extraction {
+  id            String   @id @default(uuid())
+  documentId    String
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  data          Json
+  urgency       Urgency
+  model         String
+  promptVersion String
+  createdAt     DateTime @default(now())
+
+  @@index([documentId])
+}
+
+model Deadline {
+  id              String    @id @default(uuid())
+  documentId      String
+  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  dueDate         DateTime  @db.Date
+  kind            String
+  sourceText      String
+  confirmedByUser Boolean   @default(false)
+  reminderSentAt  DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([dueDate])
+}
+
+model ActionItem {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  text       String
+  done       Boolean  @default(false)
+  position   Int      @default(0)
+}
+
+model ReplyDraft {
+  id                  String   @id @default(uuid())
+  documentId          String
+  document            Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  type                String
+  contentDe           String
+  contentUserLanguage String
+  createdAt           DateTime @default(now())
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role       ChatRole
+  content    String
+  toolCalls  Json?
+  createdAt  DateTime @default(now())
+
+  @@index([documentId, createdAt])
+}
+
+/// Curated knowledge base for RAG (terms, procedures, official sources)
+model KnowledgeEntry {
+  id        String                       @id @default(uuid())
+  title     String
+  content   String
+  sourceUrl String
+  language  String                       @default("en")
+  /// Prisma has no native vector type: read/write it with $queryRaw / $executeRaw
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime                     @default(now())
+}
+
+/// Every LLM request is logged for cost tracking and debugging
+model LLMCall {
+  id            String    @id @default(uuid())
+  documentId    String?
+  document      Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  purpose       String
+  provider      String
+  model         String
+  promptVersion String
+  inputTokens   Int
+  outputTokens  Int
+  costUsd       Decimal   @db.Decimal(10, 6)
+  latencyMs     Int
+  success       Boolean
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+
+  @@index([createdAt])
+}
