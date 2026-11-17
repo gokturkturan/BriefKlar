@@ -1,0 +1,25 @@
+{
+  "name": "briefklar",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI assistant that explains German official letters (Behördenbriefe) in plain language.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,worker,web -c blue,magenta,green \"npm run dev -w @briefklar/api\" \"npm run dev:worker -w @briefklar/api\" \"npm run dev -w @briefklar/web\"",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @briefklar/api",
+    "db:studio": "npm run db:studio -w @briefklar/api",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "typescript": "^5.9.2"
+  }
+}
