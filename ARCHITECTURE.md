@@ -11,6 +11,7 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 | Folder | What is in it |
 | --- | --- |
 | `auth/` | Sign-up, sign-in, guest, sign-out, profile and password routes; scrypt hashing (`password.ts`), database sessions and the cookie (`sessions.ts`), the middleware that requires a session or an account (`requireUser.ts`), rate limits, and moving a guest's letters to an account (`moveUserData.ts`) |
+| `agents/` | The orchestrator and the agents that analyse a letter (extractor, deadline, translator), the messages between them and where they are stored |
 | `documents/` | Upload, list, delete; the BullMQ queue, the worker job (`processDocument.ts`), the letter analysis prompt (`extractLetter.ts`) and progress events over SSE |
 | `explanation/` | Plain-language explanation: route, prompt, and the checked facts the model gets |
 | `translation/` | The analysis texts in the reader's language, translated once and cached |
@@ -52,25 +53,42 @@ Shared building blocks live in `llm/`, `deadlines/` and `lib/`.
 | --- | --- |
 | `LLMProvider.ts` | The provider-neutral interface. Nothing outside `llm/` imports a vendor SDK. |
 | `GeminiProvider.ts` | The Gemini implementation: JSON answers, streamed text, chat rounds with tools, embeddings |
+| `ClaudeProvider.ts` | The Claude implementation (Anthropic API, e.g. Claude Haiku 5.5); no embeddings |
+| `OpenAIProvider.ts` | The OpenAI implementation (Chat Completions, e.g. GPT-6 luna) and OpenAI embeddings |
+| `ProviderFallback.ts` | Puts the configured providers behind one: `LLM_PROVIDER` answers, `LLM_FALLBACK_PROVIDER` takes over when it is down, `LLM_EMBEDDING_PROVIDER` embeds |
 | `fallback.ts` | Circuit breaker: when the primary model is overloaded, the fallback model answers for a while |
 | `generateStructured.ts` | Asks for JSON, validates it with Zod, and lets the model repair an invalid answer once |
 | `streamText.ts` | Streams free text (the explanation) |
 | `logCall.ts` | `loggedCall()` writes every model request to the `LlmCall` table with tokens, cost and latency |
 | `pricing.ts` | Price table for the cost estimate |
 | `errors.ts` | `LLMError`: one error type for all providers, with a code the web app translates |
-| `index.ts` | The `llm` instance the app uses |
+| `index.ts` | The `llm` instance the app uses, built from the `LLM_*` settings |
 
 ## The path of an uploaded letter
 
 1. `documents/documentRoutes.ts` (`POST /api/documents`) checks the file's magic bytes, stores it
    (`lib/storage.ts`), creates the `Document` row and puts a job on the queue (`documentQueue.ts`).
-2. The worker (`worker.ts`) runs `documents/processDocument.ts`:
-   - `extractLetter.ts` sends the file to the model through `llm/generateStructured.ts`
-     → `GeminiProvider.generateJson` → `fallback.ts`. Every attempt is logged by `llm/logCall.ts`.
-   - `deadlines/deadlineRows.ts` turns the deadline wording into due dates (no AI).
-   - Action items, deadlines and deadline reminders are stored in one transaction.
-   - The analysis is translated into the user's language (`translation/analysisTranslations.ts`).
-   - Each step is reported as job progress.
+2. The worker (`worker.ts`) runs `documents/processDocument.ts`, which starts an agent run
+   (`AgentRun`) and lets the orchestrator (`agents/orchestrator.ts`) carry out the plan in
+   `agents/analyseLetter.ts`:
+   - The **extractor** (`agents/extractorAgent.ts`) runs `extractLetter.ts`, which sends the file to
+     the model through `llm/generateStructured.ts` → `GeminiProvider.generateJson` → `fallback.ts`.
+     Every attempt is logged by `llm/logCall.ts`, with the run and the agent.
+   - The **deadline agent** (`agents/deadlineAgent.ts`, no AI) turns the deadline wording into due
+     dates (`deadlines/deadlineRows.ts`) and stores the analysis, action items, deadlines and
+     deadline reminders in one transaction.
+   - The **translator** (`agents/translatorAgent.ts`) translates the analysis into the user's
+     language (`translation/analysisTranslations.ts`).
+   - Each step is reported as job progress, with the agent that runs it.
+
+### How the agents talk
+
+Agents never call each other. The orchestrator gives an agent a task and gets its reply; both are
+stored as `AgentMessage` rows (schema: `AgentMessageSchema` in `packages/shared/src/agents.ts`).
+Large data (the file, the analysis) stays in the run's case file (`agents/documentCaseFile.ts`), a
+message only says what was asked or what changed. A run stops after `MAX_AGENT_HOPS` messages or
+`MAX_LLM_CALLS_PER_RUN` model requests. The development overview (`/api/debug/overview`) shows the
+latest runs with their messages in order.
 3. `documents/documentEvents.ts` passes the progress from Redis to `GET /api/documents/:id/events`,
    which streams it to the browser (`apps/web/src/hooks/useDocumentEvents.ts`).
 

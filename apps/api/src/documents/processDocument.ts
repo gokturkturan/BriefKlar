@@ -1,17 +1,13 @@
 import { UnrecoverableError, type Job } from "bullmq";
-import { Prisma } from "@prisma/client";
-import { ANALYSIS_LANGUAGE, isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@briefklar/shared";
-import { deadlineRows } from "../deadlines/deadlineRows";
-import { deadlineContext } from "../deadlines/recomputeDeadlines";
+import { isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@briefklar/shared";
+import { analyseLetter } from "../agents/analyseLetter";
+import { prismaAgentStore } from "../agents/agentStore";
+import type { DocumentCaseFile } from "../agents/documentCaseFile";
+import { AgentLimitError, Orchestrator } from "../agents/orchestrator";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
 import { LLMValidationError } from "../llm/generateStructured";
-import { EXTRACT_LETTER_PROMPT_VERSION, extractLetter } from "./extractLetter";
 import type { DocumentJobData } from "./documentQueue";
-import { syncDeadlineReminders } from "../reminders/deadlineReminders";
-import { todayInGermany } from "../deadlines/calendarDate";
-import { storage } from "../lib/storage";
-import { getOrCreateTranslation } from "../translation/analysisTranslations";
 
 async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<void> {
   await job.updateProgress(event);
@@ -28,12 +24,19 @@ function userError(err: unknown): { message: string; code: ErrorCode } {
 
 function isRetryable(err: unknown): boolean {
   if (err instanceof LLMError) return err.retryable;
+  if (err instanceof AgentLimitError) return false; // the same plan would hit the same limit
   return true; // validation, database, file errors: worth another try
 }
 
+/**
+ * The job of an uploaded letter. Each attempt is one agent run: the orchestrator lets the agents
+ * analyse the letter (agents/analyseLetter.ts) and stores their messages.
+ */
 export async function processDocument(job: Job<DocumentJobData>): Promise<void> {
+  const store = prismaAgentStore;
   const { documentId } = job.data;
   const isLastAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
+  let runId: string | undefined;
 
   try {
     const doc = await prisma.document.update({
@@ -42,59 +45,34 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
       include: { user: { select: { preferredLanguage: true } } },
     });
 
-    await report(job, { status: "PROCESSING", step: "preprocessing" });
-    const file = await storage.read(doc.fileKey);
-
-    await report(job, { status: "PROCESSING", step: "extracting" });
-    const { data: extraction, model } = await extractLetter({
-      file,
-      mimeType: doc.mimeType,
-      documentId,
-    });
-
-    await report(job, { status: "PROCESSING", step: "saving" });
-    const saved = await prisma.$transaction(async (tx) => {
-      const row = await tx.extraction.create({
-        data: {
-          documentId,
-          data: extraction as unknown as Prisma.InputJsonValue,
-          urgency: extraction.urgency,
-          model,
-          promptVersion: EXTRACT_LETTER_PROMPT_VERSION,
-        },
-      });
-
-      // Replace instead of append, so a re-run never creates duplicates
-      await tx.actionItem.deleteMany({ where: { documentId } });
-      await tx.deadline.deleteMany({ where: { documentId } });
-      // Explanations are based on the old analysis and its deadlines
-      await tx.explanation.deleteMany({ where: { documentId } });
-
-      await tx.actionItem.createMany({
-        data: extraction.requiredActions.map((text, position) => ({ documentId, text, position })),
-      });
-      const deadlines = deadlineRows(documentId, extraction, await deadlineContext(documentId, tx));
-      await tx.deadline.createMany({ data: deadlines });
-      await syncDeadlineReminders(tx, documentId, deadlines, todayInGermany());
-      return row;
-    });
-
-    // The analysis is written in English; translate it now, so the letter opens in the
-    // user's language. Not critical: the page asks for the translation again if this fails.
     const language = doc.user.preferredLanguage;
-    if (isExplanationLanguage(language) && language !== ANALYSIS_LANGUAGE) {
-      await report(job, { status: "PROCESSING", step: "translating" });
-      await getOrCreateTranslation(saved, language).catch((err: unknown) => {
-        console.warn(`Translation into ${language} failed for ${documentId}:`, err);
-      });
-    }
+    const caseFile: DocumentCaseFile = {
+      documentId,
+      fileKey: doc.fileKey,
+      mimeType: doc.mimeType,
+      language: isExplanationLanguage(language) ? language : null,
+    };
+    runId = (await store.startRun(documentId, "UPLOAD")).id;
+    const orchestrator = new Orchestrator(runId, caseFile, {
+      store,
+      onProgress: (event) => report(job, event),
+    });
+
+    await analyseLetter(orchestrator);
 
     await prisma.document.update({ where: { id: documentId }, data: { status: "DONE" } });
+    await store.finishRun(runId, "DONE");
 
     await report(job, { status: "DONE" });
   } catch (err) {
     const { message, code } = userError(err);
     const retryable = isRetryable(err);
+
+    if (runId) {
+      await store.finishRun(runId, "FAILED", code).catch((finishErr: unknown) =>
+        console.error(`Could not close agent run ${runId}:`, finishErr),
+      );
+    }
 
     if (!retryable || isLastAttempt) {
       await prisma.document.update({

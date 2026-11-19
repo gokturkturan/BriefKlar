@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { runInAgentScope } from "../agents/agentScope";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "./errors";
 import { generateStructured } from "./generateStructured";
@@ -7,7 +8,11 @@ import type { JsonGenerationResult, LLMProvider } from "./LLMProvider";
 import { FALLBACK_SWITCH_NOTE, loggedCall } from "./logCall";
 
 vi.mock("../lib/prisma", () => ({
-  prisma: { llmCall: { create: vi.fn() }, document: { findUnique: vi.fn(async () => null) } },
+  prisma: {
+    llmCall: { create: vi.fn() },
+    document: { findUnique: vi.fn(async () => null) },
+    agentRun: { update: vi.fn() },
+  },
 }));
 
 const create = vi.mocked(prisma.llmCall.create);
@@ -16,7 +21,12 @@ const logged = () => create.mock.calls.map(([args]) => args.data);
 const provider = { name: "fake", model: "big" } as LLMProvider;
 const context = { provider, purpose: "test", promptVersion: "v1" };
 
-beforeEach(() => create.mockReset());
+const updateRun = vi.mocked(prisma.agentRun.update);
+
+beforeEach(() => {
+  create.mockReset();
+  updateRun.mockReset();
+});
 
 describe("loggedCall", () => {
   it("logs a switch to the fallback model before the answer", async () => {
@@ -38,6 +48,23 @@ describe("loggedCall", () => {
     error.latencyMs = 30;
     await expect(loggedCall(context, () => Promise.reject(error))).rejects.toBe(error);
     expect(logged()).toMatchObject([{ model: "big", success: false, latencyMs: 30, errorMessage: "overloaded" }]);
+  });
+
+  it("logs a call inside an agent run with the run and the agent, and counts it for the run", async () => {
+    await runInAgentScope({ runId: "run-1", agent: "extractor" }, () =>
+      loggedCall(context, async () => ({ model: "big", latencyMs: 1, inputTokens: 10, outputTokens: 5 })),
+    );
+    expect(logged()).toMatchObject([{ agentRunId: "run-1", agent: "extractor" }]);
+    expect(updateRun).toHaveBeenCalledWith({
+      where: { id: "run-1" },
+      data: { llmCalls: { increment: 1 }, costUsd: { increment: 0 } },
+    });
+  });
+
+  it("logs a call outside a run without run or agent", async () => {
+    await loggedCall(context, async () => ({ model: "big", latencyMs: 1 }));
+    expect(logged()[0]).toMatchObject({ agentRunId: undefined, agent: undefined });
+    expect(updateRun).not.toHaveBeenCalled();
   });
 
   it("marks an answer as failed when errorOf says so", async () => {

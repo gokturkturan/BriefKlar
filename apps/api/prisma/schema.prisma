@@ -86,6 +86,7 @@ model Document {
   chatMessages ChatMessage[]
   reminders    Reminder[]
   llmCalls     LlmCall[]
+  agentRuns    AgentRun[]
 
   @@index([userId, createdAt])
 }
@@ -136,18 +137,18 @@ model Explanation {
 }
 
 model Deadline {
-  id              String    @id @default(uuid())
+  id              String   @id @default(uuid())
   documentId      String
-  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  dueDate         DateTime  @db.Date
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  dueDate         DateTime @db.Date
   kind            String
   sourceText      String
   /// true if the start of a relative period was assumed (e.g. delivery by post)
-  isEstimate      Boolean   @default(false)
+  isEstimate      Boolean  @default(false)
   /// Steps of the calculation as data (DeadlineStepSchema), put into words by the web app
-  steps           Json      @default("[]")
-  confirmedByUser Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  steps           Json     @default("[]")
+  confirmedByUser Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   @@index([dueDate])
 }
@@ -263,8 +264,64 @@ model LlmCall {
   latencyMs     Int
   success       Boolean
   errorMessage  String?
+  /// The agent run and the agent that made the request; null for calls outside a run
+  agentRunId    String?
+  agentRun      AgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  agent         String?
   createdAt     DateTime  @default(now())
 
   @@index([createdAt])
   @@index([userId, createdAt])
+  @@index([agentRunId])
+}
+
+enum AgentRunTrigger {
+  UPLOAD
+  CHAT
+  REPLY
+}
+
+enum AgentRunStatus {
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// One piece of work done by the agents for a letter, e.g. analysing an upload (src/agents)
+model AgentRun {
+  id         String          @id @default(uuid())
+  documentId String
+  document   Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  trigger    AgentRunTrigger
+  status     AgentRunStatus  @default(RUNNING)
+  /// Messages so far; the orchestrator stops the run at MAX_AGENT_HOPS
+  hops       Int             @default(0)
+  /// Model requests so far (MAX_LLM_CALLS_PER_RUN) and what they would cost on the paid tier
+  llmCalls   Int             @default(0)
+  costUsd    Decimal         @default(0) @db.Decimal(10, 6)
+  /// Code of the error that ended the run
+  errorCode  String?
+  startedAt  DateTime        @default(now())
+  finishedAt DateTime?
+
+  messages AgentMessage[]
+  calls    LlmCall[]
+
+  @@index([documentId, startedAt])
+}
+
+/// A message between two agents; the payload follows AgentPayloadSchema (packages/shared)
+model AgentMessage {
+  id        String   @id @default(uuid())
+  runId     String
+  run       AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  parentId  String?
+  from      String
+  to        String
+  kind      String
+  hop       Int
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@unique([runId, hop])
 }

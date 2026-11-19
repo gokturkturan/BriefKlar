@@ -16,7 +16,7 @@ export const EXPORT_VERSION = 1;
 /**
  * All data of a user as one JSON document: the settings, every letter with its original file
  * (base64), analyses, translations, explanations, deadlines, tasks, reply drafts and chat,
- * the reminders, and which AI calls processed each letter.
+ * the reminders, and which AI calls and agent runs processed each letter.
  */
 export async function exportUserData(userId: string) {
   const user = await prisma.user.findUniqueOrThrow({
@@ -33,7 +33,11 @@ export async function exportUserData(userId: string) {
           chatMessages: { orderBy: { createdAt: "asc" } },
           llmCalls: {
             orderBy: { createdAt: "asc" },
-            select: { createdAt: true, purpose: true, provider: true, model: true, success: true },
+            select: { createdAt: true, purpose: true, provider: true, model: true, success: true, agent: true },
+          },
+          agentRuns: {
+            orderBy: { startedAt: "asc" },
+            include: { messages: { orderBy: { hop: "asc" } } },
           },
         },
       },

@@ -1,3 +1,4 @@
+import { currentAgentScope } from "../agents/agentScope";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "./errors";
 import type { FailedAttempt } from "./fallback";
@@ -14,6 +15,8 @@ export interface CallContext {
 
 interface CallOutcome {
   model: string;
+  /** The provider that answered, if not the one in the context */
+  provider?: string;
   inputTokens: number;
   outputTokens: number;
   latencyMs: number;
@@ -34,18 +37,29 @@ async function logCall(context: CallContext, outcome: CallOutcome) {
     const owner = context.documentId
       ? await prisma.document.findUnique({ where: { id: context.documentId }, select: { userId: true } })
       : null;
+    // Inside an agent run, the request counts towards the run's limit (agents/orchestrator.ts)
+    const scope = currentAgentScope();
+    const costUsd = costOf(outcome.model, outcome.inputTokens, outcome.outputTokens) ?? 0;
     await prisma.llmCall.create({
       data: {
         documentId: context.documentId,
         userId: owner?.userId,
         purpose: context.purpose,
-        provider: context.provider.name,
         promptVersion: context.promptVersion,
         ...outcome,
+        provider: outcome.provider ?? context.provider.name,
         errorMessage: outcome.errorMessage?.slice(0, 2000),
-        costUsd: costOf(outcome.model, outcome.inputTokens, outcome.outputTokens) ?? 0,
+        costUsd,
+        agentRunId: scope?.runId,
+        agent: scope?.agent,
       },
     });
+    if (scope) {
+      await prisma.agentRun.update({
+        where: { id: scope.runId },
+        data: { llmCalls: { increment: 1 }, costUsd: { increment: costUsd } },
+      });
+    }
   } catch (err) {
     // Logging must never break the actual work
     console.error("Failed to log LLM call:", err);
@@ -60,6 +74,7 @@ async function logFailedAttempts(context: CallContext, attempts: FailedAttempt[]
   for (const attempt of attempts) {
     await logCall(context, {
       model: attempt.model,
+      provider: attempt.provider,
       inputTokens: 0,
       outputTokens: 0,
       latencyMs: attempt.latencyMs,
@@ -73,6 +88,7 @@ async function logFailedAttempts(context: CallContext, attempts: FailedAttempt[]
 /** The parts of a provider result that are logged */
 export interface LoggableResult {
   model: string;
+  provider?: string;
   latencyMs: number;
   inputTokens?: number;
   outputTokens?: number;
@@ -114,6 +130,7 @@ export async function loggedCall<R extends LoggableResult>(
   await logFailedAttempts(context, result.failedAttempts);
   await logCall(context, {
     model: result.model,
+    provider: result.provider,
     inputTokens: result.inputTokens ?? 0,
     outputTokens: result.outputTokens ?? 0,
     latencyMs: result.latencyMs,

@@ -75,7 +75,7 @@ export async function runChat(options: RunChatOptions): Promise<ChatAnswer> {
       { signal: context.signal },
     );
 
-    turns.push({ role: "model", parts: result.parts, model: result.model });
+    turns.push({ role: "model", parts: result.parts, model: result.model, raw: result.raw });
     const calls = result.parts.filter((part) => part.type === "toolCall");
     if (calls.length === 0 || round >= MAX_TOOL_ROUNDS) {
       return { text: text.trim(), toolCalls, sources: [...sources.values()], model: result.model };

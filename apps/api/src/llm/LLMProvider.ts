@@ -22,6 +22,8 @@ export interface JsonGenerationRequest {
 interface AnswerMeta {
   /** The model that actually answered (may be the fallback model) */
   model: string;
+  /** The provider that answered, when it is not the one called (a switch to another provider) */
+  provider?: string;
   inputTokens: number;
   outputTokens: number;
   /** How long the answering model took */
@@ -63,6 +65,11 @@ export interface ChatTurn {
   parts: ChatPart[];
   /** Model that wrote a model turn; signatures are only valid for the same model */
   model?: string;
+  /**
+   * The model turn exactly as the provider returned it (e.g. Claude's content blocks with its
+   * thinking blocks). Sent back unchanged to the same model; other models use `parts`.
+   */
+  raw?: unknown;
 }
 
 /** A function the model may call; parameters are a JSON Schema object */
@@ -84,6 +91,8 @@ export interface ChatRoundRequest {
 export interface ChatRoundResult extends AnswerMeta {
   /** Text and tool calls of the model's turn, in order */
   parts: Extract<ChatPart, { type: "text" | "toolCall" }>[];
+  /** The turn as the provider returned it, to send back in the next round (see ChatTurn.raw) */
+  raw?: unknown;
 }
 
 export interface EmbeddingRequest {

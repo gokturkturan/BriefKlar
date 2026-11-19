@@ -23,6 +23,7 @@
     "eval": "tsx src/evals/runEval.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
     "@briefklar/shared": "*",
     "@google/genai": "^2.7.0",
     "@prisma/client": "^6.14.0",
@@ -33,6 +34,7 @@
     "helmet": "^8.1.0",
     "ioredis": "^5.6.1",
     "multer": "^2.0.2",
+    "openai": "^7.60.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
