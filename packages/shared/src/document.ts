@@ -1,3 +1,5 @@
+import type { LetterExtraction } from "./letter";
+
 /**
  * Types shared between the API and the web app.
  * Changing a field here surfaces type errors on both sides immediately.
@@ -29,15 +31,41 @@ export interface DocumentDto {
   createdAt: string; // ISO date
 }
 
+export interface ActionItemDto {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface DeadlineDto {
+  id: string;
+  dueDate: string; // YYYY-MM-DD
+  kind: string;
+  sourceText: string;
+}
+
+export interface LetterAnalysisDto {
+  extraction: LetterExtraction;
+  model: string;
+  promptVersion: string;
+  createdAt: string;
+  actionItems: ActionItemDto[];
+  deadlines: DeadlineDto[];
+}
+
+export interface DocumentDetailDto extends DocumentDto {
+  analysis: LetterAnalysisDto | null;
+}
+
 /** Steps the background worker reports while processing a document. */
-export const PROCESSING_STEPS = ["preprocessing", "extracting", "analyzing", "retrying"] as const;
+export const PROCESSING_STEPS = ["preprocessing", "extracting", "saving", "retrying"] as const;
 export type ProcessingStep = (typeof PROCESSING_STEPS)[number];
 
 export const PROCESSING_STEP_LABELS: Record<ProcessingStep, string> = {
   preprocessing: "Preparing the file",
-  extracting: "Reading the letter",
-  analyzing: "Analyzing the content",
-  retrying: "Something went wrong, retrying",
+  extracting: "Reading and analyzing the letter",
+  saving: "Saving the results",
+  retrying: "The AI service is busy, trying again shortly",
 };
 
 /** Payload of each Server-Sent Event sent to the browser. */
@@ -45,6 +73,14 @@ export interface ProgressEvent {
   status: DocumentStatus;
   step?: ProcessingStep;
   message?: string;
+}
+
+export interface HealthDto {
+  status: "ok" | "degraded" | "down";
+  database: "up" | "down";
+  redis: "up" | "down";
+  /** Number of background workers connected to the queue */
+  workers: number;
 }
 
 export interface ApiErrorBody {
