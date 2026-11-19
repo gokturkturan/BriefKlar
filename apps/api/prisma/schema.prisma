@@ -57,7 +57,7 @@ model Document {
   actionItems  ActionItem[]
   replyDrafts  ReplyDraft[]
   chatMessages ChatMessage[]
-  llmCalls     LLMCall[]
+  llmCalls     LlmCall[]
 
   @@index([userId, createdAt])
 }
@@ -134,7 +134,7 @@ model KnowledgeEntry {
 }
 
 /// Every LLM request is logged for cost tracking and debugging
-model LLMCall {
+model LlmCall {
   id            String    @id @default(uuid())
   documentId    String?
   document      Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
