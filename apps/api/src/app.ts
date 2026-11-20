@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { env } from "./config/env";
 import { demoUser } from "./middleware/demoUser";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+import { debugRouter } from "./routes/debug";
 import { documentsRouter } from "./routes/documents";
 import { healthRouter } from "./routes/health";
 
@@ -18,6 +19,7 @@ export function createApp() {
 
   app.use("/api", demoUser);
   app.use("/api/documents", documentsRouter);
+  if (env.NODE_ENV === "development") app.use("/api/debug", debugRouter);
 
   app.use(notFound);
   app.use(errorHandler);
