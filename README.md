@@ -3,7 +3,7 @@
 > AI assistant that explains German official letters (*Behördenbriefe*) in plain language:
 > what the letter is about, what you need to do and by when.
 
-**Status:** 🚧 Work in progress — week 1 (project skeleton, upload, background processing, live progress).
+**Status:** 🚧 Work in progress — week 2 (AI extraction of letter content with validated structured output).
 
 ## Tech stack
 
@@ -14,6 +14,7 @@
 | Database | PostgreSQL 17 + pgvector, Prisma ORM |
 | Background jobs | Redis + BullMQ (separate worker process) |
 | Realtime | Server-Sent Events (SSE) |
+| LLM | Google Gemini via `@google/genai`, behind a provider-agnostic `LLMProvider` interface |
 | Shared | `@briefklar/shared` — Zod schemas & types used by both API and web |
 
 ## Architecture
@@ -21,7 +22,7 @@
 ```
 React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
      ▲                    │  │
-     │ SSE (progress)     │  └─ enqueue ─▶ Redis (BullMQ) ─▶ Worker ──▶ LLM (week 2)
+     │ SSE (progress)     │  └─ enqueue ─▶ Redis (BullMQ) ─▶ Worker ──▶ Gemini
      └────────────────────┘◀──── progress events ─────────────┘
 ```
 
@@ -29,6 +30,18 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 - Heavy work runs in a **separate worker process**, so the API stays responsive.
 - The worker reports progress through BullMQ; the API forwards it to the browser over **SSE**.
 - File storage sits behind a `StorageService` interface (local disk today, S3-compatible later).
+
+### How a letter is analyzed
+
+1. The worker sends the PDF or photo directly to the model. Gemini reads documents natively,
+   so there is no separate OCR step.
+2. The model must answer with JSON that follows `LetterExtractionSchema` (a Zod schema in
+   `packages/shared`, converted to JSON Schema for the API call).
+3. The answer is validated with Zod. If it is invalid, the validation errors are sent back to the
+   model once so it can repair its answer.
+4. Every call is logged to the `LlmCall` table (model, prompt version, tokens, latency, success).
+5. The model never calculates dates: it only copies deadline wording from the letter.
+   Relative deadlines ("within one month") will be computed by deterministic, tested code.
 
 ## Monorepo layout
 
@@ -51,7 +64,7 @@ npm install
 # 2. Start PostgreSQL (port 5433) and Redis (port 6380)
 npm run infra:up
 
-# 3. Configure the API
+# 3. Configure the API (add your GEMINI_API_KEY from https://aistudio.google.com)
 cp apps/api/.env.example apps/api/.env
 
 # 4. Create the database schema (Prisma asks for a migration name, e.g. "init")
@@ -67,11 +80,17 @@ API health check: http://localhost:4000/api/health
 ## Roadmap
 
 - [x] Week 1 — Monorepo, Docker Compose, Prisma schema, upload, queue, SSE progress
-- [ ] Week 2 — Text extraction + LLM structured extraction (validated with Zod)
+- [x] Week 2 — LLM structured extraction (validated with Zod), action items, explicit deadlines
 - [ ] Week 3 — Deterministic deadline engine + tests, action items
 - [ ] Week 4 — Streaming plain-language explanation, reply drafts in German
 - [ ] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
 - [ ] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
+
+## Notes on data protection
+
+Letters contain personal data. Under the Gemini API terms, users in the EEA, Switzerland and the
+UK get the paid-tier data terms even on the free quota, but an app offered to users in these
+regions must use the paid tier. The free tier is used here for development only.
 
 ## Disclaimer
 
