@@ -1,41 +1,101 @@
-import type { Job } from "bullmq";
-import type { ProgressEvent, ProcessingStep } from "@briefklar/shared";
+import { UnrecoverableError, type Job } from "bullmq";
+import { Prisma } from "@prisma/client";
+import type { LetterExtraction, ProgressEvent } from "@briefklar/shared";
+import { resolveExplicitDate } from "../lib/germanDates";
 import { prisma } from "../lib/prisma";
+import { LLMError } from "../llm";
+import { extractLetter } from "../llm/extractLetter";
+import { LLMValidationError } from "../llm/generateStructured";
+import { EXTRACT_LETTER_PROMPT_VERSION } from "../prompts/extractLetter";
 import type { DocumentJobData } from "../queue/constants";
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { storage } from "../storage";
 
 async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<void> {
   await job.updateProgress(event);
 }
 
 /**
- * Week 1: a placeholder pipeline that only simulates the steps,
- * so the whole flow (upload -> queue -> worker -> SSE -> UI) can be tested end to end.
- * Week 2 replaces the sleep() calls with text extraction and the LLM call.
+ * Only deadlines whose date is literally written in the letter's wording.
+ * The model's explicitDate is cross-checked against the text, because models do misread dates.
+ * Relative deadlines ("within one month") are handled in week 3.
  */
+function explicitDeadlines(documentId: string, extraction: LetterExtraction) {
+  return extraction.deadlines.flatMap((deadline) => {
+    const date = resolveExplicitDate(deadline.rawText, deadline.explicitDate);
+    if (deadline.explicitDate && date !== deadline.explicitDate) {
+      console.warn(
+        `Deadline date corrected for ${documentId}: model said ${deadline.explicitDate}, ` +
+          `text "${deadline.rawText}" gives ${date ?? "no date"}`,
+      );
+    }
+    return date
+      ? [{ documentId, dueDate: new Date(`${date}T00:00:00Z`), kind: deadline.kind, sourceText: deadline.rawText }]
+      : [];
+  });
+}
+
+/** Message stored on the document and shown in the UI: never raw provider errors */
+function userMessage(err: unknown): string {
+  if (err instanceof LLMError) return err.userMessage;
+  if (err instanceof LLMValidationError) return "The AI returned an incomplete analysis. Please try again.";
+  return "Something went wrong while processing this letter.";
+}
+
+function isRetryable(err: unknown): boolean {
+  if (err instanceof LLMError) return err.retryable;
+  return true; // validation, database, file errors: worth another try
+}
+
 export async function processDocument(job: Job<DocumentJobData>): Promise<void> {
   const { documentId } = job.data;
-  const isFinalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
+  const isLastAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
 
   try {
-    await prisma.document.update({
+    const doc = await prisma.document.update({
       where: { id: documentId },
       data: { status: "PROCESSING", errorMessage: null },
     });
 
-    const steps: ProcessingStep[] = ["preprocessing", "extracting", "analyzing"];
-    for (const step of steps) {
-      await report(job, { status: "PROCESSING", step });
-      await sleep(1500); // TODO(week 2): real work
-    }
+    await report(job, { status: "PROCESSING", step: "preprocessing" });
+    const file = await storage.read(doc.fileKey);
 
-    await prisma.document.update({ where: { id: documentId }, data: { status: "DONE" } });
+    await report(job, { status: "PROCESSING", step: "extracting" });
+    const { data: extraction, model } = await extractLetter({
+      file,
+      mimeType: doc.mimeType,
+      documentId,
+    });
+
+    await report(job, { status: "PROCESSING", step: "saving" });
+    await prisma.$transaction(async (tx) => {
+      await tx.extraction.create({
+        data: {
+          documentId,
+          data: extraction as unknown as Prisma.InputJsonValue,
+          urgency: extraction.urgency,
+          model,
+          promptVersion: EXTRACT_LETTER_PROMPT_VERSION,
+        },
+      });
+
+      // Replace instead of append, so a re-run never creates duplicates
+      await tx.actionItem.deleteMany({ where: { documentId } });
+      await tx.deadline.deleteMany({ where: { documentId } });
+
+      await tx.actionItem.createMany({
+        data: extraction.requiredActions.map((text, position) => ({ documentId, text, position })),
+      });
+      await tx.deadline.createMany({ data: explicitDeadlines(documentId, extraction) });
+
+      await tx.document.update({ where: { id: documentId }, data: { status: "DONE" } });
+    });
+
     await report(job, { status: "DONE" });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = userMessage(err);
+    const retryable = isRetryable(err);
 
-    if (isFinalAttempt) {
+    if (!retryable || isLastAttempt) {
       await prisma.document.update({
         where: { id: documentId },
         data: { status: "FAILED", errorMessage: message },
@@ -44,6 +104,9 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
     } else {
       await report(job, { status: "PROCESSING", step: "retrying", message });
     }
-    throw err; // let BullMQ handle retries / mark the job as failed
+
+    // UnrecoverableError tells BullMQ to skip the remaining attempts (e.g. invalid API key)
+    if (!retryable) throw new UnrecoverableError(err instanceof Error ? err.message : message);
+    throw err;
   }
 }
