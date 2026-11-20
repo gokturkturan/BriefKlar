@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { isTerminalStatus, type DocumentDto, type ProgressEvent } from "@briefklar/shared";
+import { isTerminalStatus, type DocumentDetailDto, type ProgressEvent } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
 
 /**
@@ -20,12 +20,13 @@ export function useDocumentEvents(id: string, enabled: boolean): ProgressEvent |
       const event = JSON.parse(message.data) as ProgressEvent;
       setLastEvent(event);
 
-      queryClient.setQueryData<DocumentDto>(queryKeys.document(id), (old) =>
+      queryClient.setQueryData<DocumentDetailDto>(queryKeys.document(id), (old) =>
         old ? { ...old, status: event.status, errorMessage: event.message ?? old.errorMessage } : old,
       );
 
       if (isTerminalStatus(event.status)) {
         source.close();
+        // Refetches the list and this document (prefix match), which now includes the analysis
         void queryClient.invalidateQueries({ queryKey: queryKeys.documents });
       }
     };

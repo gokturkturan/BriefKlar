@@ -24,7 +24,7 @@ export function UploadPage() {
   const upload = useMutation({
     mutationFn: api.uploadDocument,
     onSuccess: (doc) => {
-      queryClient.setQueryData(queryKeys.document(doc.id), doc);
+      queryClient.setQueryData(queryKeys.document(doc.id), { ...doc, analysis: null });
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents });
       void navigate(`/documents/${doc.id}`);
     },

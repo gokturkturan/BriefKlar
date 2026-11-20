@@ -1,7 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { useParams } from "react-router";
-import { isTerminalStatus, PROCESSING_STEP_LABELS } from "@briefklar/shared";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import {
+  isTerminalStatus,
+  PROCESSING_STEP_LABELS,
+  type DocumentDetailDto,
+} from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
+import { AnalysisPanel } from "../components/AnalysisPanel";
 import { StatusBadge } from "../components/StatusBadge";
 import { useDocumentEvents } from "../hooks/useDocumentEvents";
 
@@ -17,6 +23,49 @@ export function DocumentDetailPage() {
   const isProcessing = doc ? !isTerminalStatus(doc.status) : false;
   const lastEvent = useDocumentEvents(id, isProcessing);
 
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // While processing, check that a background worker is actually running
+  const health = useQuery({
+    queryKey: queryKeys.health,
+    queryFn: api.getHealth,
+    enabled: isProcessing,
+    refetchInterval: 10_000,
+  });
+  const noWorker = isProcessing && health.data?.workers === 0;
+
+  const remove = useMutation({
+    mutationFn: () => api.deleteDocument(id),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: queryKeys.document(id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents });
+      void navigate("/documents");
+    },
+  });
+
+  const retry = useMutation({
+    mutationFn: () => api.retryDocument(id),
+    onSuccess: (updated) => {
+      // Back to a non-terminal status: useDocumentEvents reconnects to the SSE stream
+      queryClient.setQueryData<DocumentDetailDto>(queryKeys.document(id), (old) =>
+        old ? { ...old, ...updated, analysis: null } : old,
+      );
+    },
+  });
+
+  const retryButton = (
+    <button
+      type="button"
+      onClick={() => retry.mutate()}
+      disabled={retry.isPending}
+      className="mt-3 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+    >
+      {retry.isPending ? "Starting…" : "Try again"}
+    </button>
+  );
+
   if (isLoading) return <p className="text-slate-500">Loading…</p>;
   if (error) return <p className="text-red-600">{error.message}</p>;
   if (!doc) return null;
@@ -25,8 +74,49 @@ export function DocumentDetailPage() {
     <div>
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="truncate text-2xl font-semibold tracking-tight">{doc.originalName}</h1>
-        <StatusBadge status={doc.status} />
+        <div className="flex shrink-0 items-center gap-3">
+          <StatusBadge status={doc.status} />
+          {!isProcessing &&
+            (confirmDelete ? (
+              <span className="flex items-center gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => remove.mutate()}
+                  disabled={remove.isPending}
+                  className="rounded-md bg-red-600 px-3 py-1.5 font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {remove.isPending ? "Deleting…" : "Delete permanently"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="text-slate-600 hover:underline"
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="text-sm text-slate-500 hover:text-red-600"
+              >
+                Delete
+              </button>
+            ))}
+        </div>
       </div>
+
+      {remove.error && (
+        <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">{remove.error.message}</p>
+      )}
+
+      {noWorker && (
+        <p className="mb-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          No background worker is running, so this letter can't be processed. Start the app with{" "}
+          <code className="font-mono">npm run dev</code>.
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -37,26 +127,38 @@ export function DocumentDetailPage() {
           )}
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <section className="rounded-xl border border-slate-200 bg-white p-6 lg:max-h-[70vh] lg:overflow-y-auto">
           {isProcessing && (
             <div className="flex items-center gap-3 text-slate-700">
               <span className="h-3 w-3 animate-pulse rounded-full bg-amber-500" />
-              <span>{lastEvent?.step ? PROCESSING_STEP_LABELS[lastEvent.step] : "Waiting in queue…"}</span>
+              <span>
+                {lastEvent?.step
+                  ? PROCESSING_STEP_LABELS[lastEvent.step]
+                  : doc.status === "PROCESSING"
+                    ? "Processing…"
+                    : "Waiting in queue…"}
+              </span>
             </div>
           )}
 
           {doc.status === "FAILED" && (
-            <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
-              Processing failed: {doc.errorMessage ?? "unknown error"}
-            </p>
-          )}
-
-          {doc.status === "DONE" && (
-            <div className="text-slate-600">
-              <h2 className="mb-2 font-semibold text-slate-900">Explanation</h2>
-              <p>The analysis (summary, deadlines and next steps) will appear here in week 2.</p>
+            <div>
+              <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+                {doc.errorMessage ?? "Processing failed."}
+              </p>
+              {retryButton}
             </div>
           )}
+
+          {doc.status === "DONE" &&
+            (doc.analysis ? (
+              <AnalysisPanel documentId={doc.id} analysis={doc.analysis} />
+            ) : (
+              <div>
+                <p className="text-slate-500">No analysis available for this letter.</p>
+                {retryButton}
+              </div>
+            ))}
         </section>
       </div>
     </div>

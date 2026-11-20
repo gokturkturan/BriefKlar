@@ -1,4 +1,4 @@
-import type { ApiErrorBody, DocumentDto } from "@briefklar/shared";
+import type { ApiErrorBody, DocumentDetailDto, DocumentDto, HealthDto } from "@briefklar/shared";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -6,13 +6,28 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
     throw new Error(body?.error.message ?? `Request failed (${res.status})`);
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
 export const api = {
   listDocuments: () => request<DocumentDto[]>("/api/documents"),
 
-  getDocument: (id: string) => request<DocumentDto>(`/api/documents/${id}`),
+  getDocument: (id: string) => request<DocumentDetailDto>(`/api/documents/${id}`),
+
+  deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
+
+  getHealth: () => request<HealthDto>("/api/health"),
+
+  retryDocument: (id: string) =>
+    request<DocumentDto>(`/api/documents/${id}/retry`, { method: "POST" }),
+
+  updateActionItem: (documentId: string, itemId: string, done: boolean) =>
+    request<void>(`/api/documents/${documentId}/action-items/${itemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ done }),
+    }),
 
   uploadDocument: (file: File) => {
     const form = new FormData();
@@ -27,4 +42,5 @@ export const api = {
 export const queryKeys = {
   documents: ["documents"] as const,
   document: (id: string) => ["documents", id] as const,
+  health: ["health"] as const,
 };
