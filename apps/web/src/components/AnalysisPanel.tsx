@@ -4,6 +4,7 @@ import {
   DEADLINE_KIND_LABELS,
   LETTER_TYPE_LABELS,
   SENDER_TYPE_LABELS,
+  type DeadlineDto,
   type DeadlineKind,
   type DocumentDetailDto,
   type LetterAnalysisDto,
@@ -32,6 +33,33 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
       {children}
     </section>
+  );
+}
+
+function DeadlineItem({ deadline: d }: { deadline: DeadlineDto }) {
+  const kind = DEADLINE_KIND_LABELS[d.kind as DeadlineKind] ?? d.kind;
+  return (
+    <li className="rounded-md bg-red-50 px-3 py-2">
+      <p className="flex flex-wrap items-center gap-2 font-medium text-red-900">
+        {formatDate(d.dueDate)} · {kind}
+        {d.isEstimate && (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+            Estimated
+          </span>
+        )}
+      </p>
+      <p className="text-sm text-red-800/80">"{d.sourceText}"</p>
+      {d.explanation.length > 0 && (
+        <details className="mt-1 text-sm text-slate-700">
+          <summary className="cursor-pointer text-red-900/80">How this date was calculated</summary>
+          <ol className="mt-1 list-decimal space-y-1 pl-5">
+            {d.explanation.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        </details>
+      )}
+    </li>
   );
 }
 
@@ -99,7 +127,9 @@ export function AnalysisPanel({
   analysis: LetterAnalysisDto;
 }) {
   const { extraction } = analysis;
-  const relativeDeadlines = extraction.deadlines.filter((d) => !d.explicitDate);
+  // Deadlines the API could not turn into a date are shown as text only
+  const datedTexts = new Set(analysis.deadlines.map((d) => d.sourceText));
+  const undatedDeadlines = extraction.deadlines.filter((d) => !datedTexts.has(d.rawText));
   const currency = (value: number, code: string) =>
     new Intl.NumberFormat("de-DE", { style: "currency", currency: code || "EUR" }).format(value);
 
@@ -140,22 +170,17 @@ export function AnalysisPanel({
         <ActionItems documentId={documentId} analysis={analysis} />
       </Section>
 
-      {(analysis.deadlines.length > 0 || relativeDeadlines.length > 0) && (
+      {(analysis.deadlines.length > 0 || undatedDeadlines.length > 0) && (
         <Section title="Deadlines">
           <ul className="space-y-2">
             {analysis.deadlines.map((d) => (
-              <li key={d.id} className="rounded-md bg-red-50 px-3 py-2">
-                <p className="font-medium text-red-900">
-                  {formatDate(d.dueDate)} · {DEADLINE_KIND_LABELS[d.kind as DeadlineKind] ?? d.kind}
-                </p>
-                <p className="text-sm text-red-800/80">"{d.sourceText}"</p>
-              </li>
+              <DeadlineItem key={d.id} deadline={d} />
             ))}
-            {relativeDeadlines.map((d, i) => (
+            {undatedDeadlines.map((d, i) => (
               <li key={i} className="rounded-md bg-amber-50 px-3 py-2">
                 <p className="font-medium text-amber-900">{DEADLINE_KIND_LABELS[d.kind]}</p>
                 <p className="text-sm text-amber-800/80">
-                  "{d.rawText}" · the exact date depends on when you received the letter
+                  "{d.rawText}" · the date could not be calculated, please check the letter
                 </p>
               </li>
             ))}
