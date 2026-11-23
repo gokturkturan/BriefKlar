@@ -42,6 +42,10 @@ export interface DeadlineDto {
   dueDate: string; // YYYY-MM-DD
   kind: string;
   sourceText: string;
+  /** true if the date depends on an assumed delivery date */
+  isEstimate: boolean;
+  /** How a relative deadline was calculated, step by step (empty for explicit dates) */
+  explanation: string[];
 }
 
 export interface LetterAnalysisDto {

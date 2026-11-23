@@ -83,6 +83,10 @@ model Deadline {
   dueDate         DateTime  @db.Date
   kind            String
   sourceText      String
+  /// true if the start of a relative period was assumed (e.g. delivery by post)
+  isEstimate      Boolean   @default(false)
+  /// Steps of the calculation, shown to the user
+  explanation     String[]  @default([])
   confirmedByUser Boolean   @default(false)
   reminderSentAt  DateTime?
   createdAt       DateTime  @default(now())

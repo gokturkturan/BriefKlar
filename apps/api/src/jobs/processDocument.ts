@@ -1,6 +1,7 @@
 import { UnrecoverableError, type Job } from "bullmq";
 import { Prisma } from "@prisma/client";
 import type { LetterExtraction, ProgressEvent } from "@briefklar/shared";
+import { computeRelativeDeadline } from "../deadlines";
 import { resolveExplicitDate } from "../lib/germanDates";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
@@ -15,12 +16,17 @@ async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<
 }
 
 /**
- * Only deadlines whose date is literally written in the letter's wording.
- * The model's explicitDate is cross-checked against the text, because models do misread dates.
- * Relative deadlines ("within one month") are handled in week 3.
+ * Due dates for the extracted deadlines, all decided by code:
+ * - a date written in the wording wins. The model's explicitDate is cross-checked against
+ *   the text, because models do misread dates.
+ * - otherwise relative wording ("innerhalb eines Monats nach Bekanntgabe") is computed
+ *   from the letter date with the rules of German law.
+ * Deadlines that neither way gives a date for are only shown as text.
  */
-function explicitDeadlines(documentId: string, extraction: LetterExtraction) {
+function deadlineRows(documentId: string, extraction: LetterExtraction) {
   return extraction.deadlines.flatMap((deadline) => {
+    const base = { documentId, kind: deadline.kind, sourceText: deadline.rawText };
+
     const date = resolveExplicitDate(deadline.rawText, deadline.explicitDate);
     if (deadline.explicitDate && date !== deadline.explicitDate) {
       console.warn(
@@ -28,9 +34,25 @@ function explicitDeadlines(documentId: string, extraction: LetterExtraction) {
           `text "${deadline.rawText}" gives ${date ?? "no date"}`,
       );
     }
-    return date
-      ? [{ documentId, dueDate: new Date(`${date}T00:00:00Z`), kind: deadline.kind, sourceText: deadline.rawText }]
-      : [];
+    if (date) return [{ ...base, dueDate: new Date(`${date}T00:00:00Z`) }];
+
+    const computed = computeRelativeDeadline({
+      rawText: deadline.rawText,
+      letterDate: extraction.letterDate,
+      senderType: extraction.sender.type,
+    });
+    if (!computed.ok) {
+      console.info(`No due date for "${deadline.rawText}" (${documentId}): ${computed.reason}`);
+      return [];
+    }
+    return [
+      {
+        ...base,
+        dueDate: new Date(`${computed.dueDate}T00:00:00Z`),
+        isEstimate: computed.isEstimate,
+        explanation: computed.explanation,
+      },
+    ];
   });
 }
 
@@ -85,7 +107,7 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
       await tx.actionItem.createMany({
         data: extraction.requiredActions.map((text, position) => ({ documentId, text, position })),
       });
-      await tx.deadline.createMany({ data: explicitDeadlines(documentId, extraction) });
+      await tx.deadline.createMany({ data: deadlineRows(documentId, extraction) });
 
       await tx.document.update({ where: { id: documentId }, data: { status: "DONE" } });
     });

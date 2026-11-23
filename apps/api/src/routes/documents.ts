@@ -61,6 +61,8 @@ function toAnalysisDto(
       dueDate: d.dueDate.toISOString().slice(0, 10),
       kind: d.kind,
       sourceText: d.sourceText,
+      isEstimate: d.isEstimate,
+      explanation: d.explanation,
     })),
   };
 }
