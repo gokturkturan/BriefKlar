@@ -6,6 +6,7 @@ import { demoUser } from "./middleware/demoUser";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 import { debugRouter } from "./routes/debug";
 import { documentsRouter } from "./routes/documents";
+import { explanationRouter } from "./routes/explanation";
 import { healthRouter } from "./routes/health";
 
 export function createApp() {
@@ -18,6 +19,7 @@ export function createApp() {
   app.use("/api/health", healthRouter);
 
   app.use("/api", demoUser);
+  app.use("/api/documents/:id/explanation", explanationRouter);
   app.use("/api/documents", documentsRouter);
   if (env.NODE_ENV === "development") app.use("/api/debug", debugRouter);
 

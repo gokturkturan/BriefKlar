@@ -103,6 +103,8 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
       // Replace instead of append, so a re-run never creates duplicates
       await tx.actionItem.deleteMany({ where: { documentId } });
       await tx.deadline.deleteMany({ where: { documentId } });
+      // Explanations are based on the old analysis and its deadlines
+      await tx.explanation.deleteMany({ where: { documentId } });
 
       await tx.actionItem.createMany({
         data: extraction.requiredActions.map((text, position) => ({ documentId, text, position })),

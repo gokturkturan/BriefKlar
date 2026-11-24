@@ -53,6 +53,7 @@ model Document {
   updatedAt    DateTime       @updatedAt
 
   extractions  Extraction[]
+  explanations Explanation[]
   deadlines    Deadline[]
   actionItems  ActionItem[]
   replyDrafts  ReplyDraft[]
@@ -74,6 +75,20 @@ model Extraction {
   createdAt     DateTime @default(now())
 
   @@index([documentId])
+}
+
+/// Plain-language explanation, generated on request and cached per language
+model Explanation {
+  id            String   @id @default(uuid())
+  documentId    String
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  language      String
+  content       String
+  model         String
+  promptVersion String
+  createdAt     DateTime @default(now())
+
+  @@unique([documentId, language])
 }
 
 model Deadline {

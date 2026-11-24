@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Router, type Request } from "express";
+import { Router } from "express";
 import multer from "multer";
 import type { ActionItem, Deadline, Document, Extraction } from "@prisma/client";
 import { z } from "zod";
@@ -20,6 +20,7 @@ import { storage } from "../storage";
 import { documentQueue, enqueueDocument } from "../queue/documentQueue";
 import { subscribeToDocument } from "../queue/documentEvents";
 import { getUserId } from "../middleware/demoUser";
+import { findOwnedDocument, routeParam } from "./ownedDocument";
 
 export const documentsRouter = Router();
 
@@ -65,21 +66,6 @@ function toAnalysisDto(
       explanation: d.explanation,
     })),
   };
-}
-
-/** Express 5 types route params as string | string[] (wildcards); our routes only use plain ones. */
-function routeParam(req: Request, name: string): string {
-  const value = req.params[name];
-  if (typeof value !== "string") throw new HttpError(400, `Invalid route parameter: ${name}`);
-  return value;
-}
-
-async function findOwnedDocument(req: Request): Promise<Document> {
-  const doc = await prisma.document.findFirst({
-    where: { id: routeParam(req, "id"), userId: getUserId(req) },
-  });
-  if (!doc) throw new HttpError(404, "Document not found", "DOCUMENT_NOT_FOUND");
-  return doc;
 }
 
 // POST /api/documents  (multipart/form-data, field name: "file")
