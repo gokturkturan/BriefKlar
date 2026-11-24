@@ -37,6 +37,8 @@ export const api = {
 
   fileUrl: (id: string) => `/api/documents/${id}/file`,
   eventsUrl: (id: string) => `/api/documents/${id}/events`,
+  explanationUrl: (id: string, language: string) =>
+    `/api/documents/${id}/explanation?language=${encodeURIComponent(language)}`,
 };
 
 export const queryKeys = {

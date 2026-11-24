@@ -11,6 +11,7 @@ import {
   type Urgency,
 } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
+import { ExplanationPanel } from "./ExplanationPanel";
 
 const urgencyStyles: Record<Urgency, string> = {
   LOW: "bg-slate-100 text-slate-700",
@@ -165,6 +166,10 @@ export function AnalysisPanel({
           read or unclear.
         </p>
       )}
+
+      <Section title="Explained in plain language">
+        <ExplanationPanel documentId={documentId} />
+      </Section>
 
       <Section title="What you need to do">
         <ActionItems documentId={documentId} analysis={analysis} />
