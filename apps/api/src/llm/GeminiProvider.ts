@@ -17,6 +17,7 @@ function toGeminiPart(part: LLMInputPart): Part {
 }
 
 function toLLMError(err: unknown, model: string): LLMError {
+  if (err instanceof LLMError) return err;
   const status = err instanceof ApiError ? err.status : undefined;
   const message = err instanceof Error ? err.message : String(err);
   return new LLMError(
@@ -30,6 +31,9 @@ function toLLMError(err: unknown, model: string): LLMError {
 
 /** After the primary model is overloaded, skip it for a while instead of waiting for it to fail again */
 const PRIMARY_COOLDOWN_MS = 2 * 60 * 1000;
+
+/** Longest wait for the first chunk of a streamed answer */
+const FIRST_CHUNK_TIMEOUT_MS = 20_000;
 
 export class GeminiProvider implements LLMProvider {
   readonly name = "gemini";
@@ -82,8 +86,9 @@ export class GeminiProvider implements LLMProvider {
       return await run(this.model);
     } catch (err) {
       const error = toLLMError(err, this.model);
-      // Overload (503) and quota (429) are per model, so a smaller model often still works
-      const overloaded = error.statusCode === 503 || error.statusCode === 429;
+      // Overload (503) and quota (429) are per model, so a smaller model often still works.
+      // A timeout (504) usually means the same overload, without an error from the API
+      const overloaded = [429, 503, 504].includes(error.statusCode ?? 0);
       if (!this.fallbackModel || !overloaded || !canFallBack()) throw error;
 
       this.primaryCooldownUntil = Date.now() + PRIMARY_COOLDOWN_MS;
@@ -101,30 +106,52 @@ export class GeminiProvider implements LLMProvider {
     request: TextGenerationRequest,
     onDelta: (text: string) => void,
   ): Promise<TextGenerationResult> {
-    const stream = await this.client.models.generateContentStream({
-      model,
-      contents: [{ role: "user", parts: request.input.map(toGeminiPart) }],
-      config: {
-        systemInstruction: request.system,
-        temperature: 0.3, // explanations may vary a little, facts come from the letter
-        abortSignal: request.signal,
-      },
-    });
+    // A model can stay silent for a long time when it is overloaded. Waiting longer than
+    // FIRST_CHUNK_TIMEOUT_MS for the first chunk counts as a timeout, so the fallback can answer.
+    const timeout = new AbortController();
+    const signal = request.signal ? AbortSignal.any([request.signal, timeout.signal]) : timeout.signal;
+    const timer = setTimeout(() => timeout.abort(), FIRST_CHUNK_TIMEOUT_MS);
 
     let text = "";
     let inputTokens = 0;
     let outputTokens = 0;
-    for await (const chunk of stream) {
-      const delta = chunk.text ?? "";
-      if (delta) {
-        text += delta;
-        onDelta(delta);
+    try {
+      const stream = await this.client.models.generateContentStream({
+        model,
+        contents: [{ role: "user", parts: request.input.map(toGeminiPart) }],
+        config: {
+          systemInstruction: request.system,
+          temperature: 0.3, // explanations may vary a little, facts come from the letter
+          abortSignal: signal,
+        },
+      });
+
+      for await (const chunk of stream) {
+        clearTimeout(timer);
+        const delta = chunk.text ?? "";
+        if (delta) {
+          text += delta;
+          onDelta(delta);
+        }
+        // Usage is reported with the chunks; the last one has the totals
+        if (chunk.usageMetadata) {
+          inputTokens = chunk.usageMetadata.promptTokenCount ?? inputTokens;
+          outputTokens = chunk.usageMetadata.candidatesTokenCount ?? outputTokens;
+        }
       }
-      // Usage is reported with the chunks; the last one has the totals
-      if (chunk.usageMetadata) {
-        inputTokens = chunk.usageMetadata.promptTokenCount ?? inputTokens;
-        outputTokens = chunk.usageMetadata.candidatesTokenCount ?? outputTokens;
+    } catch (err) {
+      if (timeout.signal.aborted && !request.signal?.aborted) {
+        throw new LLMError(
+          `Gemini (${model}) sent nothing for ${FIRST_CHUNK_TIMEOUT_MS / 1000} s`,
+          true,
+          userMessageForStatus(504),
+          504,
+          model,
+        );
       }
+      throw err;
+    } finally {
+      clearTimeout(timer);
     }
     return { text, model, inputTokens, outputTokens };
   }
