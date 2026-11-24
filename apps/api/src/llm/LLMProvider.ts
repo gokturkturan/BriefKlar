@@ -23,10 +23,33 @@ export interface JsonGenerationResult {
   outputTokens: number;
 }
 
+export interface TextGenerationRequest {
+  system: string;
+  input: LLMInputPart[];
+  /** Aborts the request, e.g. when the browser closes the stream */
+  signal?: AbortSignal;
+}
+
+export interface TextGenerationResult {
+  /** The full text, i.e. all chunks joined */
+  text: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export interface LLMProvider {
   readonly name: string;
   /** Primary model */
   readonly model: string;
   /** Throws LLMError on failure */
   generateJson(request: JsonGenerationRequest): Promise<JsonGenerationResult>;
+  /**
+   * Generates free text and calls onDelta for every chunk as soon as it arrives.
+   * Throws LLMError on failure (also after some chunks were already delivered).
+   */
+  streamText(
+    request: TextGenerationRequest,
+    onDelta: (text: string) => void,
+  ): Promise<TextGenerationResult>;
 }

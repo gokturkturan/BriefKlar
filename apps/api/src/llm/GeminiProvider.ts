@@ -5,6 +5,8 @@ import type {
   JsonGenerationResult,
   LLMInputPart,
   LLMProvider,
+  TextGenerationRequest,
+  TextGenerationResult,
 } from "./LLMProvider";
 
 function toGeminiPart(part: LLMInputPart): Part {
@@ -44,31 +46,87 @@ export class GeminiProvider implements LLMProvider {
   }
 
   async generateJson(request: JsonGenerationRequest): Promise<JsonGenerationResult> {
-    // Simple circuit breaker: while the primary model is cooling down, go straight to the fallback
+    return this.withFallback((model) => this.call(model, request));
+  }
+
+  async streamText(
+    request: TextGenerationRequest,
+    onDelta: (text: string) => void,
+  ): Promise<TextGenerationResult> {
+    let started = false;
+    const emit = (text: string) => {
+      started = true;
+      onDelta(text);
+    };
+    // Once text has reached the user, switching to another model would mix two answers
+    return this.withFallback((model) => this.stream(model, request, emit), () => !started);
+  }
+
+  /**
+   * Simple circuit breaker: after the primary model is overloaded or rate limited, the
+   * fallback model answers for a while instead of waiting for the primary to fail again.
+   */
+  private async withFallback<T>(
+    run: (model: string) => Promise<T>,
+    canFallBack: () => boolean = () => true,
+  ): Promise<T> {
     if (this.fallbackModel && Date.now() < this.primaryCooldownUntil) {
       try {
-        return await this.call(this.fallbackModel, request);
+        return await run(this.fallbackModel);
       } catch (err) {
         throw toLLMError(err, this.fallbackModel);
       }
     }
 
     try {
-      return await this.call(this.model, request);
+      return await run(this.model);
     } catch (err) {
       const error = toLLMError(err, this.model);
       // Overload (503) and quota (429) are per model, so a smaller model often still works
-      const canFallBack = error.statusCode === 503 || error.statusCode === 429;
-      if (!this.fallbackModel || !canFallBack) throw error;
+      const overloaded = error.statusCode === 503 || error.statusCode === 429;
+      if (!this.fallbackModel || !overloaded || !canFallBack()) throw error;
 
       this.primaryCooldownUntil = Date.now() + PRIMARY_COOLDOWN_MS;
       console.warn(`${error.message} -> using ${this.fallbackModel} for the next ${PRIMARY_COOLDOWN_MS / 60000} min`);
       try {
-        return await this.call(this.fallbackModel, request);
+        return await run(this.fallbackModel);
       } catch (fallbackErr) {
         throw toLLMError(fallbackErr, this.fallbackModel);
       }
     }
+  }
+
+  private async stream(
+    model: string,
+    request: TextGenerationRequest,
+    onDelta: (text: string) => void,
+  ): Promise<TextGenerationResult> {
+    const stream = await this.client.models.generateContentStream({
+      model,
+      contents: [{ role: "user", parts: request.input.map(toGeminiPart) }],
+      config: {
+        systemInstruction: request.system,
+        temperature: 0.3, // explanations may vary a little, facts come from the letter
+        abortSignal: request.signal,
+      },
+    });
+
+    let text = "";
+    let inputTokens = 0;
+    let outputTokens = 0;
+    for await (const chunk of stream) {
+      const delta = chunk.text ?? "";
+      if (delta) {
+        text += delta;
+        onDelta(delta);
+      }
+      // Usage is reported with the chunks; the last one has the totals
+      if (chunk.usageMetadata) {
+        inputTokens = chunk.usageMetadata.promptTokenCount ?? inputTokens;
+        outputTokens = chunk.usageMetadata.candidatesTokenCount ?? outputTokens;
+      }
+    }
+    return { text, model, inputTokens, outputTokens };
   }
 
   private async call(model: string, request: JsonGenerationRequest): Promise<JsonGenerationResult> {
