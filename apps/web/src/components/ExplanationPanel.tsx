@@ -1,39 +1,14 @@
 import { useState } from "react";
-import {
-  EXPLANATION_LANGUAGES,
-  isExplanationLanguage,
-  RTL_LANGUAGES,
-  type ExplanationLanguage,
-} from "@briefklar/shared";
+import { EXPLANATION_LANGUAGES, RTL_LANGUAGES } from "@briefklar/shared";
 import { useExplanationStream } from "../hooks/useExplanationStream";
+import { usePreferredLanguage } from "../hooks/usePreferredLanguage";
 import { PlainText } from "./PlainText";
 
-const STORAGE_KEY = "briefklar.explanationLanguage";
-
-function storedLanguage(): ExplanationLanguage {
-  try {
-    const value = localStorage.getItem(STORAGE_KEY);
-    return isExplanationLanguage(value) ? value : "en";
-  } catch {
-    return "en";
-  }
-}
-
 export function ExplanationPanel({ documentId }: { documentId: string }) {
-  const [language, setLanguage] = useState<ExplanationLanguage>(storedLanguage);
+  const [language, changeLanguage] = usePreferredLanguage();
   const [requested, setRequested] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const state = useExplanationStream(documentId, language, requested, attempt);
-
-  const changeLanguage = (value: string) => {
-    if (!isExplanationLanguage(value)) return;
-    setLanguage(value);
-    try {
-      localStorage.setItem(STORAGE_KEY, value);
-    } catch {
-      // Storage can be blocked: the choice is then only kept for this page
-    }
-  };
 
   const busy = state.status === "streaming";
   const text =

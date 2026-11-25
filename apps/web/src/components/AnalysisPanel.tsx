@@ -12,6 +12,7 @@ import {
 } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
 import { ExplanationPanel } from "./ExplanationPanel";
+import { ReplyDraftsPanel } from "./ReplyDraftsPanel";
 
 const urgencyStyles: Record<Urgency, string> = {
   LOW: "bg-slate-100 text-slate-700",
@@ -234,6 +235,16 @@ export function AnalysisPanel({
           You have the right to object to this decision (Widerspruch / Einspruch). Check the deadline
           in the letter.
         </p>
+      )}
+
+      {extraction.isOfficialLetter && (
+        <Section title="Write a reply in German">
+          <ReplyDraftsPanel
+            documentId={documentId}
+            objectionPossible={extraction.objectionPossible}
+            hasDocuments={extraction.requiredDocuments.length > 0}
+          />
+        </Section>
       )}
 
       <footer className="border-t border-slate-100 pt-3 text-xs text-slate-400">

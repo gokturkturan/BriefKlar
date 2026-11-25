@@ -1,4 +1,11 @@
-import type { ApiErrorBody, DocumentDetailDto, DocumentDto, HealthDto } from "@briefklar/shared";
+import type {
+  ApiErrorBody,
+  CreateReplyDraftInput,
+  DocumentDetailDto,
+  DocumentDto,
+  HealthDto,
+  ReplyDraftDto,
+} from "@briefklar/shared";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -29,6 +36,26 @@ export const api = {
       body: JSON.stringify({ done }),
     }),
 
+  listReplyDrafts: (documentId: string) =>
+    request<ReplyDraftDto[]>(`/api/documents/${documentId}/reply-drafts`),
+
+  createReplyDraft: (documentId: string, input: CreateReplyDraftInput) =>
+    request<ReplyDraftDto>(`/api/documents/${documentId}/reply-drafts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+
+  updateReplyDraft: (documentId: string, draftId: string, contentDe: string) =>
+    request<void>(`/api/documents/${documentId}/reply-drafts/${draftId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentDe }),
+    }),
+
+  deleteReplyDraft: (documentId: string, draftId: string) =>
+    request<void>(`/api/documents/${documentId}/reply-drafts/${draftId}`, { method: "DELETE" }),
+
   uploadDocument: (file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -44,5 +71,6 @@ export const api = {
 export const queryKeys = {
   documents: ["documents"] as const,
   document: (id: string) => ["documents", id] as const,
+  replyDrafts: (id: string) => ["documents", id, "reply-drafts"] as const,
   health: ["health"] as const,
 };
