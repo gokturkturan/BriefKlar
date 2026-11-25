@@ -33,6 +33,8 @@ model User {
   email             String     @unique
   name              String?
   preferredLanguage String     @default("en")
+  /// Federal state (e.g. "NW") for regional public holidays; null = nationwide only
+  state             String?
   createdAt         DateTime   @default(now())
   documents         Document[]
 }
@@ -47,6 +49,8 @@ model Document {
   sizeBytes    Int
   pageCount    Int?
   rawText      String?
+  /// Day the letter arrived, entered by the user; replaces the assumed delivery date
+  receivedDate DateTime?      @db.Date
   status       DocumentStatus @default(UPLOADED)
   errorMessage String?
   createdAt    DateTime       @default(now())

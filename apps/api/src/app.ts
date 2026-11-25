@@ -8,6 +8,7 @@ import { debugRouter } from "./routes/debug";
 import { documentsRouter } from "./routes/documents";
 import { explanationRouter } from "./routes/explanation";
 import { replyDraftsRouter } from "./routes/replyDrafts";
+import { settingsRouter } from "./routes/settings";
 import { healthRouter } from "./routes/health";
 
 export function createApp() {
@@ -23,6 +24,7 @@ export function createApp() {
   app.use("/api/documents/:id/explanation", explanationRouter);
   app.use("/api/documents/:id/reply-drafts", replyDraftsRouter);
   app.use("/api/documents", documentsRouter);
+  app.use("/api/settings", settingsRouter);
   if (env.NODE_ENV === "development") app.use("/api/debug", debugRouter);
 
   app.use(notFound);

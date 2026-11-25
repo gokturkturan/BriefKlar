@@ -1,3 +1,4 @@
+import type { GermanState } from "@briefklar/shared";
 import { addDays, isWeekend, makeDate, weekday, type IsoDate } from "./calendarDate";
 
 /**
@@ -9,11 +10,7 @@ import { addDays, isWeekend, makeDate, weekday, type IsoDate } from "./calendarD
  * included. Leaving out a holiday can only make a computed deadline earlier, never later.
  */
 
-export const GERMAN_STATES = [
-  "BW", "BY", "BE", "BB", "HB", "HH", "HE", "MV",
-  "NI", "NW", "RP", "SL", "SN", "ST", "SH", "TH",
-] as const;
-export type GermanState = (typeof GERMAN_STATES)[number];
+export { GERMAN_STATES, type GermanState } from "@briefklar/shared";
 
 /** Easter Sunday (Gregorian calendar), anonymous Gregorian algorithm by Meeus/Jones/Butcher */
 export function easterSunday(year: number): IsoDate {

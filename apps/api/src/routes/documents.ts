@@ -7,6 +7,7 @@ import {
   isTerminalStatus,
   LetterExtractionSchema,
   UPLOAD_LIMITS,
+  UpdateDocumentSchema,
   type AcceptedMimeType,
   type DocumentDetailDto,
   type DocumentDto,
@@ -17,6 +18,9 @@ import { prisma } from "../lib/prisma";
 import { HttpError } from "../lib/httpError";
 import { detectFileType } from "../lib/fileType";
 import { storage } from "../storage";
+import { recomputeDeadlines } from "../deadlines";
+import { isIsoDate } from "../deadlines/calendarDate";
+import { todayInGermany } from "../replies/composeReplyLetter";
 import { documentQueue, enqueueDocument } from "../queue/documentQueue";
 import { subscribeToDocument } from "../queue/documentEvents";
 import { getUserId } from "../middleware/demoUser";
@@ -37,6 +41,7 @@ function toDto(doc: Document): DocumentDto {
     sizeBytes: doc.sizeBytes,
     status: doc.status,
     errorMessage: doc.errorMessage,
+    receivedDate: doc.receivedDate ? doc.receivedDate.toISOString().slice(0, 10) : null,
     createdAt: doc.createdAt.toISOString(),
   };
 }
@@ -124,6 +129,40 @@ documentsRouter.get("/:id", async (req, res) => {
     analysis: toAnalysisDto(doc.extractions[0], doc.actionItems, doc.deadlines),
   };
   res.json(body);
+});
+
+// PATCH /api/documents/:id  { receivedDate: "YYYY-MM-DD" | null }
+// The real delivery date replaces the assumed one, and the deadlines are calculated again.
+documentsRouter.patch("/:id", async (req, res) => {
+  const body = UpdateDocumentSchema.safeParse(req.body);
+  if (!body.success) throw new HttpError(400, "Expected { receivedDate: YYYY-MM-DD or null }", "INVALID_BODY");
+  const { receivedDate } = body.data;
+
+  const doc = await findOwnedDocument(req);
+  if (doc.status === "PROCESSING") {
+    throw new HttpError(409, "This letter is being processed. Try again in a moment.", "ALREADY_PROCESSING");
+  }
+  if (receivedDate !== null) {
+    if (!isIsoDate(receivedDate)) throw new HttpError(400, "This date does not exist.", "INVALID_DATE");
+    if (receivedDate > todayInGermany()) {
+      throw new HttpError(400, "The delivery date cannot be in the future.", "INVALID_DATE");
+    }
+    const latest = await prisma.extraction.findFirst({
+      where: { documentId: doc.id },
+      orderBy: { createdAt: "desc" },
+    });
+    const letterDate = LetterExtractionSchema.safeParse(latest?.data).data?.letterDate;
+    if (letterDate && receivedDate < letterDate) {
+      throw new HttpError(400, "The letter cannot have arrived before its own date.", "INVALID_DATE");
+    }
+  }
+
+  const updated = await prisma.document.update({
+    where: { id: doc.id },
+    data: { receivedDate: receivedDate ? new Date(`${receivedDate}T00:00:00Z`) : null },
+  });
+  if (updated.status === "DONE") await recomputeDeadlines(doc.id);
+  res.json(toDto(updated));
 });
 
 // DELETE /api/documents/:id  -> removes the file, all analysis data and the queue job

@@ -28,6 +28,8 @@ export interface DocumentDto {
   sizeBytes: number;
   status: DocumentStatus;
   errorMessage: string | null;
+  /** Day the letter arrived (YYYY-MM-DD), entered by the user */
+  receivedDate: string | null;
   createdAt: string; // ISO date
 }
 
