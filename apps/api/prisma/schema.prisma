@@ -118,6 +118,7 @@ model ActionItem {
   position   Int      @default(0)
 }
 
+/// German reply letter; the frame is built by code, the body written by the model
 model ReplyDraft {
   id                  String   @id @default(uuid())
   documentId          String
@@ -125,7 +126,15 @@ model ReplyDraft {
   type                String
   contentDe           String
   contentUserLanguage String
+  /// Language of contentUserLanguage
+  language            String   @default("en")
+  /// What the user asked for in their own words
+  notes               String   @default("")
+  model               String?
+  promptVersion       String?
   createdAt           DateTime @default(now())
+
+  @@index([documentId, createdAt])
 }
 
 model ChatMessage {
