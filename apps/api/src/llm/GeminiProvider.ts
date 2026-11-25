@@ -35,6 +35,13 @@ const PRIMARY_COOLDOWN_MS = 2 * 60 * 1000;
 /** Longest wait for the first chunk of a streamed answer */
 const FIRST_CHUNK_TIMEOUT_MS = 20_000;
 
+/** Longest wait for a complete JSON answer (reading a scanned letter takes a while) */
+const JSON_TIMEOUT_MS = 60_000;
+
+function timeoutError(model: string, ms: number): LLMError {
+  return new LLMError(`Gemini (${model}) did not answer within ${ms / 1000} s`, true, userMessageForStatus(504), 504, model);
+}
+
 export class GeminiProvider implements LLMProvider {
   readonly name = "gemini";
   private readonly client: GoogleGenAI;
@@ -140,15 +147,7 @@ export class GeminiProvider implements LLMProvider {
         }
       }
     } catch (err) {
-      if (timeout.signal.aborted && !request.signal?.aborted) {
-        throw new LLMError(
-          `Gemini (${model}) sent nothing for ${FIRST_CHUNK_TIMEOUT_MS / 1000} s`,
-          true,
-          userMessageForStatus(504),
-          504,
-          model,
-        );
-      }
+      if (timeout.signal.aborted && !request.signal?.aborted) throw timeoutError(model, FIRST_CHUNK_TIMEOUT_MS);
       throw err;
     } finally {
       clearTimeout(timer);
@@ -157,16 +156,25 @@ export class GeminiProvider implements LLMProvider {
   }
 
   private async call(model: string, request: JsonGenerationRequest): Promise<JsonGenerationResult> {
-    const response = await this.client.models.generateContent({
-      model,
-      contents: [{ role: "user", parts: request.input.map(toGeminiPart) }],
-      config: {
-        systemInstruction: request.system,
-        responseMimeType: "application/json",
-        responseJsonSchema: request.jsonSchema,
-        temperature: 0, // extraction should be as deterministic as possible
-      },
-    });
+    // Without a limit, a request to an overloaded model can hang for minutes
+    const timeout = AbortSignal.timeout(JSON_TIMEOUT_MS);
+    let response;
+    try {
+      response = await this.client.models.generateContent({
+        model,
+        contents: [{ role: "user", parts: request.input.map(toGeminiPart) }],
+        config: {
+          systemInstruction: request.system,
+          responseMimeType: "application/json",
+          responseJsonSchema: request.jsonSchema,
+          temperature: 0, // extraction should be as deterministic as possible
+          abortSignal: timeout,
+        },
+      });
+    } catch (err) {
+      if (timeout.aborted) throw timeoutError(model, JSON_TIMEOUT_MS);
+      throw err;
+    }
 
     return {
       text: response.text ?? "",
