@@ -80,7 +80,24 @@ model Extraction {
   promptVersion String
   createdAt     DateTime @default(now())
 
+  translations AnalysisTranslation[]
+
   @@index([documentId])
+}
+
+/// Texts of an extraction in the user's language (AnalysisTranslationSchema), cached per language.
+/// A new analysis of the letter gets new translations.
+model AnalysisTranslation {
+  id            String     @id @default(uuid())
+  extractionId  String
+  extraction    Extraction @relation(fields: [extractionId], references: [id], onDelete: Cascade)
+  language      String
+  data          Json
+  model         String
+  promptVersion String
+  createdAt     DateTime   @default(now())
+
+  @@unique([extractionId, language])
 }
 
 /// Plain-language explanation, generated on request and cached per language

@@ -1,6 +1,6 @@
 import { UnrecoverableError, type Job } from "bullmq";
 import { Prisma } from "@prisma/client";
-import type { ErrorCode, ProgressEvent } from "@briefklar/shared";
+import { isExplanationLanguage, type ErrorCode, type ProgressEvent } from "@briefklar/shared";
 import { deadlineContext, deadlineRows } from "../deadlines";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
@@ -9,6 +9,7 @@ import { LLMValidationError } from "../llm/generateStructured";
 import { EXTRACT_LETTER_PROMPT_VERSION } from "../prompts/extractLetter";
 import type { DocumentJobData } from "../queue/constants";
 import { storage } from "../storage";
+import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "../translations/analysisTranslations";
 
 async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<void> {
   await job.updateProgress(event);
@@ -36,6 +37,7 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
     const doc = await prisma.document.update({
       where: { id: documentId },
       data: { status: "PROCESSING", errorMessage: null, errorCode: null },
+      include: { user: { select: { preferredLanguage: true } } },
     });
 
     await report(job, { status: "PROCESSING", step: "preprocessing" });
@@ -49,8 +51,8 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
     });
 
     await report(job, { status: "PROCESSING", step: "saving" });
-    await prisma.$transaction(async (tx) => {
-      await tx.extraction.create({
+    const saved = await prisma.$transaction(async (tx) => {
+      const row = await tx.extraction.create({
         data: {
           documentId,
           data: extraction as unknown as Prisma.InputJsonValue,
@@ -72,9 +74,20 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
       await tx.deadline.createMany({
         data: deadlineRows(documentId, extraction, await deadlineContext(documentId, tx)),
       });
-
-      await tx.document.update({ where: { id: documentId }, data: { status: "DONE" } });
+      return row;
     });
+
+    // The analysis is written in English; translate it now, so the letter opens in the
+    // user's language. Not critical: the page asks for the translation again if this fails.
+    const language = doc.user.preferredLanguage;
+    if (isExplanationLanguage(language) && language !== ANALYSIS_LANGUAGE) {
+      await report(job, { status: "PROCESSING", step: "translating" });
+      await getOrCreateTranslation(saved, language).catch((err: unknown) => {
+        console.warn(`Translation into ${language} failed for ${documentId}:`, err);
+      });
+    }
+
+    await prisma.document.update({ where: { id: documentId }, data: { status: "DONE" } });
 
     await report(job, { status: "DONE" });
   } catch (err) {

@@ -13,6 +13,8 @@ interface GenerateStructuredOptions<T> {
   documentId?: string;
   /** How many times to ask the model to fix an invalid answer */
   maxRepairAttempts?: number;
+  /** Longest wait for each answer */
+  timeoutMs?: number;
 }
 
 export class LLMValidationError extends Error {
@@ -61,7 +63,7 @@ export async function generateStructured<T>(
     const startedAt = Date.now();
     let result;
     try {
-      result = await provider.generateJson({ system, input, jsonSchema });
+      result = await provider.generateJson({ system, input, jsonSchema, timeoutMs: options.timeoutMs });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await logCall({

@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { env } from "./config/env";
 import { demoUser } from "./middleware/demoUser";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+import { analysisTranslationRouter } from "./routes/analysisTranslation";
 import { debugRouter } from "./routes/debug";
 import { documentsRouter } from "./routes/documents";
 import { explanationRouter } from "./routes/explanation";
@@ -22,6 +23,7 @@ export function createApp() {
 
   app.use("/api", demoUser);
   app.use("/api/documents/:id/explanation", explanationRouter);
+  app.use("/api/documents/:id/translation", analysisTranslationRouter);
   app.use("/api/documents/:id/reply-drafts", replyDraftsRouter);
   app.use("/api/documents", documentsRouter);
   app.use("/api/settings", settingsRouter);

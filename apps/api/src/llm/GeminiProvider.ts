@@ -160,7 +160,8 @@ export class GeminiProvider implements LLMProvider {
 
   private async call(model: string, request: JsonGenerationRequest): Promise<JsonGenerationResult> {
     // Without a limit, a request to an overloaded model can hang for minutes
-    const timeout = AbortSignal.timeout(JSON_TIMEOUT_MS);
+    const timeoutMs = request.timeoutMs ?? JSON_TIMEOUT_MS;
+    const timeout = AbortSignal.timeout(timeoutMs);
     let response;
     try {
       response = await this.client.models.generateContent({
@@ -175,7 +176,7 @@ export class GeminiProvider implements LLMProvider {
         },
       });
     } catch (err) {
-      if (timeout.aborted) throw timeoutError(model, JSON_TIMEOUT_MS);
+      if (timeout.aborted) throw timeoutError(model, timeoutMs);
       throw err;
     }
 

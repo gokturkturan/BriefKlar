@@ -12,6 +12,8 @@ export interface JsonGenerationRequest {
   input: LLMInputPart[];
   /** JSON Schema the model's output must follow */
   jsonSchema: Record<string, unknown>;
+  /** Longest wait for the answer; the provider has a default for reading whole letters */
+  timeoutMs?: number;
 }
 
 export interface JsonGenerationResult {
