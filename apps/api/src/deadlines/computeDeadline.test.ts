@@ -16,21 +16,31 @@ describe("computeRelativeDeadline", () => {
       const result = due({ rawText: MONTH_AFTER_NOTICE, letterDate: "2026-11-12", senderType: "JOBCENTER" });
       expect(result.dueDate).toBe("2026-12-16");
       expect(result.isEstimate).toBe(true);
-      expect(result.explanation[0]).toContain("4th day");
+      expect(result.steps[0]).toEqual({
+        type: "DEEMED_DELIVERY",
+        days: 4,
+        letterDate: "2026-11-12",
+        deliveryDate: "2026-11-16",
+      });
     });
 
     it("moves the delivery day off a weekend before counting", () => {
       // Tue 3 Mar 2026 + 4 = Sat 7 Mar -> Mon 9 Mar -> Thu 9 Apr
       const result = due({ rawText: MONTH_AFTER_NOTICE, letterDate: "2026-03-03", senderType: "FINANZAMT" });
       expect(result.dueDate).toBe("2026-04-09");
-      expect(result.explanation.join(" ")).toContain("is a Saturday, so the delivery date moves");
+      expect(result.steps).toContainEqual({
+        type: "DELIVERY_MOVED",
+        date: "2026-03-07",
+        reason: "SATURDAY",
+        movedTo: "2026-03-09",
+      });
     });
 
     it("uses the 3-day rule for letters dated before 2025", () => {
       // Fri 20 Dec 2024 + 3 = Mon 23 Dec -> Thu 23 Jan 2025
       const result = due({ rawText: MONTH_AFTER_NOTICE, letterDate: "2024-12-20", senderType: "FINANZAMT" });
       expect(result.dueDate).toBe("2025-01-23");
-      expect(result.explanation[0]).toContain("3rd day");
+      expect(result.steps[0]).toMatchObject({ type: "DEEMED_DELIVERY", days: 3 });
     });
 
     it("counts weeks to the same weekday", () => {
@@ -65,14 +75,21 @@ describe("computeRelativeDeadline", () => {
       // Mon 8 Jun 2026 -> delivered Fri 12 Jun -> Sun 12 Jul -> Mon 13 Jul
       const result = due({ rawText: MONTH_AFTER_NOTICE, letterDate: "2026-06-08", senderType: "FINANZAMT" });
       expect(result.dueDate).toBe("2026-07-13");
-      expect(result.explanation.at(-1)).toContain("is a Sunday, so the deadline moves");
+      expect(result.steps.at(-1)).toEqual({
+        type: "DEADLINE_MOVED",
+        date: "2026-07-12",
+        reason: "SUNDAY",
+        movedTo: "2026-07-13",
+      });
     });
 
     it("skips Christmas and the weekend after it", () => {
       // Sat 21 Nov 2026 -> delivered Wed 25 Nov -> Fri 25 Dec -> Mon 28 Dec
       const result = due({ rawText: MONTH_AFTER_NOTICE, letterDate: "2026-11-21", senderType: "FINANZAMT" });
       expect(result.dueDate).toBe("2026-12-28");
-      expect(result.explanation.join(" ")).toContain("Christmas Day");
+      expect(result.steps).toContainEqual(
+        expect.objectContaining({ type: "DEADLINE_MOVED", reason: "CHRISTMAS_DAY" }),
+      );
     });
 
     it("uses regional holidays when the state is known", () => {
@@ -88,8 +105,11 @@ describe("computeRelativeDeadline", () => {
 
       const withoutState = due(input);
       expect(withoutState.dueDate).toBe("2026-06-04");
-      expect(withoutState.explanation.at(-1)).toContain("public holiday in some federal states");
-      expect(withoutState.explanation.at(-1)).toContain("NW");
+      expect(withoutState.steps.at(-1)).toEqual({
+        type: "REGIONAL_HOLIDAY",
+        date: "2026-06-04",
+        states: ["BW", "BY", "HE", "NW", "RP", "SL"],
+      });
     });
   });
 
@@ -112,7 +132,7 @@ describe("computeRelativeDeadline", () => {
       });
       expect(result.dueDate).toBe("2026-11-19");
       expect(result.isEstimate).toBe(true);
-      expect(result.explanation[0]).toContain("safe side");
+      expect(result.steps[0]).toEqual({ type: "COUNTED_FROM_LETTER_DATE", date: "2026-11-05" });
     });
 
     it("counts formal delivery (Zustellung) from the letter date and mentions the envelope", () => {
@@ -122,7 +142,7 @@ describe("computeRelativeDeadline", () => {
         senderType: "FINANZAMT",
       });
       expect(result.dueDate).toBe("2026-11-24");
-      expect(result.explanation.join(" ")).toContain("yellow envelope");
+      expect(result.steps).toContainEqual({ type: "YELLOW_ENVELOPE" });
     });
 
     it("uses the actual receipt date when it is known", () => {
@@ -140,7 +160,14 @@ describe("computeRelativeDeadline", () => {
       const result = due({ rawText: "binnen 14 Tagen", letterDate: "2026-11-12", senderType: "JOBCENTER" });
       // delivered Mon 16 Nov -> Mon 30 Nov
       expect(result.dueDate).toBe("2026-11-30");
-      expect(result.explanation[0]).toContain("does not say when the period starts");
+      expect(result.steps[0]).toEqual({ type: "START_ASSUMED" });
+      expect(result.steps.at(-1)).toEqual({
+        type: "PERIOD_ENDS",
+        amount: 14,
+        unit: "DAY",
+        start: "2026-11-16",
+        end: "2026-11-30",
+      });
     });
   });
 

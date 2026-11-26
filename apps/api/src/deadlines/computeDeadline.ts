@@ -1,7 +1,7 @@
-import type { SenderType } from "@briefklar/shared";
-import { addDays, addMonths, formatLong, isIsoDate, weekday, type IsoDate } from "./calendarDate";
-import { GERMAN_STATES, holidayName, isWorkingDay, nextWorkingDay, type GermanState } from "./holidays";
-import { parseRelativeDeadline, type PeriodUnit, type RelativePeriod } from "./parseRelativeDeadline";
+import type { DeadlineStep, NonWorkingDay, SenderType } from "@briefklar/shared";
+import { addDays, addMonths, isIsoDate, weekday, type IsoDate } from "./calendarDate";
+import { GERMAN_STATES, holidayOn, isWorkingDay, nextWorkingDay, type GermanState } from "./holidays";
+import { parseRelativeDeadline, type RelativePeriod } from "./parseRelativeDeadline";
 
 /**
  * Computes the due date of a relative deadline with the rules of German law:
@@ -51,22 +51,11 @@ export type DeadlineResult =
       dueDate: IsoDate;
       /** true if the start of the period was assumed rather than known */
       isEstimate: boolean;
-      /** Each step of the calculation in plain English, for the user */
-      explanation: string[];
+      /** Each step of the calculation as data; the web app puts it into words */
+      steps: DeadlineStep[];
       period: RelativePeriod;
     }
   | { ok: false; reason: string };
-
-const UNIT_NAMES: Record<PeriodUnit, [string, string]> = {
-  DAY: ["day", "days"],
-  WEEK: ["week", "weeks"],
-  MONTH: ["month", "months"],
-  YEAR: ["year", "years"],
-};
-
-function describePeriod({ amount, unit }: RelativePeriod): string {
-  return `${amount} ${UNIT_NAMES[unit][amount === 1 ? 0 : 1]}`;
-}
 
 function addPeriod(start: IsoDate, { amount, unit }: RelativePeriod): IsoDate {
   switch (unit) {
@@ -81,17 +70,15 @@ function addPeriod(start: IsoDate, { amount, unit }: RelativePeriod): IsoDate {
   }
 }
 
-/** "a Sunday", "Easter Monday (Ostermontag), a public holiday" */
-function whyNotWorkingDay(date: IsoDate, state?: GermanState): string {
-  const holiday = holidayName(date, state);
-  if (holiday) return `${holiday}, a public holiday`;
-  return weekday(date) === 6 ? "a Saturday" : "a Sunday";
+/** Saturday, Sunday or the public holiday on that date */
+function whyNotWorkingDay(date: IsoDate, state?: GermanState): NonWorkingDay {
+  return holidayOn(date, state) ?? (weekday(date) === 6 ? "SATURDAY" : "SUNDAY");
 }
 
 interface Start {
   date: IsoDate;
   isEstimate: boolean;
-  explanation: string[];
+  steps: DeadlineStep[];
 }
 
 function startOfPeriod(input: DeadlineInput, period: RelativePeriod): Start | string {
@@ -101,7 +88,7 @@ function startOfPeriod(input: DeadlineInput, period: RelativePeriod): Start | st
     return {
       date: receivedDate,
       isEstimate: false,
-      explanation: [`You received the letter on ${formatLong(receivedDate)}.`],
+      steps: [{ type: "RECEIVED_ON", date: receivedDate }],
     };
   }
 
@@ -111,38 +98,25 @@ function startOfPeriod(input: DeadlineInput, period: RelativePeriod): Start | st
     return {
       date: letterDate,
       isEstimate: false,
-      explanation: [`The period starts with the letter date, ${formatLong(letterDate)}.`],
+      steps: [{ type: "STARTS_ON_LETTER_DATE", date: letterDate }],
     };
   }
 
   if (period.anchor === "RECEIPT" && AUTHORITY_SENDERS.has(senderType)) {
     const days = letterDate >= FOUR_DAY_RULE_FROM ? 4 : 3;
     const deemed = addDays(letterDate, days);
-    const explanation = [
-      `A letter from an authority sent by post counts as delivered on the ${days === 4 ? "4th" : "3rd"} ` +
-        `day after it was posted (§ 122 AO, § 41 VwVfG, § 37 SGB X). Assuming it was posted on the ` +
-        `letter date, ${formatLong(letterDate)}, that is ${formatLong(deemed)}.`,
-    ];
-    if (isWorkingDay(deemed, state)) return { date: deemed, isEstimate: true, explanation };
+    const steps: DeadlineStep[] = [{ type: "DEEMED_DELIVERY", days, letterDate, deliveryDate: deemed }];
+    if (isWorkingDay(deemed, state)) return { date: deemed, isEstimate: true, steps };
 
     const moved = nextWorkingDay(deemed, state);
-    explanation.push(
-      `${formatLong(deemed)} is ${whyNotWorkingDay(deemed, state)}, so the delivery date moves to the ` +
-        `next working day, ${formatLong(moved)}.`,
-    );
-    return { date: moved, isEstimate: true, explanation };
+    steps.push({ type: "DELIVERY_MOVED", date: deemed, reason: whyNotWorkingDay(deemed, state), movedTo: moved });
+    return { date: moved, isEstimate: true, steps };
   }
 
-  const explanation = [
-    `The letter does not say when it reached you. To be on the safe side, the period is counted ` +
-      `from the letter date, ${formatLong(letterDate)}. If you received it later, your deadline may be later.`,
-  ];
-  if (period.anchor === "SERVICE") {
-    explanation.push(
-      "If the letter came in a yellow envelope (Zustellung), the delivery date is written on the envelope.",
-    );
-  }
-  return { date: letterDate, isEstimate: true, explanation };
+  // No known delivery date: counting from the letter date gives the earliest possible deadline
+  const steps: DeadlineStep[] = [{ type: "COUNTED_FROM_LETTER_DATE", date: letterDate }];
+  if (period.anchor === "SERVICE") steps.push({ type: "YELLOW_ENVELOPE" });
+  return { date: letterDate, isEstimate: true, steps };
 }
 
 export function computeRelativeDeadline(input: DeadlineInput): DeadlineResult {
@@ -157,34 +131,22 @@ export function computeRelativeDeadline(input: DeadlineInput): DeadlineResult {
   const start = startOfPeriod(input, period);
   if (typeof start === "string") return { ok: false, reason: start };
 
-  const explanation = [...start.explanation];
-  if (!period.anchorStated) {
-    explanation.unshift("The letter does not say when the period starts, so it is assumed to start on delivery.");
-  }
+  const steps = [...start.steps];
+  if (!period.anchorStated) steps.unshift({ type: "START_ASSUMED" });
 
   const end = addPeriod(start.date, period);
-  explanation.push(
-    `${describePeriod(period)} after ${formatLong(start.date)} ends on ${formatLong(end)} (§§ 187, 188 BGB).`,
-  );
+  steps.push({ type: "PERIOD_ENDS", amount: period.amount, unit: period.unit, start: start.date, end });
 
   let dueDate = end;
   if (!isWorkingDay(end, input.state)) {
     dueDate = nextWorkingDay(end, input.state);
-    explanation.push(
-      `${formatLong(end)} is ${whyNotWorkingDay(end, input.state)}, so the deadline moves to the next ` +
-        `working day, ${formatLong(dueDate)} (§ 193 BGB).`,
-    );
+    steps.push({ type: "DEADLINE_MOVED", date: end, reason: whyNotWorkingDay(end, input.state), movedTo: dueDate });
   }
 
   if (!input.state) {
-    const regional = GERMAN_STATES.filter((state) => holidayName(dueDate, state) !== null);
-    if (regional.length > 0) {
-      explanation.push(
-        `${formatLong(dueDate)} is a public holiday in some federal states (${regional.join(", ")}). ` +
-          `If you live there, the deadline is the next working day.`,
-      );
-    }
+    const regional = GERMAN_STATES.filter((state) => holidayOn(dueDate, state) !== null);
+    if (regional.length > 0) steps.push({ type: "REGIONAL_HOLIDAY", date: dueDate, states: regional });
   }
 
-  return { ok: true, dueDate, isEstimate: start.isEstimate, explanation, period };
+  return { ok: true, dueDate, isEstimate: start.isEstimate, steps, period };
 }

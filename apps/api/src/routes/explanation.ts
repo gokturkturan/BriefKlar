@@ -95,9 +95,11 @@ explanationRouter.get("/", async (req, res) => {
   } catch (err) {
     if (abort.signal.aborted) return;
     console.error(`Explanation failed for ${doc.id}:`, err);
-    const message =
-      err instanceof LLMError ? err.userMessage : "The explanation could not be created. Please try again.";
-    send({ type: "error", message });
+    send(
+      err instanceof LLMError
+        ? { type: "error", message: err.userMessage, code: err.code }
+        : { type: "error", message: "The explanation could not be created. Please try again.", code: "AI_FAILED" },
+    );
   }
   res.end();
 });

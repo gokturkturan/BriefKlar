@@ -1,3 +1,5 @@
+import type { ErrorCode } from "@briefklar/shared";
+
 /**
  * Normalized error for all LLM providers.
  * - retryable: temporary problems (overloaded, rate limited, network) -> retry later
@@ -7,8 +9,9 @@ export class LLMError extends Error {
   constructor(
     message: string,
     readonly retryable: boolean,
-    /** Safe to show to end users */
+    /** Safe to show to end users (English; the web app translates the code) */
     readonly userMessage: string,
+    readonly code: ErrorCode,
     readonly statusCode?: number,
     /** The model that failed */
     readonly model?: string,
@@ -20,22 +23,28 @@ export class LLMError extends Error {
 
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
-export function userMessageForStatus(status: number | undefined): string {
+export function userErrorForStatus(status: number | undefined): { message: string; code: ErrorCode } {
   switch (status) {
     case 429:
-      return "The AI service rate limit was reached. Please try again in a few minutes.";
+      return {
+        code: "AI_RATE_LIMITED",
+        message: "The AI service rate limit was reached. Please try again in a few minutes.",
+      };
     case 503:
     case 500:
     case 502:
     case 504:
-      return "The AI service is temporarily overloaded. Please try again in a few minutes.";
+      return {
+        code: "AI_OVERLOADED",
+        message: "The AI service is temporarily overloaded. Please try again in a few minutes.",
+      };
     case 401:
     case 403:
-      return "The AI service rejected the API key. Check GEMINI_API_KEY.";
+      return { code: "AI_KEY_REJECTED", message: "The AI service rejected the API key. Check GEMINI_API_KEY." };
     case 404:
-      return "The configured AI model was not found. Check GEMINI_MODEL.";
+      return { code: "AI_MODEL_NOT_FOUND", message: "The configured AI model was not found. Check GEMINI_MODEL." };
     default:
-      return "The AI service could not process this letter.";
+      return { code: "AI_FAILED", message: "The AI service could not process this letter." };
   }
 }
 

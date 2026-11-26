@@ -8,7 +8,7 @@ import { getUserId } from "../middleware/demoUser";
 /** Express 5 types route params as string | string[] (wildcards); our routes only use plain ones. */
 export function routeParam(req: Request, name: string): string {
   const value = req.params[name];
-  if (typeof value !== "string") throw new HttpError(400, `Invalid route parameter: ${name}`);
+  if (typeof value !== "string") throw new HttpError(400, `Invalid route parameter: ${name}`, "INVALID_PARAM");
   return value;
 }
 

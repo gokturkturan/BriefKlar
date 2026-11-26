@@ -1,4 +1,4 @@
-import type { GermanState, LetterExtraction } from "@briefklar/shared";
+import type { DeadlineStep, GermanState, LetterExtraction } from "@briefklar/shared";
 import { resolveExplicitDate } from "../lib/germanDates";
 import type { IsoDate } from "./calendarDate";
 import { computeRelativeDeadline } from "./computeDeadline";
@@ -9,7 +9,7 @@ export interface DeadlineRow {
   sourceText: string;
   dueDate: Date;
   isEstimate: boolean;
-  explanation: string[];
+  steps: DeadlineStep[];
 }
 
 export interface DeadlineContext {
@@ -43,7 +43,7 @@ export function deadlineRows(
       );
     }
     if (date) {
-      return [{ ...base, dueDate: new Date(`${date}T00:00:00Z`), isEstimate: false, explanation: [] }];
+      return [{ ...base, dueDate: new Date(`${date}T00:00:00Z`), isEstimate: false, steps: [] }];
     }
 
     const computed = computeRelativeDeadline({
@@ -62,7 +62,7 @@ export function deadlineRows(
         ...base,
         dueDate: new Date(`${computed.dueDate}T00:00:00Z`),
         isEstimate: computed.isEstimate,
-        explanation: computed.explanation,
+        steps: computed.steps,
       },
     ];
   });

@@ -1,3 +1,5 @@
+import type { ErrorCode } from "./errors";
+
 /**
  * Plain-language explanation of a letter, streamed to the browser while the model writes it.
  */
@@ -32,4 +34,4 @@ export interface ExplanationDto {
 export type ExplanationStreamEvent =
   | { type: "delta"; text: string }
   | { type: "done"; explanation: ExplanationDto }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string; code: ErrorCode };

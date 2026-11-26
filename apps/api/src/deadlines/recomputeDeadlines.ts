@@ -46,7 +46,7 @@ export async function recomputeDeadlines(documentId: string): Promise<boolean> {
       for (const row of rows) {
         await tx.deadline.updateMany({
           where: { documentId, kind: row.kind, sourceText: row.sourceText },
-          data: { explanation: row.explanation },
+          data: { steps: row.steps },
         });
       }
       return false;

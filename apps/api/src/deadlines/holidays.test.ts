@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { easterSunday, holidayName, isWorkingDay, nextWorkingDay, publicHolidays } from "./holidays";
+import { easterSunday, holidayOn, isWorkingDay, nextWorkingDay, publicHolidays } from "./holidays";
 
 describe("easterSunday", () => {
   it.each([
@@ -30,33 +30,33 @@ describe("publicHolidays", () => {
   });
 
   it("adds state holidays only for that state", () => {
-    expect(holidayName("2026-06-04", "NW")).toBe("Corpus Christi (Fronleichnam)");
-    expect(holidayName("2026-06-04", "BE")).toBeNull();
-    expect(holidayName("2026-06-04")).toBeNull();
-    expect(holidayName("2026-03-08", "BE")).toBe("International Women's Day (Frauentag)");
-    expect(holidayName("2026-01-06", "BY")).toBe("Epiphany (Heilige Drei Könige)");
-    expect(holidayName("2026-09-20", "TH")).toBe("World Children's Day (Weltkindertag)");
+    expect(holidayOn("2026-06-04", "NW")).toBe("CORPUS_CHRISTI");
+    expect(holidayOn("2026-06-04", "BE")).toBeNull();
+    expect(holidayOn("2026-06-04")).toBeNull();
+    expect(holidayOn("2026-03-08", "BE")).toBe("WOMENS_DAY");
+    expect(holidayOn("2026-01-06", "BY")).toBe("EPIPHANY");
+    expect(holidayOn("2026-09-20", "TH")).toBe("CHILDRENS_DAY");
   });
 
   it("knows when state holidays were introduced", () => {
-    expect(holidayName("2018-03-08", "BE")).toBeNull();
-    expect(holidayName("2019-03-08", "BE")).not.toBeNull();
-    expect(holidayName("2022-03-08", "MV")).toBeNull();
-    expect(holidayName("2023-03-08", "MV")).not.toBeNull();
-    expect(holidayName("2016-10-31", "HH")).toBeNull();
-    expect(holidayName("2018-10-31", "HH")).not.toBeNull();
+    expect(holidayOn("2018-03-08", "BE")).toBeNull();
+    expect(holidayOn("2019-03-08", "BE")).not.toBeNull();
+    expect(holidayOn("2022-03-08", "MV")).toBeNull();
+    expect(holidayOn("2023-03-08", "MV")).not.toBeNull();
+    expect(holidayOn("2016-10-31", "HH")).toBeNull();
+    expect(holidayOn("2018-10-31", "HH")).not.toBeNull();
   });
 
   it("includes one-off holidays", () => {
-    expect(holidayName("2017-10-31")).toBe("Reformation Day (Reformationstag)");
-    expect(holidayName("2025-05-08", "BE")).toBe("Liberation Day (Tag der Befreiung)");
-    expect(holidayName("2026-05-08", "BE")).toBeNull();
+    expect(holidayOn("2017-10-31")).toBe("REFORMATION_DAY");
+    expect(holidayOn("2025-05-08", "BE")).toBe("LIBERATION_DAY");
+    expect(holidayOn("2026-05-08", "BE")).toBeNull();
   });
 
   it("puts Buß- und Bettag on the Wednesday before 23 November in Saxony", () => {
-    expect(holidayName("2025-11-19", "SN")).toBe("Day of Repentance and Prayer (Buß- und Bettag)");
-    expect(holidayName("2026-11-18", "SN")).toBe("Day of Repentance and Prayer (Buß- und Bettag)");
-    expect(holidayName("2026-11-18", "BY")).toBeNull();
+    expect(holidayOn("2025-11-19", "SN")).toBe("REPENTANCE_DAY");
+    expect(holidayOn("2026-11-18", "SN")).toBe("REPENTANCE_DAY");
+    expect(holidayOn("2026-11-18", "BY")).toBeNull();
   });
 });
 

@@ -73,9 +73,9 @@ replyDraftsRouter.post("/", async (req, res) => {
   try {
     result = await draftReply({ documentId: doc.id, type, extraction, notes, language });
   } catch (err) {
-    if (err instanceof LLMError) throw new HttpError(503, err.userMessage, "LLM_UNAVAILABLE");
+    if (err instanceof LLMError) throw new HttpError(503, err.userMessage, err.code);
     if (err instanceof LLMValidationError) {
-      throw new HttpError(502, "The AI returned an incomplete draft. Please try again.", "LLM_INVALID");
+      throw new HttpError(502, "The AI returned an incomplete draft. Please try again.", "AI_INCOMPLETE");
     }
     throw err;
   }

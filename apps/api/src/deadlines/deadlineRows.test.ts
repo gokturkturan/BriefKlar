@@ -38,7 +38,7 @@ describe("deadlineRows", () => {
     const row = objection(deadlineRows("doc", extraction, { receivedDate: "2026-04-30" }));
     expect(iso(row.dueDate)).toBe("2026-06-01"); // 30 May is a Saturday
     expect(row.isEstimate).toBe(false);
-    expect(row.explanation[0]).toBe("You received the letter on Thursday, 30 April 2026.");
+    expect(row.steps[0]).toEqual({ type: "RECEIVED_ON", date: "2026-04-30" });
   });
 
   it("applies the regional holidays of the user's state", () => {
@@ -47,12 +47,12 @@ describe("deadlineRows", () => {
     const berlin = objection(deadlineRows("doc", extraction, { state: "BE" }));
     expect(iso(nrw.dueDate)).toBe("2026-06-05");
     expect(iso(berlin.dueDate)).toBe("2026-06-04");
-    expect(berlin.explanation.join(" ")).not.toContain("some federal states");
+    expect(berlin.steps.map((step) => step.type)).not.toContain("REGIONAL_HOLIDAY");
   });
 
   it("notes regional holidays when the state is unknown", () => {
     const row = objection(deadlineRows("doc", extraction));
-    expect(row.explanation.at(-1)).toContain("public holiday in some federal states");
+    expect(row.steps.at(-1)).toMatchObject({ type: "REGIONAL_HOLIDAY", date: "2026-06-04" });
   });
 
   it("keeps explicit dates as written, whatever the context", () => {
@@ -60,6 +60,6 @@ describe("deadlineRows", () => {
     const documents = rows.find((r) => r.kind === "DOCUMENTS")!;
     expect(iso(documents.dueDate)).toBe("2026-05-15");
     expect(documents.isEstimate).toBe(false);
-    expect(documents.explanation).toEqual([]);
+    expect(documents.steps).toEqual([]);
   });
 });

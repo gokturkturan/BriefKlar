@@ -4,8 +4,10 @@ import multer from "multer";
 import type { ActionItem, Deadline, Document, Extraction } from "@prisma/client";
 import { z } from "zod";
 import {
+  isErrorCode,
   isTerminalStatus,
   LetterExtractionSchema,
+  parseDeadlineSteps,
   UPLOAD_LIMITS,
   UpdateDocumentSchema,
   type AcceptedMimeType,
@@ -41,6 +43,7 @@ function toDto(doc: Document): DocumentDto {
     sizeBytes: doc.sizeBytes,
     status: doc.status,
     errorMessage: doc.errorMessage,
+    errorCode: isErrorCode(doc.errorCode) ? doc.errorCode : null,
     receivedDate: doc.receivedDate ? doc.receivedDate.toISOString().slice(0, 10) : null,
     createdAt: doc.createdAt.toISOString(),
   };
@@ -68,7 +71,7 @@ function toAnalysisDto(
       kind: d.kind,
       sourceText: d.sourceText,
       isEstimate: d.isEstimate,
-      explanation: d.explanation,
+      steps: parseDeadlineSteps(d.steps),
     })),
   };
 }
@@ -145,7 +148,7 @@ documentsRouter.patch("/:id", async (req, res) => {
   if (receivedDate !== null) {
     if (!isIsoDate(receivedDate)) throw new HttpError(400, "This date does not exist.", "INVALID_DATE");
     if (receivedDate > todayInGermany()) {
-      throw new HttpError(400, "The delivery date cannot be in the future.", "INVALID_DATE");
+      throw new HttpError(400, "The delivery date cannot be in the future.", "DATE_IN_FUTURE");
     }
     const latest = await prisma.extraction.findFirst({
       where: { documentId: doc.id },
@@ -153,7 +156,7 @@ documentsRouter.patch("/:id", async (req, res) => {
     });
     const letterDate = LetterExtractionSchema.safeParse(latest?.data).data?.letterDate;
     if (letterDate && receivedDate < letterDate) {
-      throw new HttpError(400, "The letter cannot have arrived before its own date.", "INVALID_DATE");
+      throw new HttpError(400, "The letter cannot have arrived before its own date.", "DATE_BEFORE_LETTER");
     }
   }
 
@@ -189,7 +192,7 @@ documentsRouter.post("/:id/retry", async (req, res) => {
 
   const updated = await prisma.document.update({
     where: { id: doc.id },
-    data: { status: "UPLOADED", errorMessage: null },
+    data: { status: "UPLOADED", errorMessage: null, errorCode: null },
   });
   await enqueueDocument(doc.id);
   res.status(202).json(toDto(updated));
@@ -239,7 +242,11 @@ async function currentProgress(doc: Document): Promise<ProgressEvent> {
       return job.progress;
     }
   }
-  return { status: doc.status, message: doc.errorMessage ?? undefined };
+  return {
+    status: doc.status,
+    message: doc.errorMessage ?? undefined,
+    code: isErrorCode(doc.errorCode) ? doc.errorCode : undefined,
+  };
 }
 
 // GET /api/documents/:id/events  -> Server-Sent Events with processing progress

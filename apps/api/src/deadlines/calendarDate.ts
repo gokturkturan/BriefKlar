@@ -66,16 +66,3 @@ export function isWeekend(date: IsoDate): boolean {
   const day = weekday(date);
   return day === 0 || day === 6;
 }
-
-const longFormat = new Intl.DateTimeFormat("en-GB", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
-/** e.g. "Monday, 7 April 2025" */
-export function formatLong(date: IsoDate): string {
-  return longFormat.format(parseIsoDate(date));
-}

@@ -112,7 +112,7 @@ describe("replyWarnings", () => {
       type: "OBJECTION",
       deadlines: [{ kind: "OBJECTION", dueDate: "2026-03-19" }],
     });
-    expect(warnings[0]).toContain("(19.03.2026) may have passed");
+    expect(warnings).toEqual([{ code: "OBJECTION_DEADLINE_PASSED", date: "2026-03-19" }]);
   });
 
   it("states the objection deadline while it is open", () => {
@@ -124,7 +124,7 @@ describe("replyWarnings", () => {
         { kind: "OBJECTION", dueDate: "2026-04-07" },
       ],
     });
-    expect(warnings).toEqual([expect.stringContaining("It must arrive by 07.04.2026.")]);
+    expect(warnings).toEqual([{ code: "OBJECTION_DEADLINE", date: "2026-04-07" }]);
   });
 
   it("warns when the letter mentions no right to object", () => {
@@ -134,7 +134,7 @@ describe("replyWarnings", () => {
       extraction: { ...extraction, objectionPossible: false },
       deadlines: [],
     });
-    expect(warnings).toEqual([expect.stringContaining("does not mention a right to object")]);
+    expect(warnings).toEqual([{ code: "NO_OBJECTION_RIGHT" }]);
   });
 
   it("lists placeholders that still need to be filled in", () => {
@@ -144,6 +144,6 @@ describe("replyWarnings", () => {
       contentDe: "[Ort], 20.03.2026 [Ihr Vor- und Nachname]",
       deadlines: [],
     });
-    expect(warnings).toEqual(["Fill in before sending: [Ort], [Ihr Vor- und Nachname]"]);
+    expect(warnings).toEqual([{ code: "FILL_PLACEHOLDERS", placeholders: ["[Ort]", "[Ihr Vor- und Nachname]"] }]);
   });
 });

@@ -1,4 +1,4 @@
-import type { GermanState } from "@briefklar/shared";
+import type { GermanState, HolidayId } from "@briefklar/shared";
 import { addDays, isWeekend, makeDate, weekday, type IsoDate } from "./calendarDate";
 
 /**
@@ -39,7 +39,7 @@ function bussUndBettag(year: number): IsoDate {
 }
 
 interface HolidayRule {
-  name: string;
+  id: HolidayId;
   date: (year: number) => IsoDate | null;
   /** undefined = nationwide */
   states?: readonly GermanState[];
@@ -52,65 +52,65 @@ const once = (year: number, month: number, day: number) => (y: number) =>
   y === year ? makeDate(year, month, day) : null;
 
 const RULES: HolidayRule[] = [
-  { name: "New Year's Day (Neujahr)", date: fixed(1, 1) },
-  { name: "Epiphany (Heilige Drei Könige)", date: fixed(1, 6), states: ["BW", "BY", "ST"] },
-  { name: "International Women's Day (Frauentag)", date: fixed(3, 8, 2019), states: ["BE"] },
-  { name: "International Women's Day (Frauentag)", date: fixed(3, 8, 2023), states: ["MV"] },
-  { name: "Good Friday (Karfreitag)", date: easter(-2) },
-  { name: "Easter Monday (Ostermontag)", date: easter(1) },
-  { name: "Labour Day (Tag der Arbeit)", date: fixed(5, 1) },
-  { name: "Liberation Day (Tag der Befreiung)", date: once(2020, 5, 8), states: ["BE"] },
-  { name: "Liberation Day (Tag der Befreiung)", date: once(2025, 5, 8), states: ["BE"] },
-  { name: "Ascension Day (Christi Himmelfahrt)", date: easter(39) },
-  { name: "Whit Monday (Pfingstmontag)", date: easter(50) },
+  { id: "NEW_YEAR", date: fixed(1, 1) },
+  { id: "EPIPHANY", date: fixed(1, 6), states: ["BW", "BY", "ST"] },
+  { id: "WOMENS_DAY", date: fixed(3, 8, 2019), states: ["BE"] },
+  { id: "WOMENS_DAY", date: fixed(3, 8, 2023), states: ["MV"] },
+  { id: "GOOD_FRIDAY", date: easter(-2) },
+  { id: "EASTER_MONDAY", date: easter(1) },
+  { id: "LABOUR_DAY", date: fixed(5, 1) },
+  { id: "LIBERATION_DAY", date: once(2020, 5, 8), states: ["BE"] },
+  { id: "LIBERATION_DAY", date: once(2025, 5, 8), states: ["BE"] },
+  { id: "ASCENSION_DAY", date: easter(39) },
+  { id: "WHIT_MONDAY", date: easter(50) },
   {
-    name: "Corpus Christi (Fronleichnam)",
+    id: "CORPUS_CHRISTI",
     date: easter(60),
     states: ["BW", "BY", "HE", "NW", "RP", "SL"],
   },
-  { name: "Assumption Day (Mariä Himmelfahrt)", date: fixed(8, 15), states: ["SL"] },
-  { name: "World Children's Day (Weltkindertag)", date: fixed(9, 20, 2019), states: ["TH"] },
-  { name: "German Unity Day (Tag der Deutschen Einheit)", date: fixed(10, 3) },
-  { name: "Reformation Day (Reformationstag)", date: once(2017, 10, 31) }, // 500th anniversary
+  { id: "ASSUMPTION_DAY", date: fixed(8, 15), states: ["SL"] },
+  { id: "CHILDRENS_DAY", date: fixed(9, 20, 2019), states: ["TH"] },
+  { id: "GERMAN_UNITY_DAY", date: fixed(10, 3) },
+  { id: "REFORMATION_DAY", date: once(2017, 10, 31) }, // 500th anniversary
   {
-    name: "Reformation Day (Reformationstag)",
+    id: "REFORMATION_DAY",
     date: fixed(10, 31),
     states: ["BB", "MV", "SN", "ST", "TH"],
   },
   {
     // Made a permanent holiday in these states from 2018 on
-    name: "Reformation Day (Reformationstag)",
+    id: "REFORMATION_DAY",
     date: fixed(10, 31, 2018),
     states: ["HB", "HH", "NI", "SH"],
   },
-  { name: "All Saints' Day (Allerheiligen)", date: fixed(11, 1), states: ["BW", "BY", "NW", "RP", "SL"] },
-  { name: "Day of Repentance and Prayer (Buß- und Bettag)", date: bussUndBettag, states: ["SN"] },
-  { name: "Christmas Day (1. Weihnachtstag)", date: fixed(12, 25) },
-  { name: "Boxing Day (2. Weihnachtstag)", date: fixed(12, 26) },
+  { id: "ALL_SAINTS_DAY", date: fixed(11, 1), states: ["BW", "BY", "NW", "RP", "SL"] },
+  { id: "REPENTANCE_DAY", date: bussUndBettag, states: ["SN"] },
+  { id: "CHRISTMAS_DAY", date: fixed(12, 25) },
+  { id: "BOXING_DAY", date: fixed(12, 26) },
 ];
 
 /**
- * Public holidays of a year as date -> name.
+ * Public holidays of a year as date -> holiday.
  * Without a state, only nationwide holidays are returned.
  */
-export function publicHolidays(year: number, state?: GermanState): Map<IsoDate, string> {
-  const holidays = new Map<IsoDate, string>();
+export function publicHolidays(year: number, state?: GermanState): Map<IsoDate, HolidayId> {
+  const holidays = new Map<IsoDate, HolidayId>();
   for (const rule of RULES) {
     if (rule.states && (!state || !rule.states.includes(state))) continue;
     const date = rule.date(year);
-    if (date && !holidays.has(date)) holidays.set(date, rule.name);
+    if (date && !holidays.has(date)) holidays.set(date, rule.id);
   }
   return holidays;
 }
 
-/** Name of the public holiday on that date, or null */
-export function holidayName(date: IsoDate, state?: GermanState): string | null {
+/** The public holiday on that date, or null */
+export function holidayOn(date: IsoDate, state?: GermanState): HolidayId | null {
   return publicHolidays(Number(date.slice(0, 4)), state).get(date) ?? null;
 }
 
 /** Monday to Friday and not a public holiday */
 export function isWorkingDay(date: IsoDate, state?: GermanState): boolean {
-  return !isWeekend(date) && holidayName(date, state) === null;
+  return !isWeekend(date) && holidayOn(date, state) === null;
 }
 
 export function nextWorkingDay(date: IsoDate, state?: GermanState): IsoDate {

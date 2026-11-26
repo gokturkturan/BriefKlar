@@ -1,3 +1,5 @@
+import type { DeadlineStep } from "./deadlineSteps";
+import type { ErrorCode } from "./errors";
 import type { LetterExtraction } from "./letter";
 
 /**
@@ -28,6 +30,8 @@ export interface DocumentDto {
   sizeBytes: number;
   status: DocumentStatus;
   errorMessage: string | null;
+  /** Why processing failed, for a message in the reader's language */
+  errorCode: ErrorCode | null;
   /** Day the letter arrived (YYYY-MM-DD), entered by the user */
   receivedDate: string | null;
   createdAt: string; // ISO date
@@ -47,7 +51,7 @@ export interface DeadlineDto {
   /** true if the date depends on an assumed delivery date */
   isEstimate: boolean;
   /** How a relative deadline was calculated, step by step (empty for explicit dates) */
-  explanation: string[];
+  steps: DeadlineStep[];
 }
 
 export interface LetterAnalysisDto {
@@ -67,18 +71,12 @@ export interface DocumentDetailDto extends DocumentDto {
 export const PROCESSING_STEPS = ["preprocessing", "extracting", "saving", "retrying"] as const;
 export type ProcessingStep = (typeof PROCESSING_STEPS)[number];
 
-export const PROCESSING_STEP_LABELS: Record<ProcessingStep, string> = {
-  preprocessing: "Preparing the file",
-  extracting: "Reading and analyzing the letter",
-  saving: "Saving the results",
-  retrying: "The AI service is busy, trying again shortly",
-};
-
 /** Payload of each Server-Sent Event sent to the browser. */
 export interface ProgressEvent {
   status: DocumentStatus;
   step?: ProcessingStep;
   message?: string;
+  code?: ErrorCode;
 }
 
 export interface HealthDto {
@@ -90,5 +88,5 @@ export interface HealthDto {
 }
 
 export interface ApiErrorBody {
-  error: { message: string; code?: string };
+  error: { message: string; code: ErrorCode };
 }

@@ -1,5 +1,5 @@
 import { ApiError, GoogleGenAI, type Part } from "@google/genai";
-import { isRetryableStatus, LLMError, userMessageForStatus } from "./errors";
+import { isRetryableStatus, LLMError, userErrorForStatus } from "./errors";
 import type {
   JsonGenerationRequest,
   JsonGenerationResult,
@@ -20,10 +20,12 @@ function toLLMError(err: unknown, model: string): LLMError {
   if (err instanceof LLMError) return err;
   const status = err instanceof ApiError ? err.status : undefined;
   const message = err instanceof Error ? err.message : String(err);
+  const userError = userErrorForStatus(status);
   return new LLMError(
     `Gemini (${model}) failed${status ? ` with ${status}` : ""}: ${message}`,
     isRetryableStatus(status),
-    userMessageForStatus(status),
+    userError.message,
+    userError.code,
     status,
     model,
   );
@@ -39,7 +41,8 @@ const FIRST_CHUNK_TIMEOUT_MS = 20_000;
 const JSON_TIMEOUT_MS = 60_000;
 
 function timeoutError(model: string, ms: number): LLMError {
-  return new LLMError(`Gemini (${model}) did not answer within ${ms / 1000} s`, true, userMessageForStatus(504), 504, model);
+  const { message, code } = userErrorForStatus(504);
+  return new LLMError(`Gemini (${model}) did not answer within ${ms / 1000} s`, true, message, code, 504, model);
 }
 
 export class GeminiProvider implements LLMProvider {

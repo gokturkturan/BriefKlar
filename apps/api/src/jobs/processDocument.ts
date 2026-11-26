@@ -1,6 +1,6 @@
 import { UnrecoverableError, type Job } from "bullmq";
 import { Prisma } from "@prisma/client";
-import type { ProgressEvent } from "@briefklar/shared";
+import type { ErrorCode, ProgressEvent } from "@briefklar/shared";
 import { deadlineContext, deadlineRows } from "../deadlines";
 import { prisma } from "../lib/prisma";
 import { LLMError } from "../llm";
@@ -14,11 +14,13 @@ async function report(job: Job<DocumentJobData>, event: ProgressEvent): Promise<
   await job.updateProgress(event);
 }
 
-/** Message stored on the document and shown in the UI: never raw provider errors */
-function userMessage(err: unknown): string {
-  if (err instanceof LLMError) return err.userMessage;
-  if (err instanceof LLMValidationError) return "The AI returned an incomplete analysis. Please try again.";
-  return "Something went wrong while processing this letter.";
+/** Stored on the document and shown in the UI: never raw provider errors */
+function userError(err: unknown): { message: string; code: ErrorCode } {
+  if (err instanceof LLMError) return { message: err.userMessage, code: err.code };
+  if (err instanceof LLMValidationError) {
+    return { message: "The AI returned an incomplete analysis. Please try again.", code: "AI_INCOMPLETE" };
+  }
+  return { message: "Something went wrong while processing this letter.", code: "PROCESSING_FAILED" };
 }
 
 function isRetryable(err: unknown): boolean {
@@ -33,7 +35,7 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
   try {
     const doc = await prisma.document.update({
       where: { id: documentId },
-      data: { status: "PROCESSING", errorMessage: null },
+      data: { status: "PROCESSING", errorMessage: null, errorCode: null },
     });
 
     await report(job, { status: "PROCESSING", step: "preprocessing" });
@@ -76,17 +78,17 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
 
     await report(job, { status: "DONE" });
   } catch (err) {
-    const message = userMessage(err);
+    const { message, code } = userError(err);
     const retryable = isRetryable(err);
 
     if (!retryable || isLastAttempt) {
       await prisma.document.update({
         where: { id: documentId },
-        data: { status: "FAILED", errorMessage: message },
+        data: { status: "FAILED", errorMessage: message, errorCode: code },
       });
-      await report(job, { status: "FAILED", message });
+      await report(job, { status: "FAILED", message, code });
     } else {
-      await report(job, { status: "PROCESSING", step: "retrying", message });
+      await report(job, { status: "PROCESSING", step: "retrying", message, code });
     }
 
     // UnrecoverableError tells BullMQ to skip the remaining attempts (e.g. invalid API key)

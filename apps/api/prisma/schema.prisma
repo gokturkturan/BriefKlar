@@ -53,6 +53,8 @@ model Document {
   receivedDate DateTime?      @db.Date
   status       DocumentStatus @default(UPLOADED)
   errorMessage String?
+  /// ErrorCode (packages/shared), so the web app can explain the error in the user's language
+  errorCode    String?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -104,8 +106,8 @@ model Deadline {
   sourceText      String
   /// true if the start of a relative period was assumed (e.g. delivery by post)
   isEstimate      Boolean   @default(false)
-  /// Steps of the calculation, shown to the user
-  explanation     String[]  @default([])
+  /// Steps of the calculation as data (DeadlineStepSchema), put into words by the web app
+  steps           Json      @default("[]")
   confirmedByUser Boolean   @default(false)
   reminderSentAt  DateTime?
   createdAt       DateTime  @default(now())

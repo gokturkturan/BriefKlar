@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, addMonths, formatLong, isIsoDate, weekday } from "./calendarDate";
+import { addDays, addMonths, isIsoDate, weekday } from "./calendarDate";
 
 describe("calendarDate", () => {
   it("validates ISO dates", () => {
@@ -24,8 +24,8 @@ describe("calendarDate", () => {
     expect(addMonths("2028-02-29", 12)).toBe("2029-02-28");
   });
 
-  it("knows weekdays and formats dates", () => {
+  it("knows weekdays", () => {
     expect(weekday("2026-11-22")).toBe(0);
-    expect(formatLong("2025-04-07")).toBe("Monday, 7 April 2025");
+    expect(weekday("2025-04-07")).toBe(1);
   });
 });

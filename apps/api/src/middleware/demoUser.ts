@@ -24,6 +24,6 @@ export const demoUser: RequestHandler = (req, _res, next) => {
 };
 
 export function getUserId(req: Request): string {
-  if (!req.userId) throw new HttpError(401, "Not authenticated");
+  if (!req.userId) throw new HttpError(401, "Not authenticated", "NOT_AUTHENTICATED");
   return req.userId;
 }

@@ -1,4 +1,4 @@
-import type { LetterExtraction, ReplyBody, ReplyType, SenderType } from "@briefklar/shared";
+import type { LetterExtraction, ReplyBody, ReplyType, ReplyWarning, SenderType } from "@briefklar/shared";
 import { isIsoDate, type IsoDate } from "../deadlines/calendarDate";
 
 /**
@@ -84,40 +84,28 @@ export interface WarningInput {
 }
 
 /** Things to check before sending, decided by code */
-export function replyWarnings({ type, extraction, deadlines, contentDe, today }: WarningInput): string[] {
-  const warnings: string[] = [];
+export function replyWarnings({ type, extraction, deadlines, contentDe, today }: WarningInput): ReplyWarning[] {
+  const warnings: ReplyWarning[] = [];
 
   if (type === "OBJECTION") {
-    if (!extraction.objectionPossible) {
-      warnings.push(
-        "The letter does not mention a right to object. Check whether an objection is possible at all.",
-      );
-    }
+    if (!extraction.objectionPossible) warnings.push({ code: "NO_OBJECTION_RIGHT" });
     const objectionDeadline = deadlines
       .filter((d) => d.kind === "OBJECTION")
       .map((d) => d.dueDate)
       .sort()[0];
     if (objectionDeadline && objectionDeadline < today) {
-      warnings.push(
-        `The objection deadline (${formatGermanDate(objectionDeadline)}) may have passed. ` +
-          "Get advice quickly: late objections are usually rejected.",
-      );
+      warnings.push({ code: "OBJECTION_DEADLINE_PASSED", date: objectionDeadline });
     } else if (objectionDeadline) {
-      warnings.push(
-        `It must arrive by ${formatGermanDate(objectionDeadline)}. Sign it and keep proof that you sent it ` +
-          "(e.g. Einwurf-Einschreiben or a fax report).",
-      );
+      warnings.push({ code: "OBJECTION_DEADLINE", date: objectionDeadline });
     }
   }
 
   if (type === "EXTENSION_REQUEST" || type === "INSTALLMENT_PLAN") {
-    warnings.push("This is a request: the deadline stays in place until the sender agrees.");
+    warnings.push({ code: "REQUEST_ONLY" });
   }
 
   const placeholders = findPlaceholders(contentDe);
-  if (placeholders.length > 0) {
-    warnings.push(`Fill in before sending: ${placeholders.join(", ")}`);
-  }
+  if (placeholders.length > 0) warnings.push({ code: "FILL_PLACEHOLDERS", placeholders });
 
   return warnings;
 }

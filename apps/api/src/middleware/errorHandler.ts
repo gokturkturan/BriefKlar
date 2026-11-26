@@ -17,8 +17,12 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (err instanceof multer.MulterError) {
     const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
-    const message = err.code === "LIMIT_FILE_SIZE" ? "File is too large (max 10 MB)." : err.message;
-    const body: ApiErrorBody = { error: { message, code: err.code } };
+    const tooLarge = err.code === "LIMIT_FILE_SIZE";
+    const body: ApiErrorBody = {
+      error: tooLarge
+        ? { message: "File is too large (max 10 MB).", code: "LIMIT_FILE_SIZE" }
+        : { message: err.message, code: "INVALID_BODY" },
+    };
     res.status(status).json(body);
     return;
   }

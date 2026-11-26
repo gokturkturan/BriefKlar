@@ -64,6 +64,14 @@ export const ReplyBodySchema = z.object({
 });
 export type ReplyBody = z.infer<typeof ReplyBodySchema>;
 
+/** Things to check before sending, decided by code; the web app puts them into words */
+export type ReplyWarning =
+  | { code: "NO_OBJECTION_RIGHT" }
+  | { code: "OBJECTION_DEADLINE_PASSED"; date: string }
+  | { code: "OBJECTION_DEADLINE"; date: string }
+  | { code: "REQUEST_ONLY" }
+  | { code: "FILL_PLACEHOLDERS"; placeholders: string[] };
+
 export interface ReplyDraftDto {
   id: string;
   type: ReplyType;
@@ -74,7 +82,7 @@ export interface ReplyDraftDto {
   language: ExplanationLanguage;
   notes: string;
   /** Things to check before sending, computed by code */
-  warnings: string[];
+  warnings: ReplyWarning[];
   model: string | null;
   createdAt: string;
 }
