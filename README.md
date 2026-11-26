@@ -3,7 +3,7 @@
 > AI assistant that explains German official letters (*Behördenbriefe*) in plain language:
 > what the letter is about, what you need to do and by when.
 
-**Status:** 🚧 Work in progress — week 3 (deterministic deadline engine with tests).
+**Status:** 🚧 Work in progress — week 4 (streaming explanations and German reply drafts).
 
 ## Tech stack
 
@@ -30,6 +30,7 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 - Uploads are validated by their **magic bytes**, not by the client-provided MIME type.
 - Heavy work runs in a **separate worker process**, so the API stays responsive.
 - The worker reports progress through BullMQ; the API forwards it to the browser over **SSE**.
+- Plain-language explanations are streamed over SSE as well, chunk by chunk while the model writes.
 - File storage sits behind a `StorageService` interface (local disk today, S3-compatible later).
 
 ### How a letter is analyzed
@@ -61,10 +62,40 @@ Code in `apps/api/src/deadlines` turns the deadline wording into a due date:
 4. The period is counted with §§ 187, 188 BGB (31 January + 1 month = 28/29 February), and a
    deadline ending on a weekend or public holiday moves to the next working day (§ 193 BGB).
    Public holidays are computed for every federal state, Easter-based ones included. The
-   user's state is not known yet, so only nationwide holidays are applied, and the UI notes
-   when the due date is a holiday in some states.
+   user's federal state (set in the settings) adds its regional holidays. Without it, only
+   nationwide holidays are applied, and the UI notes when the due date is a holiday in some states.
 5. Every computed deadline is stored with an "estimated" flag and the calculation steps,
    which the UI shows next to the date.
+6. When the user enters the day the letter actually arrived, it replaces the assumed delivery
+   date. Deadlines are then calculated again from the stored analysis, without another AI call.
+
+### Plain-language explanation
+
+`GET /api/documents/:id/explanation?language=tr` streams an explanation in one of six
+languages (English, simple German, Turkish, Arabic, Ukrainian, Russian) over SSE.
+
+- The model gets the letter plus the due dates from the deadline engine as checked facts, so
+  it never calculates a date itself.
+- The finished text is stored per language; the next request gets it at once. It is removed
+  when the letter is analyzed again or a due date changes.
+- Closing the page aborts the model call. If the model sends nothing for 20 seconds, the
+  smaller fallback model takes over (only before the first chunk, so an answer is never mixed
+  from two models).
+- The text is rendered with React elements, never as HTML.
+
+### Reply drafts in German
+
+Users choose a reply type (objection, extension request, cover letter for documents,
+instalment plan or question) and can add notes in their own language.
+
+- The model writes only the body, in formal German, plus a translation into the user's
+  language so they know what they sign.
+- Code builds the letter around it: addresses, date, subject line, reference numbers copied
+  from the analysis, greeting, closing and the list of attachments. Missing details are
+  `[placeholders]`.
+- Code picks *Einspruch* (tax and child benefit offices) or *Widerspruch* (other authorities).
+- Warnings are computed when a draft is read: an objection deadline that has passed, a letter
+  that mentions no right to object, placeholders still to fill in.
 
 ## Monorepo layout
 
@@ -106,7 +137,7 @@ API health check: http://localhost:4000/api/health
 - [x] Week 1 — Monorepo, Docker Compose, Prisma schema, upload, queue, SSE progress
 - [x] Week 2 — LLM structured extraction (validated with Zod), action items, explicit deadlines
 - [x] Week 3 — Deterministic deadline engine + tests, action items
-- [ ] Week 4 — Streaming plain-language explanation, reply drafts in German
+- [x] Week 4 — Streaming plain-language explanation, reply drafts in German, federal state and delivery date
 - [ ] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
 - [ ] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
 
