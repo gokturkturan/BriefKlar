@@ -1,6 +1,7 @@
 import { NavLink, Route, Routes } from "react-router";
 import { DocumentDetailPage } from "./pages/DocumentDetailPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { UploadPage } from "./pages/UploadPage";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -23,6 +24,9 @@ export function App() {
             <NavLink to="/documents" className={navClass}>
               My letters
             </NavLink>
+            <NavLink to="/settings" className={navClass}>
+              Settings
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -31,6 +35,7 @@ export function App() {
           <Route path="/" element={<UploadPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/documents/:id" element={<DocumentDetailPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
     </div>

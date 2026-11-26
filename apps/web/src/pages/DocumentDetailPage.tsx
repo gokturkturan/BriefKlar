@@ -152,7 +152,7 @@ export function DocumentDetailPage() {
 
           {doc.status === "DONE" &&
             (doc.analysis ? (
-              <AnalysisPanel documentId={doc.id} analysis={doc.analysis} />
+              <AnalysisPanel documentId={doc.id} analysis={doc.analysis} receivedDate={doc.receivedDate} />
             ) : (
               <div>
                 <p className="text-slate-500">No analysis available for this letter.</p>

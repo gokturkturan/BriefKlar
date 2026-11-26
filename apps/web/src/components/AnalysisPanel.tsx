@@ -12,6 +12,7 @@ import {
 } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
 import { ExplanationPanel } from "./ExplanationPanel";
+import { ReceivedDateForm } from "./ReceivedDateForm";
 import { ReplyDraftsPanel } from "./ReplyDraftsPanel";
 
 const urgencyStyles: Record<Urgency, string> = {
@@ -124,9 +125,11 @@ function ActionItems({ documentId, analysis }: { documentId: string; analysis: L
 export function AnalysisPanel({
   documentId,
   analysis,
+  receivedDate,
 }: {
   documentId: string;
   analysis: LetterAnalysisDto;
+  receivedDate: string | null;
 }) {
   const { extraction } = analysis;
   // Deadlines the API could not turn into a date are shown as text only
@@ -191,6 +194,11 @@ export function AnalysisPanel({
               </li>
             ))}
           </ul>
+          <ReceivedDateForm
+            documentId={documentId}
+            receivedDate={receivedDate}
+            letterDate={extraction.letterDate}
+          />
         </Section>
       )}
 

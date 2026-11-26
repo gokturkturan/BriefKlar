@@ -5,7 +5,16 @@ import type {
   DocumentDto,
   HealthDto,
   ReplyDraftDto,
+  SettingsDto,
+  UpdateDocumentInput,
+  UpdateSettingsInput,
 } from "@briefklar/shared";
+
+const json = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -21,6 +30,13 @@ export const api = {
   listDocuments: () => request<DocumentDto[]>("/api/documents"),
 
   getDocument: (id: string) => request<DocumentDetailDto>(`/api/documents/${id}`),
+
+  updateDocument: (id: string, input: UpdateDocumentInput) =>
+    request<DocumentDto>(`/api/documents/${id}`, json("PATCH", input)),
+
+  getSettings: () => request<SettingsDto>("/api/settings"),
+
+  updateSettings: (input: UpdateSettingsInput) => request<SettingsDto>("/api/settings", json("PATCH", input)),
 
   deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
 
@@ -73,4 +89,5 @@ export const queryKeys = {
   document: (id: string) => ["documents", id] as const,
   replyDrafts: (id: string) => ["documents", id, "reply-drafts"] as const,
   health: ["health"] as const,
+  settings: ["settings"] as const,
 };

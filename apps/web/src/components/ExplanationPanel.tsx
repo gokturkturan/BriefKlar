@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { EXPLANATION_LANGUAGES, RTL_LANGUAGES } from "@briefklar/shared";
 import { useExplanationStream } from "../hooks/useExplanationStream";
-import { usePreferredLanguage } from "../hooks/usePreferredLanguage";
+import { usePreferredLanguage } from "../hooks/useSettings";
 import { PlainText } from "./PlainText";
 
 export function ExplanationPanel({ documentId }: { documentId: string }) {

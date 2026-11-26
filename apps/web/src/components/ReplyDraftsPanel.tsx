@@ -10,7 +10,7 @@ import {
   type ReplyType,
 } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
-import { usePreferredLanguage } from "../hooks/usePreferredLanguage";
+import { usePreferredLanguage } from "../hooks/useSettings";
 
 /** Reply types that make sense for this letter come first */
 function suggestedType(objectionPossible: boolean, hasDocuments: boolean): ReplyType {
