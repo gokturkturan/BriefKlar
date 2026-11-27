@@ -3,7 +3,7 @@
 > AI assistant that explains German official letters (*Behördenbriefe*) in plain language:
 > what the letter is about, what you need to do and by when.
 
-**Status:** 🚧 Work in progress — week 4 (streaming explanations and German reply drafts).
+**Status:** 🚧 Work in progress — week 4 done; the site follows the reader's language. Next: week 5.
 
 ## Tech stack
 
@@ -64,8 +64,10 @@ Code in `apps/api/src/deadlines` turns the deadline wording into a due date:
    Public holidays are computed for every federal state, Easter-based ones included. The
    user's federal state (set in the settings) adds its regional holidays. Without it, only
    nationwide holidays are applied, and the UI notes when the due date is a holiday in some states.
-5. Every computed deadline is stored with an "estimated" flag and the calculation steps,
-   which the UI shows next to the date.
+5. Every computed deadline is stored with an "estimated" flag and the calculation steps.
+   The steps are stored as typed data (`DeadlineStep`, holidays as ids), not as sentences,
+   so the UI can show them in the reader's language. After a change to the rules or the
+   stored format, `npm run deadlines:recompute -w @briefklar/api` recalculates every letter.
 6. When the user enters the day the letter actually arrived, it replaces the assumed delivery
    date. Deadlines are then calculated again from the stored analysis, without another AI call.
 
@@ -96,6 +98,27 @@ instalment plan or question) and can add notes in their own language.
 - Code picks *Einspruch* (tax and child benefit offices) or *Widerspruch* (other authorities).
 - Warnings are computed when a draft is read: an objection deadline that has passed, a letter
   that mentions no right to object, placeholders still to fill in.
+
+### The site in the reader's language
+
+The language chosen in the settings (or in the header) applies to the whole site: English,
+simple German, Turkish, Arabic (right to left), Ukrainian or Russian.
+
+- The web app has typed messages per language in `apps/web/src/i18n`. Every language is typed
+  against the English messages, so a missing text fails the build. Dates, amounts and plurals
+  use the reader's locale (Arabic keeps Latin digits, as in the letters).
+- The API sends data, not English sentences, for anything code decides: deadline steps, reply
+  warnings and an `ErrorCode` with every error (also on failed letters and broken streams).
+- The analysis is written in English once, so it stays stable for tests and evals. Its summary,
+  actions, documents, amount purposes and reference labels are then translated and cached per
+  analysis and language. The worker translates into the user's language right after the
+  analysis; letters analyzed earlier, or opened after a language change, are translated on
+  first view (`GET /api/documents/:id/translation?language=tr`), with the English text shown
+  until then or if the translation fails.
+- The translation schema pins every list to the length of the English one: an answer that
+  merges or drops an item fails validation and goes back to the model, so a translated task
+  never ends up next to the wrong checkbox.
+- Source code, the README and commit messages stay in English.
 
 ## Monorepo layout
 
@@ -138,6 +161,7 @@ API health check: http://localhost:4000/api/health
 - [x] Week 2 — LLM structured extraction (validated with Zod), action items, explicit deadlines
 - [x] Week 3 — Deterministic deadline engine + tests, action items
 - [x] Week 4 — Streaming plain-language explanation, reply drafts in German, federal state and delivery date
+- [x] The whole site in six languages (UI, analysis, deadline steps, errors), Arabic right to left
 - [ ] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
 - [ ] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
 
