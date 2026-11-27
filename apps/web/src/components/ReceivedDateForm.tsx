@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { api, queryKeys } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
+import { useErrorText } from "../i18n/errors";
+import { useI18n } from "../i18n/I18nProvider";
 
 /** Local calendar day as YYYY-MM-DD, the latest date a letter can have arrived */
 function today(): string {
@@ -23,6 +25,8 @@ export function ReceivedDateForm({
   receivedDate: string | null;
   letterDate: string | null;
 }) {
+  const { t } = useI18n();
+  const errorText = useErrorText();
   const queryClient = useQueryClient();
   const { settings } = useSettings();
   const [value, setValue] = useState(receivedDate ?? "");
@@ -43,7 +47,7 @@ export function ReceivedDateForm({
         }}
       >
         <label htmlFor={`received-${documentId}`} className="text-slate-700">
-          When did the letter arrive?
+          {t.receivedDate.question}
         </label>
         <input
           id={`received-${documentId}`}
@@ -59,7 +63,7 @@ export function ReceivedDateForm({
           disabled={save.isPending || value === (receivedDate ?? "")}
           className="rounded-md bg-slate-900 px-3 py-1 font-medium text-white hover:bg-slate-700 disabled:opacity-40"
         >
-          {save.isPending ? "Saving…" : "Use this date"}
+          {save.isPending ? t.common.saving : t.receivedDate.use}
         </button>
         {receivedDate && (
           <button
@@ -70,20 +74,17 @@ export function ReceivedDateForm({
             }}
             className="text-slate-600 hover:underline"
           >
-            Remove
+            {t.common.remove}
           </button>
         )}
       </form>
-      <p className="text-slate-500">
-        Deadlines that start on delivery are then counted from this day instead of an assumed date.
-        For a yellow envelope (Zustellung), use the date written on it.
-      </p>
-      {save.error && <p className="text-red-600">{save.error.message}</p>}
+      <p className="text-slate-500">{t.receivedDate.hint}</p>
+      {save.error && <p className="text-red-600">{errorText(save.error)}</p>}
       {settings.data && settings.data.state === null && (
         <p className="text-slate-500">
-          Public holidays of your federal state are not included yet.{" "}
+          {t.receivedDate.noState}{" "}
           <Link to="/settings" className="font-medium text-emerald-700 hover:underline">
-            Set your state
+            {t.receivedDate.setState}
           </Link>
         </p>
       )}

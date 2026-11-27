@@ -21,7 +21,14 @@ export function useDocumentEvents(id: string, enabled: boolean): ProgressEvent |
       setLastEvent(event);
 
       queryClient.setQueryData<DocumentDetailDto>(queryKeys.document(id), (old) =>
-        old ? { ...old, status: event.status, errorMessage: event.message ?? old.errorMessage } : old,
+        old
+          ? {
+              ...old,
+              status: event.status,
+              errorMessage: event.message ?? old.errorMessage,
+              errorCode: event.code ?? old.errorCode,
+            }
+          : old,
       );
 
       if (isTerminalStatus(event.status)) {

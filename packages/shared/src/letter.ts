@@ -76,33 +76,7 @@ export type LetterType = z.infer<typeof LetterTypeSchema>;
 export type DeadlineKind = LetterExtraction["deadlines"][number]["kind"];
 export type Urgency = LetterExtraction["urgency"];
 
-export const SENDER_TYPE_LABELS: Record<SenderType, string> = {
-  FINANZAMT: "Tax office (Finanzamt)",
-  JOBCENTER: "Jobcenter",
-  AGENTUR_FUER_ARBEIT: "Employment agency (Agentur für Arbeit)",
-  AUSLAENDERBEHOERDE: "Immigration office (Ausländerbehörde)",
-  BUERGERAMT: "Citizens' office (Bürgeramt)",
-  KRANKENKASSE: "Health insurance (Krankenkasse)",
-  RUNDFUNKBEITRAG: "Broadcasting fee (Rundfunkbeitrag)",
-  FAMILIENKASSE: "Family benefits office (Familienkasse)",
-  COURT: "Court",
-  EMPLOYER: "Employer",
-  LANDLORD: "Landlord",
-  COMPANY: "Company",
-  OTHER: "Other",
-};
-
-export const LETTER_TYPE_LABELS: Record<LetterType, string> = {
-  BESCHEID: "Official decision (Bescheid)",
-  MAHNUNG: "Payment reminder (Mahnung)",
-  AUFFORDERUNG: "Request for action",
-  TERMIN: "Appointment",
-  KUENDIGUNG: "Termination of contract (Kündigung)",
-  INVOICE: "Invoice",
-  INFO: "Information / confirmation",
-  OTHER: "Other",
-};
-
+/** English names for prompts; the web app has its own texts in every language */
 export const DEADLINE_KIND_LABELS: Record<DeadlineKind, string> = {
   PAYMENT: "Payment",
   RESPONSE: "Reply",

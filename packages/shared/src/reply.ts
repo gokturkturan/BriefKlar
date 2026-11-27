@@ -15,23 +15,6 @@ export const REPLY_TYPES = [
 ] as const;
 export type ReplyType = (typeof REPLY_TYPES)[number];
 
-export const REPLY_TYPE_LABELS: Record<ReplyType, string> = {
-  OBJECTION: "Objection (Widerspruch / Einspruch)",
-  EXTENSION_REQUEST: "Ask for more time (Fristverlängerung)",
-  SEND_DOCUMENTS: "Cover letter for documents",
-  INSTALLMENT_PLAN: "Ask to pay in instalments (Ratenzahlung)",
-  QUESTION: "Ask a question (Rückfrage)",
-};
-
-/** What the user should write in the notes field for each type */
-export const REPLY_TYPE_HINTS: Record<ReplyType, string> = {
-  OBJECTION: "Why do you disagree? Leave empty to object now and send the reasons later.",
-  EXTENSION_REQUEST: "Why do you need more time, and until when?",
-  SEND_DOCUMENTS: "Anything to add about the documents (optional).",
-  INSTALLMENT_PLAN: "How much can you pay per month, and why can't you pay at once?",
-  QUESTION: "What do you want to ask?",
-};
-
 const languageCodes = Object.keys(EXPLANATION_LANGUAGES) as [ExplanationLanguage, ...ExplanationLanguage[]];
 
 export const CreateReplyDraftSchema = z

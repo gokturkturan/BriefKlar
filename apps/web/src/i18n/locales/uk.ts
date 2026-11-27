@@ -1,0 +1,302 @@
+import { plural } from "../plural";
+import type { Messages } from "./en";
+
+/** Dates end with "р.", so a sentence that ends with a date needs no second full stop */
+const dot = (date: string) => (date.endsWith(".") ? date : `${date}.`);
+
+export const uk: Messages = {
+  app: {
+    nav: { upload: "Завантажити", documents: "Мої листи", settings: "Налаштування" },
+    language: "Мова",
+  },
+
+  common: {
+    loading: "Завантаження…",
+    saving: "Збереження…",
+    saved: "Збережено.",
+    cancel: "Скасувати",
+    delete: "Видалити",
+    remove: "Прибрати",
+    tryAgain: "Спробувати ще раз",
+    starting: "Запуск…",
+  },
+
+  status: { UPLOADED: "У черзі", PROCESSING: "Обробка", DONE: "Готово", FAILED: "Помилка" },
+
+  processing: {
+    preprocessing: "Підготовка файлу",
+    extracting: "Читання та аналіз листа",
+    translating: "Переклад результатів",
+    saving: "Збереження результатів",
+    retrying: "Сервіс ШІ зараз перевантажений, незабаром спробуємо ще раз",
+    processing: "Обробка…",
+    queued: "Очікування в черзі…",
+  },
+
+  upload: {
+    title: "Зрозумійте свій офіційний лист",
+    intro:
+      "Завантажте лист від Finanzamt, Jobcenter, Ausländerbehörde чи іншої установи. " +
+      "Ми пояснимо його простими словами і скажемо, що потрібно зробити і до якого терміну.",
+    drop: "Перетягніть лист сюди або натисніть, щоб вибрати файл",
+    hint: "PDF, JPG або PNG · не більше 10 МБ",
+    uploading: "Завантаження…",
+    invalidType: "Можна завантажувати лише файли PDF, JPG і PNG.",
+    tooLarge: "Файл завеликий (не більше 10 МБ).",
+    disclaimer: "BriefKlar не надає юридичних консультацій. Завжди перевіряйте важливі терміни самостійно.",
+  },
+
+  documents: {
+    title: "Мої листи",
+    empty: "Листів поки немає.",
+    uploadFirst: "Завантажте перший лист",
+  },
+
+  detail: {
+    deletePermanently: "Видалити назавжди",
+    deleting: "Видалення…",
+    noWorkerBefore: "Фоновий обробник не запущено, тому лист не можна обробити. Запустіть застосунок командою",
+    noWorkerAfter: ".",
+    originalLetter: "Оригінал листа",
+    failed: "Обробка не вдалася.",
+    noAnalysis: "Для цього листа немає аналізу.",
+  },
+
+  analysis: {
+    urgency: { LOW: "Не терміново", MEDIUM: "Потрібно діяти", HIGH: "Терміново" },
+    senderTypes: {
+      FINANZAMT: "Податкова (Finanzamt)",
+      JOBCENTER: "Джобцентр (Jobcenter)",
+      AGENTUR_FUER_ARBEIT: "Агентство з праці (Agentur für Arbeit)",
+      AUSLAENDERBEHOERDE: "Відомство у справах іноземців (Ausländerbehörde)",
+      BUERGERAMT: "Бюро для громадян (Bürgeramt)",
+      KRANKENKASSE: "Лікарняна каса (Krankenkasse)",
+      RUNDFUNKBEITRAG: "Внесок за мовлення (Rundfunkbeitrag)",
+      FAMILIENKASSE: "Сімейна каса (Familienkasse)",
+      COURT: "Суд",
+      EMPLOYER: "Роботодавець",
+      LANDLORD: "Орендодавець",
+      COMPANY: "Компанія",
+      OTHER: "Інше",
+    },
+    letterTypes: {
+      BESCHEID: "Офіційне рішення (Bescheid)",
+      MAHNUNG: "Нагадування про оплату (Mahnung)",
+      AUFFORDERUNG: "Вимога щось зробити",
+      TERMIN: "Призначена зустріч",
+      KUENDIGUNG: "Розірвання договору (Kündigung)",
+      INVOICE: "Рахунок",
+      INFO: "Інформація / підтвердження",
+      OTHER: "Інше",
+    },
+    deadlineKinds: {
+      PAYMENT: "Оплата",
+      RESPONSE: "Відповідь",
+      OBJECTION: "Заперечення (Widerspruch)",
+      APPOINTMENT: "Зустріч",
+      DOCUMENTS: "Надіслати документи",
+      OTHER: "Інше",
+    },
+    fields: {
+      summary: "короткий зміст",
+      sender: "відправник",
+      letterType: "тип листа",
+      letterDate: "дата листа",
+      subject: "тема",
+      references: "номери справи",
+      amounts: "суми",
+      deadlines: "терміни",
+      requiredActions: "що потрібно зробити",
+      requiredDocuments: "документи",
+      objectionPossible: "право на заперечення",
+      urgency: "терміновість",
+    },
+    sections: {
+      explained: "Пояснення простими словами",
+      todo: "Що потрібно зробити",
+      deadlines: "Терміни",
+      amounts: "Суми",
+      documents: "Які документи надіслати",
+      references: "Номери справи",
+      reply: "Написати відповідь німецькою",
+    },
+    notOfficial: "Це не схоже на офіційний лист. Результати можуть бути некорисними.",
+    uncertain: (fields: string) =>
+      `Будь ласка, перевірте: ${fields}. Деякі частини листа було важко прочитати або вони незрозумілі.`,
+    nothingToDo: "Нічого робити не потрібно. Цей лист для інформації.",
+    estimated: "Приблизно",
+    howCalculated: "Як розраховано цю дату",
+    undated: "дату не вдалося розрахувати, перевірте лист",
+    objectionRight:
+      "Ви маєте право оскаржити це рішення (Widerspruch / Einspruch). Термін вказано в листі.",
+    footer: (model: string, version: string) =>
+      `Аналіз: ${model} (${version}). BriefKlar не надає юридичних консультацій. ` +
+      "Завжди перевіряйте важливі дані в оригіналі листа.",
+    translating: (language: string) => `Аналіз перекладається: ${language}…`,
+    translationFailed: "Не вдалося перекласти аналіз, тому він показаний англійською.",
+  },
+
+  deadlineSteps: {
+    START_ASSUMED: () =>
+      "У листі не сказано, коли починається строк, тому вважається, що він починається в день вручення.",
+    RECEIVED_ON: (date: string) => `Ви отримали лист: ${dot(date)}`,
+    STARTS_ON_LETTER_DATE: (date: string) => `Строк починається з дати листа: ${dot(date)}`,
+    DEEMED_DELIVERY: (days: number, letterDate: string, deliveryDate: string) =>
+      `Лист установи, надісланий поштою, вважається врученим на ${days}-й день після відправлення ` +
+      `(§ 122 AO, § 41 VwVfG, § 37 SGB X). Якщо його відправили в день, зазначений у листі (${letterDate}), ` +
+      `це ${dot(deliveryDate)}`,
+    COUNTED_FROM_LETTER_DATE: (date: string) =>
+      `У листі не сказано, коли він до вас надійшов. Для надійності строк рахується від дати листа: ${dot(date)} ` +
+      "Якщо ви отримали його пізніше, ваш строк може закінчитися пізніше.",
+    YELLOW_ENVELOPE: () =>
+      "Якщо лист прийшов у жовтому конверті (Zustellung), дата вручення написана на конверті.",
+    DELIVERY_MOVED: (date: string, reason: string, movedTo: string) =>
+      `${date} — ${reason}, тому днем вручення вважається наступний робочий день: ${dot(movedTo)}`,
+    PERIOD_ENDS: (period: string, start: string, end: string) =>
+      `Початок строку: ${dot(start)} Тривалість: ${period}. Кінець строку: ${end} (§§ 187, 188 BGB).`,
+    DEADLINE_MOVED: (date: string, reason: string, movedTo: string) =>
+      `${date} — ${reason}, тому строк переноситься на наступний робочий день: ${movedTo} (§ 193 BGB).`,
+    REGIONAL_HOLIDAY: (date: string, states: string) =>
+      `${date} — свято в деяких федеральних землях (${states}). ` +
+      "Якщо ви живете там, строк закінчується наступного робочого дня.",
+  },
+
+  nonWorkingDay: {
+    SATURDAY: "субота",
+    SUNDAY: "неділя",
+    holiday: (name: string) => `державне свято (${name})`,
+  },
+
+  period: (amount: number, unit) =>
+    plural("uk", amount, {
+      DAY: { one: "# день", few: "# дні", many: "# днів", other: "# дня" },
+      WEEK: { one: "# тиждень", few: "# тижні", many: "# тижнів", other: "# тижня" },
+      MONTH: { one: "# місяць", few: "# місяці", many: "# місяців", other: "# місяця" },
+      YEAR: { one: "# рік", few: "# роки", many: "# років", other: "# року" },
+    }[unit]),
+
+  holidays: {
+    NEW_YEAR: "Новий рік",
+    EPIPHANY: "Богоявлення",
+    WOMENS_DAY: "Міжнародний жіночий день",
+    GOOD_FRIDAY: "Страсна п'ятниця",
+    EASTER_MONDAY: "Великодній понеділок",
+    LABOUR_DAY: "День праці",
+    LIBERATION_DAY: "День визволення",
+    ASCENSION_DAY: "Вознесіння",
+    WHIT_MONDAY: "Понеділок після Трійці",
+    CORPUS_CHRISTI: "Свято Тіла і Крові Христових",
+    ASSUMPTION_DAY: "Успіння Богородиці",
+    CHILDRENS_DAY: "Всесвітній день дитини",
+    GERMAN_UNITY_DAY: "День німецької єдності",
+    REFORMATION_DAY: "День Реформації",
+    ALL_SAINTS_DAY: "День усіх святих",
+    REPENTANCE_DAY: "День покаяння та молитви",
+    CHRISTMAS_DAY: "Різдво",
+    BOXING_DAY: "Другий день Різдва",
+  },
+
+  explanation: {
+    language: "Мова пояснення",
+    explain: "Пояснити простими словами",
+    reading: "Лист читається…",
+    writing: "Пишеться…",
+    writtenBy: (model: string) =>
+      `Написано моделлю ${model}. Перевірте імена, суми та дати в оригіналі листа.`,
+  },
+
+  receivedDate: {
+    question: "Коли прийшов лист?",
+    use: "Використати цю дату",
+    hint:
+      "Тоді строки, що починаються з вручення, рахуються від цього дня, а не від припущеної дати. " +
+      "Якщо лист прийшов у жовтому конверті (Zustellung), вкажіть дату на конверті.",
+    noState: "Свята вашої федеральної землі поки не враховуються.",
+    setState: "Вибрати землю",
+  },
+
+  replies: {
+    types: {
+      OBJECTION: "Заперечення (Widerspruch / Einspruch)",
+      EXTENSION_REQUEST: "Попросити більше часу (Fristverlängerung)",
+      SEND_DOCUMENTS: "Супровідний лист до документів",
+      INSTALLMENT_PLAN: "Попросити розстрочку (Ratenzahlung)",
+      QUESTION: "Поставити запитання (Rückfrage)",
+    },
+    hints: {
+      OBJECTION: "Чому ви не згодні? Залиште поле порожнім, щоб заперечити зараз і надіслати причини пізніше.",
+      EXTENSION_REQUEST: "Чому вам потрібно більше часу і до якої дати?",
+      SEND_DOCUMENTS: "Хочете щось додати про документи? (необов'язково)",
+      INSTALLMENT_PLAN: "Скільки ви можете платити на місяць і чому не можете заплатити одразу?",
+      QUESTION: "Про що ви хочете запитати?",
+    },
+    ownLanguage: "Можна писати своєю мовою.",
+    type: "Тип відповіді",
+    translationLanguage: "Мова перекладу",
+    translationOption: (language: string) => `Переклад: ${language}`,
+    notes: "Ваші нотатки для відповіді",
+    write: "Написати чернетку німецькою",
+    writing: "Чернетка пишеться…",
+    copy: "Скопіювати німецький текст",
+    copied: "Скопійовано",
+    deleteDraft: "Видалити чернетку",
+    letter: "Лист-відповідь німецькою",
+    save: "Зберегти зміни",
+    undo: "Скасувати зміни",
+    whatItSays: (language: string) => `Про що цей лист (${language})`,
+    warnings: {
+      NO_OBJECTION_RIGHT: () =>
+        "У листі не згадується право на заперечення. Перевірте, чи можливе заперечення взагалі.",
+      OBJECTION_DEADLINE_PASSED: (date: string) =>
+        `Строк для заперечення (${date}), можливо, вже минув. Терміново зверніться по допомогу: ` +
+        "запізнілі заперечення зазвичай відхиляють.",
+      OBJECTION_DEADLINE: (date: string) =>
+        `Лист має надійти не пізніше ${dot(date)} Підпишіть його і збережіть підтвердження відправлення ` +
+        "(наприклад, Einwurf-Einschreiben або звіт факсу).",
+      REQUEST_ONLY: () => "Це прохання: строк залишається чинним, доки відправник не погодиться.",
+      FILL_PLACEHOLDERS: (placeholders: string) => `Заповніть перед відправленням: ${placeholders}`,
+    },
+  },
+
+  settings: {
+    title: "Налаштування",
+    state: "Федеральна земля (Bundesland)",
+    stateHint:
+      "Якщо строк закінчується у свято, він переноситься на наступний робочий день. Деякі свята є лише " +
+      "в окремих землях, тому ваша земля може змінити дату. Без неї враховуються лише загальнонімецькі свята.",
+    stateNotSet: "Не вибрано (лише загальнонімецькі свята)",
+    language: "Ваша мова",
+    languageHint:
+      "BriefKlar показується цією мовою: сторінки, аналіз ваших листів, пояснення та переклади " +
+      "чернеток відповідей.",
+  },
+
+  errors: {
+    NOT_FOUND: "Такої сторінки або запису немає.",
+    NOT_AUTHENTICATED: "Ви не увійшли в систему.",
+    INVALID_BODY: "Неправильний запит.",
+    INVALID_PARAM: "Неправильний запит.",
+    INVALID_LANGUAGE: "Ця мова не підтримується.",
+    INTERNAL: "У нас сталася помилка. Будь ласка, спробуйте ще раз.",
+    NO_FILE: "Файл не було завантажено.",
+    UNSUPPORTED_TYPE: "Можна завантажувати лише файли PDF, JPG і PNG.",
+    LIMIT_FILE_SIZE: "Файл завеликий (не більше 10 МБ).",
+    DOCUMENT_NOT_FOUND: "Лист не знайдено.",
+    ACTION_ITEM_NOT_FOUND: "Завдання не знайдено.",
+    DRAFT_NOT_FOUND: "Чернетку не знайдено.",
+    ALREADY_PROCESSING: "Лист зараз обробляється. Спробуйте трохи пізніше.",
+    NOT_ANALYZED: "Цей лист ще не проаналізовано.",
+    INVALID_DATE: "Такої дати не існує.",
+    DATE_IN_FUTURE: "Дата отримання не може бути в майбутньому.",
+    DATE_BEFORE_LETTER: "Лист не міг прийти раніше за свою дату.",
+    AI_RATE_LIMITED: "Сервіс ШІ зараз отримує забагато запитів. Спробуйте за кілька хвилин.",
+    AI_OVERLOADED: "Сервіс ШІ зараз перевантажений. Спробуйте за кілька хвилин.",
+    AI_KEY_REJECTED: "Сервіс ШІ відхилив ключ API. Перевірте GEMINI_API_KEY.",
+    AI_MODEL_NOT_FOUND: "Указану модель ШІ не знайдено. Перевірте GEMINI_MODEL.",
+    AI_FAILED: "Сервіс ШІ не зміг обробити цей запит.",
+    AI_INCOMPLETE: "ШІ повернув неповну відповідь. Будь ласка, спробуйте ще раз.",
+    PROCESSING_FAILED: "Під час обробки листа сталася помилка.",
+    connectionLost: "З'єднання перервалося. Будь ласка, спробуйте ще раз.",
+    requestFailed: "Запит не вдався. Будь ласка, спробуйте ще раз.",
+  },
+};

@@ -3,23 +3,25 @@ import { useRef, useState, type DragEvent } from "react";
 import { useNavigate } from "react-router";
 import { UPLOAD_LIMITS } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
+import { useErrorText } from "../i18n/errors";
+import { useI18n } from "../i18n/I18nProvider";
 
-function validate(file: File): string | null {
-  if (!(UPLOAD_LIMITS.acceptedMimeTypes as readonly string[]).includes(file.type)) {
-    return "Only PDF, JPG and PNG files are supported.";
-  }
-  if (file.size > UPLOAD_LIMITS.maxBytes) {
-    return "File is too large (max 10 MB).";
-  }
+type ClientError = "invalidType" | "tooLarge";
+
+function validate(file: File): ClientError | null {
+  if (!(UPLOAD_LIMITS.acceptedMimeTypes as readonly string[]).includes(file.type)) return "invalidType";
+  if (file.size > UPLOAD_LIMITS.maxBytes) return "tooLarge";
   return null;
 }
 
 export function UploadPage() {
+  const { t } = useI18n();
+  const errorText = useErrorText();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [clientError, setClientError] = useState<string | null>(null);
+  const [clientError, setClientError] = useState<ClientError | null>(null);
 
   const upload = useMutation({
     mutationFn: api.uploadDocument,
@@ -43,15 +45,12 @@ export function UploadPage() {
     handleFile(e.dataTransfer.files[0]);
   };
 
-  const error = clientError ?? upload.error?.message;
+  const error = clientError ? t.upload[clientError] : upload.error ? errorText(upload.error) : null;
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Understand your official letter</h1>
-      <p className="mt-2 text-slate-600">
-        Upload a letter from the Finanzamt, Jobcenter, Ausländerbehörde or any other authority.
-        We'll explain it in plain language and tell you what to do and by when.
-      </p>
+      <h1 className="text-2xl font-semibold tracking-tight">{t.upload.title}</h1>
+      <p className="mt-2 text-slate-600">{t.upload.intro}</p>
 
       <div
         role="button"
@@ -69,11 +68,11 @@ export function UploadPage() {
         }`}
       >
         {upload.isPending ? (
-          <p className="font-medium text-slate-700">Uploading…</p>
+          <p className="font-medium text-slate-700">{t.upload.uploading}</p>
         ) : (
           <>
-            <p className="font-medium text-slate-800">Drop your letter here or click to choose a file</p>
-            <p className="mt-1 text-sm text-slate-500">PDF, JPG or PNG · max 10 MB</p>
+            <p className="font-medium text-slate-800">{t.upload.drop}</p>
+            <p className="mt-1 text-sm text-slate-500">{t.upload.hint}</p>
           </>
         )}
         <input
@@ -88,13 +87,9 @@ export function UploadPage() {
         />
       </div>
 
-      {error && (
-        <p className="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
-      )}
+      {error && <p className="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-      <p className="mt-6 text-xs text-slate-500">
-        BriefKlar does not provide legal advice. Always double-check important deadlines.
-      </p>
+      <p className="mt-6 text-xs text-slate-500">{t.upload.disclaimer}</p>
     </div>
   );
 }

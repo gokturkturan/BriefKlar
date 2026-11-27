@@ -2,15 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   EXPLANATION_LANGUAGES,
-  REPLY_TYPE_HINTS,
-  REPLY_TYPE_LABELS,
   REPLY_TYPES,
-  RTL_LANGUAGES,
   type ReplyDraftDto,
   type ReplyType,
+  type ReplyWarning,
 } from "@briefklar/shared";
 import { api, queryKeys } from "../api/client";
-import { usePreferredLanguage } from "../hooks/useSettings";
+import { usePanelLanguage } from "../hooks/useSettings";
+import { useErrorText } from "../i18n/errors";
+import { dirOf, useI18n, type I18n } from "../i18n/I18nProvider";
 
 /** Reply types that make sense for this letter come first */
 function suggestedType(objectionPossible: boolean, hasDocuments: boolean): ReplyType {
@@ -19,7 +19,26 @@ function suggestedType(objectionPossible: boolean, hasDocuments: boolean): Reply
   return "QUESTION";
 }
 
+function warningText({ t, formatDate }: I18n, warning: ReplyWarning): string {
+  const texts = t.replies.warnings;
+  switch (warning.code) {
+    case "NO_OBJECTION_RIGHT":
+      return texts.NO_OBJECTION_RIGHT();
+    case "OBJECTION_DEADLINE_PASSED":
+      return texts.OBJECTION_DEADLINE_PASSED(formatDate(warning.date));
+    case "OBJECTION_DEADLINE":
+      return texts.OBJECTION_DEADLINE(formatDate(warning.date));
+    case "REQUEST_ONLY":
+      return texts.REQUEST_ONLY();
+    case "FILL_PLACEHOLDERS":
+      return texts.FILL_PLACEHOLDERS(warning.placeholders.join(", "));
+  }
+}
+
 function DraftCard({ documentId, draft }: { documentId: string; draft: ReplyDraftDto }) {
+  const i18n = useI18n();
+  const { t } = i18n;
+  const errorText = useErrorText();
   const queryClient = useQueryClient();
   const key = queryKeys.replyDrafts(documentId);
   const [text, setText] = useState(draft.contentDe);
@@ -51,10 +70,10 @@ function DraftCard({ documentId, draft }: { documentId: string; draft: ReplyDraf
   return (
     <li className="rounded-lg border border-slate-200 p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium text-slate-900">{REPLY_TYPE_LABELS[draft.type]}</p>
+        <p className="font-medium text-slate-900">{t.replies.types[draft.type]}</p>
         <div className="flex items-center gap-3 text-sm">
           <button type="button" onClick={() => void copy()} className="font-medium text-emerald-700 hover:underline">
-            {copied ? "Copied" : "Copy German text"}
+            {copied ? t.replies.copied : t.replies.copy}
           </button>
           {confirmDelete ? (
             <>
@@ -64,15 +83,15 @@ function DraftCard({ documentId, draft }: { documentId: string; draft: ReplyDraf
                 disabled={remove.isPending}
                 className="font-medium text-red-600 hover:underline"
               >
-                Delete draft
+                {t.replies.deleteDraft}
               </button>
               <button type="button" onClick={() => setConfirmDelete(false)} className="text-slate-500 hover:underline">
-                Cancel
+                {t.common.cancel}
               </button>
             </>
           ) : (
             <button type="button" onClick={() => setConfirmDelete(true)} className="text-slate-500 hover:text-red-600">
-              Delete
+              {t.common.delete}
             </button>
           )}
         </div>
@@ -81,18 +100,20 @@ function DraftCard({ documentId, draft }: { documentId: string; draft: ReplyDraf
       {draft.warnings.length > 0 && (
         <ul className="mb-3 space-y-1 rounded-md bg-amber-50 px-4 py-2 text-sm text-amber-800">
           {draft.warnings.map((warning, i) => (
-            <li key={i}>{warning}</li>
+            <li key={i}>{warningText(i18n, warning)}</li>
           ))}
         </ul>
       )}
 
+      {/* The letter itself is German, so it stays left to right on an Arabic page */}
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={14}
         lang="de"
+        dir="ltr"
         spellCheck
-        aria-label="German reply letter"
+        aria-label={t.replies.letter}
         className="w-full rounded-md border border-slate-300 p-3 font-mono text-sm leading-relaxed"
       />
       {dirty && (
@@ -103,24 +124,20 @@ function DraftCard({ documentId, draft }: { documentId: string; draft: ReplyDraf
             disabled={save.isPending}
             className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700 disabled:opacity-50"
           >
-            {save.isPending ? "Saving…" : "Save changes"}
+            {save.isPending ? t.common.saving : t.replies.save}
           </button>
           <button type="button" onClick={() => setText(draft.contentDe)} className="text-slate-600 hover:underline">
-            Undo changes
+            {t.replies.undo}
           </button>
-          {save.error && <span className="text-red-600">{save.error.message}</span>}
+          {save.error && <span className="text-red-600">{errorText(save.error)}</span>}
         </div>
       )}
 
       <details className="mt-3 text-sm">
         <summary className="cursor-pointer text-slate-600">
-          What it says ({EXPLANATION_LANGUAGES[draft.language]})
+          {t.replies.whatItSays(EXPLANATION_LANGUAGES[draft.language])}
         </summary>
-        <p
-          className="mt-2 whitespace-pre-line text-slate-700"
-          dir={RTL_LANGUAGES.includes(draft.language) ? "rtl" : "ltr"}
-          lang={draft.language}
-        >
+        <p className="mt-2 whitespace-pre-line text-slate-700" dir={dirOf(draft.language)} lang={draft.language}>
           {draft.contentUserLanguage}
         </p>
       </details>
@@ -137,11 +154,13 @@ export function ReplyDraftsPanel({
   objectionPossible: boolean;
   hasDocuments: boolean;
 }) {
+  const { t, language: siteLanguage } = useI18n();
+  const errorText = useErrorText();
   const queryClient = useQueryClient();
   const key = queryKeys.replyDrafts(documentId);
   const [type, setType] = useState<ReplyType>(() => suggestedType(objectionPossible, hasDocuments));
   const [notes, setNotes] = useState("");
-  const [language, changeLanguage] = usePreferredLanguage();
+  const [language, changeLanguage] = usePanelLanguage(siteLanguage);
 
   const drafts = useQuery({ queryKey: key, queryFn: () => api.listReplyDrafts(documentId) });
 
@@ -168,24 +187,24 @@ export function ReplyDraftsPanel({
           <select
             value={type}
             onChange={(e) => setType(e.target.value as ReplyType)}
-            aria-label="Type of reply"
+            aria-label={t.replies.type}
             className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
           >
-            {REPLY_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {REPLY_TYPE_LABELS[t]}
+            {REPLY_TYPES.map((replyType) => (
+              <option key={replyType} value={replyType}>
+                {t.replies.types[replyType]}
               </option>
             ))}
           </select>
           <select
             value={language}
             onChange={(e) => changeLanguage(e.target.value)}
-            aria-label="Language of the translation"
+            aria-label={t.replies.translationLanguage}
             className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
           >
             {Object.entries(EXPLANATION_LANGUAGES).map(([code, name]) => (
               <option key={code} value={code}>
-                Translation: {name}
+                {t.replies.translationOption(name)}
               </option>
             ))}
           </select>
@@ -196,8 +215,9 @@ export function ReplyDraftsPanel({
           rows={3}
           maxLength={2000}
           required={notesRequired}
-          placeholder={REPLY_TYPE_HINTS[type] + " You can write in your own language."}
-          aria-label="Your notes for the reply"
+          dir="auto"
+          placeholder={`${t.replies.hints[type]} ${t.replies.ownLanguage}`}
+          aria-label={t.replies.notes}
           className="w-full rounded-md border border-slate-300 bg-white p-2 text-sm"
         />
         <div className="flex flex-wrap items-center gap-3">
@@ -206,13 +226,13 @@ export function ReplyDraftsPanel({
             disabled={create.isPending || (notesRequired && notes.trim() === "")}
             className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            {create.isPending ? "Writing the draft…" : "Write a German draft"}
+            {create.isPending ? t.replies.writing : t.replies.write}
           </button>
-          {create.error && <span className="text-sm text-red-600">{create.error.message}</span>}
+          {create.error && <span className="text-sm text-red-600">{errorText(create.error)}</span>}
         </div>
       </form>
 
-      {drafts.error && <p className="text-sm text-red-600">{drafts.error.message}</p>}
+      {drafts.error && <p className="text-sm text-red-600">{errorText(drafts.error)}</p>}
       {drafts.data && drafts.data.length > 0 && (
         <ul className="space-y-3">
           {drafts.data.map((draft) => (

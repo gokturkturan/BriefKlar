@@ -1,8 +1,11 @@
 import type {
+  AnalysisTranslationDto,
   ApiErrorBody,
   CreateReplyDraftInput,
   DocumentDetailDto,
   DocumentDto,
+  ErrorCode,
+  ExplanationLanguage,
   HealthDto,
   ReplyDraftDto,
   SettingsDto,
@@ -16,11 +19,23 @@ const json = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
+/** Error from the API; the web app shows its own text for the code */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: ErrorCode,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
-    throw new Error(body?.error.message ?? `Request failed (${res.status})`);
+    throw new ApiError(body?.error.message ?? `Request failed (${res.status})`, res.status, body?.error.code);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -30,6 +45,9 @@ export const api = {
   listDocuments: () => request<DocumentDto[]>("/api/documents"),
 
   getDocument: (id: string) => request<DocumentDetailDto>(`/api/documents/${id}`),
+
+  getAnalysisTranslation: (id: string, language: ExplanationLanguage) =>
+    request<AnalysisTranslationDto>(`/api/documents/${id}/translation?language=${encodeURIComponent(language)}`),
 
   updateDocument: (id: string, input: UpdateDocumentInput) =>
     request<DocumentDto>(`/api/documents/${id}`, json("PATCH", input)),
@@ -88,6 +106,8 @@ export const queryKeys = {
   documents: ["documents"] as const,
   document: (id: string) => ["documents", id] as const,
   replyDrafts: (id: string) => ["documents", id, "reply-drafts"] as const,
+  translation: (id: string, language: string, analysisCreatedAt: string) =>
+    ["documents", id, "translation", language, analysisCreatedAt] as const,
   health: ["health"] as const,
   settings: ["settings"] as const,
 };

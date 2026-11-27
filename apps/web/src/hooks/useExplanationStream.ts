@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import type { ExplanationDto, ExplanationLanguage, ExplanationStreamEvent } from "@briefklar/shared";
+import type { ErrorCode, ExplanationDto, ExplanationLanguage, ExplanationStreamEvent } from "@briefklar/shared";
 import { api } from "../api/client";
 
 export type ExplanationState =
   | { status: "idle" }
   | { status: "streaming"; text: string }
   | { status: "done"; explanation: ExplanationDto }
-  | { status: "error"; message: string; text: string };
+  | { status: "error"; message: string; code?: ErrorCode; text: string };
 
 /**
  * Opens the explanation stream for one language and collects the chunks.
@@ -42,7 +42,7 @@ export function useExplanationStream(
       setState(
         event.type === "done"
           ? { status: "done", explanation: event.explanation }
-          : { status: "error", message: event.message, text },
+          : { status: "error", message: event.message, code: event.code, text },
       );
     };
 

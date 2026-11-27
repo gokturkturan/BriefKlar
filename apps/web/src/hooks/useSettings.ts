@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   isExplanationLanguage,
   type ExplanationLanguage,
@@ -32,12 +33,24 @@ export function useSettings() {
   return { settings, update };
 }
 
-/** The language the user reads explanations and translations in, stored in their settings */
-export function usePreferredLanguage(): [ExplanationLanguage, (value: string) => void] {
+/** Changes the language of the whole site, stored in the user's settings */
+export function useChangeLanguage(): (value: string) => void {
   const { settings, update } = useSettings();
-  const language = settings.data?.preferredLanguage ?? "en";
-  const change = (value: string) => {
-    if (isExplanationLanguage(value) && value !== language) update.mutate({ preferredLanguage: value });
+  return (value: string) => {
+    if (isExplanationLanguage(value) && value !== settings.data?.preferredLanguage) {
+      update.mutate({ preferredLanguage: value });
+    }
   };
-  return [language, change];
+}
+
+/**
+ * Language for one panel (explanation, reply translation): the site language unless the user
+ * picks another one there. Picking one there does not change the site language.
+ */
+export function usePanelLanguage(siteLanguage: ExplanationLanguage): [ExplanationLanguage, (value: string) => void] {
+  const [picked, setPicked] = useState<ExplanationLanguage | null>(null);
+  const change = (value: string) => {
+    if (isExplanationLanguage(value)) setPicked(value === siteLanguage ? null : value);
+  };
+  return [picked ?? siteLanguage, change];
 }
