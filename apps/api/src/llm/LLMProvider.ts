@@ -1,3 +1,5 @@
+import type { FailedAttempt } from "./fallback";
+
 /**
  * Provider-agnostic interface. The rest of the app never imports a vendor SDK directly,
  * so switching from Gemini to Claude (or anything else) means adding one class.
@@ -23,6 +25,10 @@ export interface JsonGenerationResult {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** How long the answering model took */
+  latencyMs: number;
+  /** Models that failed before the one that answered (the primary, after a switch to the fallback) */
+  failedAttempts: FailedAttempt[];
 }
 
 export interface TextGenerationRequest {
@@ -35,9 +41,14 @@ export interface TextGenerationRequest {
 export interface TextGenerationResult {
   /** The full text, i.e. all chunks joined */
   text: string;
+  /** The model that actually answered (may be a fallback model) */
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** How long the answering model took */
+  latencyMs: number;
+  /** Models that failed before the one that answered (the primary, after a switch to the fallback) */
+  failedAttempts: FailedAttempt[];
 }
 
 export interface LLMProvider {

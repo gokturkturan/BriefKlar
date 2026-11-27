@@ -1,5 +1,6 @@
 import { ApiError, GoogleGenAI, type Part } from "@google/genai";
 import { isRetryableStatus, LLMError, userErrorForStatus } from "./errors";
+import { FallbackRunner, type FallbackResult } from "./fallback";
 import type {
   JsonGenerationRequest,
   JsonGenerationResult,
@@ -31,9 +32,6 @@ function toLLMError(err: unknown, model: string): LLMError {
   );
 }
 
-/** After the primary model is overloaded, skip it for a while instead of waiting for it to fail again */
-const PRIMARY_COOLDOWN_MS = 2 * 60 * 1000;
-
 /** Longest wait for the first chunk of a streamed answer */
 const FIRST_CHUNK_TIMEOUT_MS = 20_000;
 
@@ -45,22 +43,33 @@ function timeoutError(model: string, ms: number): LLMError {
   return new LLMError(`Gemini (${model}) did not answer within ${ms / 1000} s`, true, message, code, 504, model);
 }
 
+interface Usage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/** Adds the model, latency and failed attempts the fallback runner recorded */
+function withMeta<T extends Usage>({ value, model, latencyMs, failedAttempts }: FallbackResult<T>) {
+  return { ...value, model, latencyMs, failedAttempts };
+}
+
 export class GeminiProvider implements LLMProvider {
   readonly name = "gemini";
   private readonly client: GoogleGenAI;
-  private primaryCooldownUntil = 0;
+  private readonly models: FallbackRunner;
 
   constructor(
     apiKey: string,
     readonly model: string,
     /** Used when the primary model is overloaded or rate limited */
-    private readonly fallbackModel?: string,
+    fallbackModel?: string,
   ) {
     this.client = new GoogleGenAI({ apiKey });
+    this.models = new FallbackRunner(model, fallbackModel, toLLMError);
   }
 
   async generateJson(request: JsonGenerationRequest): Promise<JsonGenerationResult> {
-    return this.withFallback((model) => this.call(model, request));
+    return withMeta(await this.models.run((model) => this.call(model, request)));
   }
 
   async streamText(
@@ -73,49 +82,14 @@ export class GeminiProvider implements LLMProvider {
       onDelta(text);
     };
     // Once text has reached the user, switching to another model would mix two answers
-    return this.withFallback((model) => this.stream(model, request, emit), () => !started);
-  }
-
-  /**
-   * Simple circuit breaker: after the primary model is overloaded or rate limited, the
-   * fallback model answers for a while instead of waiting for the primary to fail again.
-   */
-  private async withFallback<T>(
-    run: (model: string) => Promise<T>,
-    canFallBack: () => boolean = () => true,
-  ): Promise<T> {
-    if (this.fallbackModel && Date.now() < this.primaryCooldownUntil) {
-      try {
-        return await run(this.fallbackModel);
-      } catch (err) {
-        throw toLLMError(err, this.fallbackModel);
-      }
-    }
-
-    try {
-      return await run(this.model);
-    } catch (err) {
-      const error = toLLMError(err, this.model);
-      // Overload (503) and quota (429) are per model, so a smaller model often still works.
-      // A timeout (504) usually means the same overload, without an error from the API
-      const overloaded = [429, 503, 504].includes(error.statusCode ?? 0);
-      if (!this.fallbackModel || !overloaded || !canFallBack()) throw error;
-
-      this.primaryCooldownUntil = Date.now() + PRIMARY_COOLDOWN_MS;
-      console.warn(`${error.message} -> using ${this.fallbackModel} for the next ${PRIMARY_COOLDOWN_MS / 60000} min`);
-      try {
-        return await run(this.fallbackModel);
-      } catch (fallbackErr) {
-        throw toLLMError(fallbackErr, this.fallbackModel);
-      }
-    }
+    return withMeta(await this.models.run((model) => this.stream(model, request, emit), () => !started));
   }
 
   private async stream(
     model: string,
     request: TextGenerationRequest,
     onDelta: (text: string) => void,
-  ): Promise<TextGenerationResult> {
+  ): Promise<{ text: string } & Usage> {
     // A model can stay silent for a long time when it is overloaded. Waiting longer than
     // FIRST_CHUNK_TIMEOUT_MS for the first chunk counts as a timeout, so the fallback can answer.
     const timeout = new AbortController();
@@ -155,10 +129,10 @@ export class GeminiProvider implements LLMProvider {
     } finally {
       clearTimeout(timer);
     }
-    return { text, model, inputTokens, outputTokens };
+    return { text, inputTokens, outputTokens };
   }
 
-  private async call(model: string, request: JsonGenerationRequest): Promise<JsonGenerationResult> {
+  private async call(model: string, request: JsonGenerationRequest): Promise<{ text: string } & Usage> {
     // Without a limit, a request to an overloaded model can hang for minutes
     const timeoutMs = request.timeoutMs ?? JSON_TIMEOUT_MS;
     const timeout = AbortSignal.timeout(timeoutMs);
@@ -182,7 +156,6 @@ export class GeminiProvider implements LLMProvider {
 
     return {
       text: response.text ?? "",
-      model,
       inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
     };

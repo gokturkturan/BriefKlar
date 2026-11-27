@@ -1,4 +1,5 @@
 import type { ErrorCode } from "@briefklar/shared";
+import type { FailedAttempt } from "./fallback";
 
 /**
  * Normalized error for all LLM providers.
@@ -6,6 +7,11 @@ import type { ErrorCode } from "@briefklar/shared";
  * - not retryable: our fault or configuration (invalid key, unknown model, bad request) -> fail fast
  */
 export class LLMError extends Error {
+  /** Models that failed before this one (the primary, when this error is from the fallback) */
+  failedAttempts: FailedAttempt[] = [];
+  /** How long the failed request took */
+  latencyMs?: number;
+
   constructor(
     message: string,
     readonly retryable: boolean,

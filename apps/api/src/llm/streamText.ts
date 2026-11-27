@@ -1,6 +1,5 @@
-import { LLMError } from "./errors";
 import type { LLMInputPart, LLMProvider, TextGenerationResult } from "./LLMProvider";
-import { logCall } from "./logCall";
+import { logCall, logFailedAttempts, logFailure } from "./logCall";
 
 interface StreamTextOptions {
   provider: LLMProvider;
@@ -17,26 +16,22 @@ interface StreamTextOptions {
 export async function streamText(options: StreamTextOptions): Promise<TextGenerationResult> {
   const { provider, system, input, purpose, promptVersion, documentId, signal, onDelta } = options;
   const startedAt = Date.now();
+  const context = { provider, purpose, promptVersion, documentId };
 
   try {
     const result = await provider.streamText({ system, input, signal }, onDelta);
+    await logFailedAttempts(context, result.failedAttempts);
     await logCall({
-      provider, purpose, promptVersion, documentId,
+      ...context,
       model: result.model,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
-      latencyMs: Date.now() - startedAt,
+      latencyMs: result.latencyMs,
       success: true,
     });
     return result;
   } catch (err) {
-    await logCall({
-      provider, purpose, promptVersion, documentId,
-      model: err instanceof LLMError && err.model ? err.model : provider.model,
-      inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - startedAt,
-      success: false,
-      errorMessage: signal?.aborted ? "Aborted by the client" : err instanceof Error ? err.message : String(err),
-    });
+    await logFailure(context, err, startedAt, signal?.aborted ? "Aborted by the client" : undefined);
     throw err;
   }
 }

@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { LLMError } from "./errors";
 import type { LLMInputPart, LLMProvider } from "./LLMProvider";
-import { logCall } from "./logCall";
+import { logCall, logFailedAttempts, logFailure } from "./logCall";
 
 interface GenerateStructuredOptions<T> {
   provider: LLMProvider;
@@ -53,6 +52,7 @@ export async function generateStructured<T>(
   options: GenerateStructuredOptions<T>,
 ): Promise<StructuredResult<T>> {
   const { provider, schema, system, purpose, promptVersion, documentId } = options;
+  const context = { provider, purpose, promptVersion, documentId };
   const maxRepairAttempts = options.maxRepairAttempts ?? 1;
   const jsonSchema = toJsonSchema(schema);
 
@@ -65,13 +65,7 @@ export async function generateStructured<T>(
     try {
       result = await provider.generateJson({ system, input, jsonSchema, timeoutMs: options.timeoutMs });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      await logCall({
-        provider, purpose, promptVersion, documentId,
-        model: err instanceof LLMError && err.model ? err.model : provider.model,
-        inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - startedAt,
-        success: false, errorMessage: message,
-      });
+      await logFailure(context, err, startedAt);
       throw err; // LLMError: the caller decides whether to retry
     }
 
@@ -80,11 +74,13 @@ export async function generateStructured<T>(
     if (json === undefined) lastError = "The response was not valid JSON.";
     else lastError = parsed.success ? "" : z.prettifyError(parsed.error);
 
+    await logFailedAttempts(context, result.failedAttempts);
     await logCall({
-      provider, model: result.model, purpose, promptVersion, documentId,
+      ...context,
+      model: result.model,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
-      latencyMs: Date.now() - startedAt,
+      latencyMs: result.latencyMs,
       success: parsed.success,
       errorMessage: parsed.success ? undefined : lastError.slice(0, 2000),
     });
