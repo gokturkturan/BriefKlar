@@ -24,6 +24,9 @@ export const ERROR_CODES = [
   "INVALID_DATE",
   "DATE_IN_FUTURE",
   "DATE_BEFORE_LETTER",
+  // Reminders
+  "REMINDER_NOT_FOUND",
+  "DATE_IN_PAST",
   // AI service
   "AI_RATE_LIMITED",
   "AI_OVERLOADED",

@@ -302,6 +302,8 @@ export const en = {
     INVALID_DATE: "This date does not exist.",
     DATE_IN_FUTURE: "The delivery date cannot be in the future.",
     DATE_BEFORE_LETTER: "The letter cannot have arrived before its own date.",
+    REMINDER_NOT_FOUND: "This reminder was not found.",
+    DATE_IN_PAST: "The date is in the past.",
     AI_RATE_LIMITED: "The AI service has too many requests right now. Please try again in a few minutes.",
     AI_OVERLOADED: "The AI service is temporarily overloaded. Please try again in a few minutes.",
     AI_KEY_REJECTED: "The AI service rejected the API key. Check GEMINI_API_KEY.",

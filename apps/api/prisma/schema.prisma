@@ -37,6 +37,7 @@ model User {
   state             String?
   createdAt         DateTime   @default(now())
   documents         Document[]
+  reminders         Reminder[]
 }
 
 model Document {
@@ -64,6 +65,7 @@ model Document {
   actionItems  ActionItem[]
   replyDrafts  ReplyDraft[]
   chatMessages ChatMessage[]
+  reminders    Reminder[]
   llmCalls     LlmCall[]
 
   @@index([userId, createdAt])
@@ -126,7 +128,6 @@ model Deadline {
   /// Steps of the calculation as data (DeadlineStepSchema), put into words by the web app
   steps           Json      @default("[]")
   confirmedByUser Boolean   @default(false)
-  reminderSentAt  DateTime?
   createdAt       DateTime  @default(now())
 
   @@index([dueDate])
@@ -158,6 +159,34 @@ model ReplyDraft {
   createdAt           DateTime @default(now())
 
   @@index([documentId, createdAt])
+}
+
+/// A reminder about a letter. Code creates one for every upcoming deadline; users add their own,
+/// on the reminders page or by asking the chat. A scheduled worker job fires reminders when due.
+model Reminder {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId   String?
+  document     Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  /// ReminderOrigin (packages/shared): DEADLINE, USER or CHAT
+  origin       String
+  remindOn     DateTime  @db.Date
+  /// Written by the user or the chat in the user's language; empty for deadline reminders,
+  /// whose text the web app writes in the reader's language
+  note         String    @default("")
+  /// Deadline reminders: the deadline (kind + wording), so recalculations update instead of duplicate
+  deadlineKey  String?
+  deadlineKind String?
+  dueDate      DateTime? @db.Date
+  /// When the worker fired the reminder (the point where e-mail or push would be sent)
+  firedAt      DateTime?
+  doneAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@unique([documentId, deadlineKey])
+  @@index([userId, remindOn])
+  @@index([remindOn])
 }
 
 model ChatMessage {

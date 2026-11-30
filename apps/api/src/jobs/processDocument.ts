@@ -8,6 +8,8 @@ import { extractLetter } from "../llm/extractLetter";
 import { LLMValidationError } from "../llm/generateStructured";
 import { EXTRACT_LETTER_PROMPT_VERSION } from "../prompts/extractLetter";
 import type { DocumentJobData } from "../queue/constants";
+import { syncDeadlineReminders } from "../reminders/deadlineReminders";
+import { todayInGermany } from "../replies/composeReplyLetter";
 import { storage } from "../storage";
 import { ANALYSIS_LANGUAGE, getOrCreateTranslation } from "../translations/analysisTranslations";
 
@@ -71,9 +73,9 @@ export async function processDocument(job: Job<DocumentJobData>): Promise<void> 
       await tx.actionItem.createMany({
         data: extraction.requiredActions.map((text, position) => ({ documentId, text, position })),
       });
-      await tx.deadline.createMany({
-        data: deadlineRows(documentId, extraction, await deadlineContext(documentId, tx)),
-      });
+      const deadlines = deadlineRows(documentId, extraction, await deadlineContext(documentId, tx));
+      await tx.deadline.createMany({ data: deadlines });
+      await syncDeadlineReminders(tx, documentId, deadlines, todayInGermany());
       return row;
     });
 

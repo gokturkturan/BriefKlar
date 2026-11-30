@@ -287,6 +287,8 @@ export const tr: Messages = {
     INVALID_DATE: "Böyle bir tarih yok.",
     DATE_IN_FUTURE: "Teslim tarihi gelecekte olamaz.",
     DATE_BEFORE_LETTER: "Mektup, üzerindeki tarihten önce gelmiş olamaz.",
+    REMINDER_NOT_FOUND: "Bu hatırlatıcı bulunamadı.",
+    DATE_IN_PAST: "Bu tarih geçmişte kalıyor.",
     AI_RATE_LIMITED: "Yapay zekâ servisine şu an çok fazla istek geliyor. Lütfen birkaç dakika sonra tekrar deneyin.",
     AI_OVERLOADED: "Yapay zekâ servisi şu an aşırı yoğun. Lütfen birkaç dakika sonra tekrar deneyin.",
     AI_KEY_REJECTED: "Yapay zekâ servisi API anahtarını reddetti. GEMINI_API_KEY ayarını kontrol edin.",

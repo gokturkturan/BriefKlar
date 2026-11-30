@@ -8,6 +8,7 @@ import { analysisTranslationRouter } from "./routes/analysisTranslation";
 import { debugRouter } from "./routes/debug";
 import { documentsRouter } from "./routes/documents";
 import { explanationRouter } from "./routes/explanation";
+import { remindersRouter } from "./routes/reminders";
 import { replyDraftsRouter } from "./routes/replyDrafts";
 import { settingsRouter } from "./routes/settings";
 import { healthRouter } from "./routes/health";
@@ -27,6 +28,7 @@ export function createApp() {
   app.use("/api/documents/:id/reply-drafts", replyDraftsRouter);
   app.use("/api/documents", documentsRouter);
   app.use("/api/settings", settingsRouter);
+  app.use("/api/reminders", remindersRouter);
   if (env.NODE_ENV === "development") app.use("/api/debug", debugRouter);
 
   app.use(notFound);

@@ -4,6 +4,9 @@ import { processDocument } from "./jobs/processDocument";
 import { prisma } from "./lib/prisma";
 import { createRedisConnection } from "./lib/redis";
 import { DOCUMENT_QUEUE, type DocumentJobData } from "./queue/constants";
+import { REMINDER_QUEUE, scheduleReminderChecks } from "./queue/reminderQueue";
+import { fireDueReminders } from "./reminders/reminders";
+import { todayInGermany } from "./replies/composeReplyLetter";
 
 /**
  * Separate process from the API: heavy LLM work never blocks HTTP requests,
@@ -20,8 +23,25 @@ worker.on("failed", (job, err) =>
   console.error(`Job ${job?.id} failed (attempt ${job?.attemptsMade}):`, err.message),
 );
 
+/** Fires reminders whose day has come; the job is added by a scheduler every few minutes */
+const reminderWorker = new Worker(
+  REMINDER_QUEUE,
+  async () => {
+    const fired = await fireDueReminders(todayInGermany());
+    if (fired > 0) console.log(`Fired ${fired} reminder(s)`);
+    return fired;
+  },
+  { connection: createRedisConnection() },
+);
+reminderWorker.on("failed", (_job, err) => console.error("Reminder check failed:", err.message));
+
+const reminderQueue = scheduleReminderChecks().catch((err: unknown) => {
+  console.error("Could not schedule reminder checks:", err);
+  return null;
+});
+
 const shutdown = async () => {
-  await worker.close();
+  await Promise.allSettled([worker.close(), reminderWorker.close(), reminderQueue.then((q) => q?.close())]);
   await prisma.$disconnect();
   process.exit(0);
 };

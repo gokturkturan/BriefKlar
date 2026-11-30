@@ -289,6 +289,8 @@ export const de: Messages = {
     INVALID_DATE: "Dieses Datum gibt es nicht.",
     DATE_IN_FUTURE: "Das Datum der Zustellung darf nicht in der Zukunft liegen.",
     DATE_BEFORE_LETTER: "Der Brief kann nicht vor seinem eigenen Datum angekommen sein.",
+    REMINDER_NOT_FOUND: "Diese Erinnerung gibt es nicht.",
+    DATE_IN_PAST: "Das Datum liegt in der Vergangenheit.",
     AI_RATE_LIMITED: "Der KI-Dienst hat gerade zu viele Anfragen. Bitte versuchen Sie es in ein paar Minuten noch einmal.",
     AI_OVERLOADED: "Der KI-Dienst ist gerade voll. Bitte versuchen Sie es in ein paar Minuten noch einmal.",
     AI_KEY_REJECTED: "Der KI-Dienst hat den API-Schlüssel abgelehnt. Prüfen Sie GEMINI_API_KEY.",
