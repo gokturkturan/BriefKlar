@@ -172,16 +172,23 @@ model ChatMessage {
   @@index([documentId, createdAt])
 }
 
-/// Curated knowledge base for RAG (terms, procedures, official sources)
+/// Curated knowledge base for RAG (terms, procedures, official sources), seeded from
+/// src/knowledge/entries.ts with `npm run knowledge:seed`
 model KnowledgeEntry {
-  id        String                       @id @default(uuid())
-  title     String
-  content   String
-  sourceUrl String
-  language  String                       @default("en")
+  id             String                       @id @default(uuid())
+  /// Stable key of the entry in entries.ts, so seeding updates instead of duplicating
+  slug           String                       @unique
+  title          String
+  content        String
+  sourceUrl      String
+  language       String                       @default("en")
   /// Prisma has no native vector type: read/write it with $queryRaw / $executeRaw
-  embedding Unsupported("vector(1536)")?
-  createdAt DateTime                     @default(now())
+  embedding      Unsupported("vector(1536)")?
+  /// Hash of the embedded text and model; the entry is embedded again when it changes
+  contentHash    String
+  embeddingModel String?
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
 }
 
 /// Every LLM request is logged for cost tracking and debugging

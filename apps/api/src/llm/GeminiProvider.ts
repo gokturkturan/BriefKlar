@@ -1,14 +1,18 @@
 import { ApiError, GoogleGenAI, type Part } from "@google/genai";
 import { isRetryableStatus, LLMError, userErrorForStatus } from "./errors";
 import { FallbackRunner, type FallbackResult } from "./fallback";
-import type {
-  JsonGenerationRequest,
+import {
+  EMBEDDING_DIMENSIONS,
+  type EmbeddingRequest,
+  type EmbeddingResult,
+  type JsonGenerationRequest,
   JsonGenerationResult,
-  LLMInputPart,
-  LLMProvider,
-  TextGenerationRequest,
-  TextGenerationResult,
+  type LLMInputPart,
+  type LLMProvider,
+  type TextGenerationRequest,
+  type TextGenerationResult,
 } from "./LLMProvider";
+import { normalize } from "./vectors";
 
 function toGeminiPart(part: LLMInputPart): Part {
   if (part.type === "text") return { text: part.text };
@@ -34,6 +38,9 @@ function toLLMError(err: unknown, model: string): LLMError {
 
 /** Longest wait for the first chunk of a streamed answer */
 const FIRST_CHUNK_TIMEOUT_MS = 20_000;
+
+/** Longest wait for embeddings (short texts, so this is generous) */
+const EMBEDDING_TIMEOUT_MS = 30_000;
 
 /** Longest wait for a complete JSON answer (reading a scanned letter takes a while) */
 const JSON_TIMEOUT_MS = 60_000;
@@ -63,6 +70,7 @@ export class GeminiProvider implements LLMProvider {
     readonly model: string,
     /** Used when the primary model is overloaded or rate limited */
     fallbackModel?: string,
+    readonly embeddingModel = "gemini-embedding-001",
   ) {
     this.client = new GoogleGenAI({ apiKey });
     this.models = new FallbackRunner(model, fallbackModel, toLLMError);
@@ -83,6 +91,43 @@ export class GeminiProvider implements LLMProvider {
     };
     // Once text has reached the user, switching to another model would mix two answers
     return withMeta(await this.models.run((model) => this.stream(model, request, emit), () => !started));
+  }
+
+  /**
+   * No fallback model here: vectors from two models live in different spaces, so a query
+   * embedded by another model would not find the stored entries.
+   */
+  async embed({ texts, kind, signal }: EmbeddingRequest): Promise<EmbeddingResult> {
+    const model = this.embeddingModel;
+    const startedAt = Date.now();
+    const timeout = AbortSignal.timeout(EMBEDDING_TIMEOUT_MS);
+    try {
+      const response = await this.client.models.embedContent({
+        model,
+        contents: texts,
+        config: {
+          taskType: kind === "document" ? "RETRIEVAL_DOCUMENT" : "RETRIEVAL_QUERY",
+          outputDimensionality: EMBEDDING_DIMENSIONS,
+          abortSignal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+        },
+      });
+      const vectors = (response.embeddings ?? []).map((e) => e.values ?? []);
+      if (vectors.length !== texts.length || vectors.some((v) => v.length !== EMBEDDING_DIMENSIONS)) {
+        throw new LLMError(
+          `Gemini (${model}) returned ${vectors.length} embeddings for ${texts.length} texts`,
+          false,
+          userErrorForStatus(undefined).message,
+          "AI_FAILED",
+          undefined,
+          model,
+        );
+      }
+      return { vectors: vectors.map(normalize), model, latencyMs: Date.now() - startedAt };
+    } catch (err) {
+      const error = timeout.aborted && !signal?.aborted ? timeoutError(model, EMBEDDING_TIMEOUT_MS) : toLLMError(err, model);
+      error.latencyMs = Date.now() - startedAt;
+      throw error;
+    }
   }
 
   private async stream(

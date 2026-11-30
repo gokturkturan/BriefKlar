@@ -15,7 +15,8 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deadlines:recompute": "tsx src/scripts/recomputeAllDeadlines.ts"
+    "deadlines:recompute": "tsx src/scripts/recomputeAllDeadlines.ts",
+    "knowledge:seed": "tsx src/scripts/seedKnowledge.ts"
   },
   "dependencies": {
     "@briefklar/shared": "*",

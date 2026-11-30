@@ -13,6 +13,8 @@ const EnvSchema = z.object({
   GEMINI_MODEL: z.string().default("gemini-flash-latest"),
   // Optional: used when the main model is overloaded (503) or rate limited (429). Empty = disabled.
   GEMINI_FALLBACK_MODEL: z.string().default("gemini-flash-lite-latest"),
+  // Embeddings for the knowledge base. Changing it requires running knowledge:seed again.
+  GEMINI_EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

@@ -51,6 +51,20 @@ export interface TextGenerationResult {
   failedAttempts: FailedAttempt[];
 }
 
+export interface EmbeddingRequest {
+  texts: string[];
+  /** Documents are stored in the knowledge base, queries are searched with */
+  kind: "document" | "query";
+  signal?: AbortSignal;
+}
+
+export interface EmbeddingResult {
+  /** One unit-length vector per text, in the same order */
+  vectors: number[][];
+  model: string;
+  latencyMs: number;
+}
+
 export interface LLMProvider {
   readonly name: string;
   /** Primary model */
@@ -65,4 +79,11 @@ export interface LLMProvider {
     request: TextGenerationRequest,
     onDelta: (text: string) => void,
   ): Promise<TextGenerationResult>;
+  /** Embedding model; vectors from different models cannot be compared */
+  readonly embeddingModel: string;
+  /** Turns texts into vectors of EMBEDDING_DIMENSIONS for semantic search. Throws LLMError on failure. */
+  embed(request: EmbeddingRequest): Promise<EmbeddingResult>;
 }
+
+/** Length of every embedding; the knowledge base column is vector(1536) */
+export const EMBEDDING_DIMENSIONS = 1536;
