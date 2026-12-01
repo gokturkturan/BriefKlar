@@ -3,7 +3,7 @@
 > AI assistant that explains German official letters (*Behördenbriefe*) in plain language:
 > what the letter is about, what you need to do and by when.
 
-**Status:** 🚧 Work in progress — week 4 done; the site follows the reader's language. Next: week 5.
+**Status:** 🚧 Work in progress — week 5 done: knowledge base, chat with tool calling, reminders. Next: week 6.
 
 ## Tech stack
 
@@ -30,7 +30,8 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 - Uploads are validated by their **magic bytes**, not by the client-provided MIME type.
 - Heavy work runs in a **separate worker process**, so the API stays responsive.
 - The worker reports progress through BullMQ; the API forwards it to the browser over **SSE**.
-- Plain-language explanations are streamed over SSE as well, chunk by chunk while the model writes.
+- Plain-language explanations and chat answers are streamed over SSE as well, chunk by chunk while the model writes.
+- The worker also runs a scheduled job (BullMQ job scheduler) that fires due reminders.
 - File storage sits behind a `StorageService` interface (local disk today, S3-compatible later).
 
 ### How a letter is analyzed
@@ -42,6 +43,8 @@ React (Vite) ──HTTP──▶ Express API ──▶ PostgreSQL (Prisma)
 3. The answer is validated with Zod. If it is invalid, the validation errors are sent back to the
    model once so it can repair its answer.
 4. Every call is logged to the `LlmCall` table (model, prompt version, tokens, latency, success).
+   When the primary model is overloaded or times out and the fallback model answers, the failed
+   attempt is logged as its own row, so the log shows each switch and the time it cost.
 5. The model never calculates dates: it only copies deadline wording from the letter.
    Due dates are decided by deterministic, tested code (see below).
 
@@ -120,6 +123,57 @@ simple German, Turkish, Arabic (right to left), Ukrainian or Russian.
   never ends up next to the wrong checkbox.
 - Source code, the README and commit messages stay in English.
 
+### Knowledge base (RAG)
+
+A curated knowledge base of 25 entries covers what people ask about German letters: Widerspruch
+and Einspruch, delivery (Bekanntgabe, yellow envelope), counting deadlines, missed deadlines,
+asking for more time or instalments, payment orders (Mahnbescheid), dismissals, tenancies,
+benefits, residence permits and where to get advice. Every entry names an official source,
+mostly the law on gesetze-im-internet.de.
+
+- The entries live in `apps/api/src/knowledge/entries.ts`. `npm run knowledge:seed -w @briefklar/api`
+  embeds them with `gemini-embedding-001` (1536 dimensions, normalized) into a pgvector column.
+  Only new or changed entries are embedded again; a hash of text, source and model decides.
+- A question is embedded as a query and compared by cosine distance (`<=>`). Matches below a
+  similarity threshold are left out, so an unrelated question finds nothing instead of noise.
+- The entries are English; the embedding model is multilingual, so questions in Turkish, Arabic,
+  Ukrainian, Russian or German find the same entries.
+- With a few dozen entries an exact scan is fast and never misses a match, so there is no vector
+  index yet. An HNSW index is the next step when the base grows.
+
+### Chat with tool calling
+
+Each letter has a chat. The model (Gemini function calling) decides which tools to call; the
+tools run in the API with checked code and data, and their results go back to the model until
+it answers:
+
+| Tool | What it does |
+|---|---|
+| `get_letter_details` | The analysis: sender, amounts, tasks, and deadlines already calculated by the deadline engine |
+| `search_knowledge_base` | Semantic search in the knowledge base (RAG), with sources |
+| `calculate_deadline` | The deadline engine for any German wording, also "what if it arrived on ..." |
+| `check_date` / `list_public_holidays` | The holiday calendar of the user's federal state |
+| `list_reminders` / `create_reminder` | Reminders for this letter; days are counted back in code |
+
+- The loop is provider-neutral (`apps/api/src/chat/runChat.ts`); `GeminiProvider.chatRound` maps
+  it to Gemini. Arguments are validated with Zod; invalid arguments and unknown tools go back to
+  the model as errors. After five tool rounds the model must answer.
+- The model never calculates a date, holiday or legal rule from memory: the prompt requires the
+  tools, and the answer shows which tools ran and which sources it used.
+- Answers stream over SSE (a POST read with `fetch`), with an event for each tool. They are written
+  in the language chosen in the settings and stored with the tools used and the sources.
+- Each round is a logged model call. Gemini's thought signatures are sent back with tool calls;
+  after a switch to the fallback model, calls written by the other model get Gemini's placeholder.
+- Text from the letter and tool results is treated as data, not as instructions.
+
+### Reminders
+
+- Every upcoming deadline gets a reminder three days before its due date (or at once if it is
+  closer). Reminders follow recalculated deadlines and keep their state when the date stays the same.
+- Users add their own reminders on the reminders page, or ask the chat ("remind me two days before").
+- A BullMQ job scheduler in the worker fires due reminders every five minutes; the header shows how
+  many are due. This job is where e-mail or push delivery plugs in once there are real accounts.
+
 ## Monorepo layout
 
 ```
@@ -147,7 +201,10 @@ cp apps/api/.env.example apps/api/.env
 # 4. Create the database schema (Prisma asks for a migration name, e.g. "init")
 npm run db:migrate
 
-# 5. Start API, worker and web app together
+# 5. Fill the knowledge base for the chat (one embedding request for 25 short texts)
+npm run knowledge:seed -w @briefklar/api
+
+# 6. Start API, worker and web app together
 npm run dev
 ```
 
@@ -162,7 +219,7 @@ API health check: http://localhost:4000/api/health
 - [x] Week 3 — Deterministic deadline engine + tests, action items
 - [x] Week 4 — Streaming plain-language explanation, reply drafts in German, federal state and delivery date
 - [x] The whole site in six languages (UI, analysis, deadline steps, errors), Arabic right to left
-- [ ] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
+- [x] Week 5 — Knowledge base (pgvector RAG), chat with tool calling, reminders
 - [ ] Week 6 — Evaluation set, cost dashboard, GDPR features, deployment
 
 ## Notes on data protection
