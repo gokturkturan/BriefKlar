@@ -51,6 +51,50 @@ export interface TextGenerationResult {
   failedAttempts: FailedAttempt[];
 }
 
+/** One piece of a chat turn: text, a tool call by the model, or the result the app sends back */
+export type ChatPart =
+  | {
+      type: "text";
+      text: string;
+      /** Provider data that must be sent back unchanged (Gemini thought signatures) */
+      signature?: string;
+    }
+  | { type: "toolCall"; id?: string; name: string; args: Record<string, unknown>; signature?: string }
+  | { type: "toolResult"; id?: string; name: string; result: Record<string, unknown> };
+
+export interface ChatTurn {
+  role: "user" | "model";
+  parts: ChatPart[];
+  /** Model that wrote a model turn; signatures are only valid for the same model */
+  model?: string;
+}
+
+/** A function the model may call; parameters are a JSON Schema object */
+export interface ToolDeclaration {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+export interface ChatRoundRequest {
+  system: string;
+  turns: ChatTurn[];
+  tools: ToolDeclaration[];
+  /** "none" forces a text answer, e.g. after too many tool rounds */
+  toolChoice?: "auto" | "none";
+  signal?: AbortSignal;
+}
+
+export interface ChatRoundResult {
+  /** Text and tool calls of the model's turn, in order */
+  parts: Extract<ChatPart, { type: "text" | "toolCall" }>[];
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+  failedAttempts: FailedAttempt[];
+}
+
 export interface EmbeddingRequest {
   texts: string[];
   /** Documents are stored in the knowledge base, queries are searched with */
@@ -79,6 +123,11 @@ export interface LLMProvider {
     request: TextGenerationRequest,
     onDelta: (text: string) => void,
   ): Promise<TextGenerationResult>;
+  /**
+   * One round of a chat with tools: the model either answers (text is streamed through
+   * onDelta) or asks for tool calls, which the caller runs and sends back in the next round.
+   */
+  chatRound(request: ChatRoundRequest, onDelta: (text: string) => void): Promise<ChatRoundResult>;
   /** Embedding model; vectors from different models cannot be compared */
   readonly embeddingModel: string;
   /** Turns texts into vectors of EMBEDDING_DIMENSIONS for semantic search. Throws LLMError on failure. */

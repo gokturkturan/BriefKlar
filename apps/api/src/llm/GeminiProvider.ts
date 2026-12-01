@@ -1,8 +1,11 @@
-import { ApiError, GoogleGenAI, type Part } from "@google/genai";
+import { ApiError, FunctionCallingConfigMode, GoogleGenAI, type Part } from "@google/genai";
 import { isRetryableStatus, LLMError, userErrorForStatus } from "./errors";
 import { FallbackRunner, type FallbackResult } from "./fallback";
+import { StreamedParts, toGeminiContents } from "./geminiChat";
 import {
   EMBEDDING_DIMENSIONS,
+  type ChatRoundRequest,
+  type ChatRoundResult,
   type EmbeddingRequest,
   type EmbeddingResult,
   type JsonGenerationRequest,
@@ -38,6 +41,9 @@ function toLLMError(err: unknown, model: string): LLMError {
 
 /** Longest wait for the first chunk of a streamed answer */
 const FIRST_CHUNK_TIMEOUT_MS = 20_000;
+
+/** Longest wait for the first chunk of a chat round; deciding on tool calls takes some thinking */
+const CHAT_FIRST_CHUNK_TIMEOUT_MS = 30_000;
 
 /** Longest wait for embeddings (short texts, so this is generous) */
 const EMBEDDING_TIMEOUT_MS = 30_000;
@@ -91,6 +97,73 @@ export class GeminiProvider implements LLMProvider {
     };
     // Once text has reached the user, switching to another model would mix two answers
     return withMeta(await this.models.run((model) => this.stream(model, request, emit), () => !started));
+  }
+
+  async chatRound(request: ChatRoundRequest, onDelta: (text: string) => void): Promise<ChatRoundResult> {
+    let started = false;
+    const emit = (text: string) => {
+      started = true;
+      onDelta(text);
+    };
+    // A round that only asked for tools can still move to the fallback; streamed text cannot
+    return withMeta(await this.models.run((model) => this.chatStream(model, request, emit), () => !started));
+  }
+
+  private async chatStream(
+    model: string,
+    request: ChatRoundRequest,
+    onDelta: (text: string) => void,
+  ): Promise<Pick<ChatRoundResult, "parts"> & Usage> {
+    const timeout = new AbortController();
+    const signal = request.signal ? AbortSignal.any([request.signal, timeout.signal]) : timeout.signal;
+    const timer = setTimeout(() => timeout.abort(), CHAT_FIRST_CHUNK_TIMEOUT_MS);
+
+    const collected = new StreamedParts();
+    let inputTokens = 0;
+    let outputTokens = 0;
+    try {
+      const stream = await this.client.models.generateContentStream({
+        model,
+        contents: toGeminiContents(request.turns, model),
+        config: {
+          systemInstruction: request.system,
+          tools: [
+            {
+              functionDeclarations: request.tools.map((tool) => ({
+                name: tool.name,
+                description: tool.description,
+                parametersJsonSchema: tool.parameters,
+              })),
+            },
+          ],
+          toolConfig: {
+            functionCallingConfig: {
+              mode: request.toolChoice === "none" ? FunctionCallingConfigMode.NONE : FunctionCallingConfigMode.AUTO,
+            },
+          },
+          abortSignal: signal,
+        },
+      });
+
+      for await (const chunk of stream) {
+        clearTimeout(timer);
+        const delta = collected.add(chunk.candidates?.[0]?.content?.parts);
+        if (delta) onDelta(delta);
+        if (chunk.usageMetadata) {
+          inputTokens = chunk.usageMetadata.promptTokenCount ?? inputTokens;
+          // Thinking tokens are billed as output
+          outputTokens =
+            (chunk.usageMetadata.candidatesTokenCount ?? 0) + (chunk.usageMetadata.thoughtsTokenCount ?? 0) ||
+            outputTokens;
+        }
+      }
+    } catch (err) {
+      if (timeout.signal.aborted && !request.signal?.aborted) throw timeoutError(model, CHAT_FIRST_CHUNK_TIMEOUT_MS);
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+    return { parts: collected.parts, inputTokens, outputTokens };
   }
 
   /**
