@@ -13,6 +13,8 @@ export interface RunChatOptions {
   /** Earlier messages of the conversation */
   history: ChatTurn[];
   message: string;
+  /** Extra text sent with the message but not shown or stored, e.g. the answer language */
+  instruction?: string;
   context: ToolContext;
   tools?: ChatTool<unknown>[];
   onEvent: (event: Extract<ChatStreamEvent, { type: "tool" | "delta" }>) => void;
@@ -37,7 +39,9 @@ export async function runChat(options: RunChatOptions): Promise<ChatAnswer> {
   const declarations = toolDeclarations(tools);
   const logContext = { provider, purpose: "chat", promptVersion, documentId: context.documentId };
 
-  const turns: ChatTurn[] = [...options.history, { role: "user", parts: [{ type: "text", text: options.message }] }];
+  const question: ChatTurn = { role: "user", parts: [{ type: "text", text: options.message }] };
+  if (options.instruction) question.parts.push({ type: "text", text: options.instruction });
+  const turns: ChatTurn[] = [...options.history, question];
   const toolCalls: ChatToolCallDto[] = [];
   const sources = new Map<string, ChatSourceDto>();
   let text = "";

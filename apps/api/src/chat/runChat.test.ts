@@ -98,6 +98,30 @@ describe("runChat", () => {
     ]);
   });
 
+  it("sends the instruction with the question without adding it to the answer", async () => {
+    const { provider, requests } = scriptedProvider([[{ type: "text", text: "Ja." }]]);
+    await runChat({
+      provider,
+      system: "system",
+      promptVersion: "test",
+      history: [],
+      message: "Frage",
+      instruction: "(Answer in German.)",
+      context,
+      tools,
+      onEvent: () => {},
+    });
+    expect(requests[0]?.turns).toEqual([
+      {
+        role: "user",
+        parts: [
+          { type: "text", text: "Frage" },
+          { type: "text", text: "(Answer in German.)" },
+        ],
+      },
+    ]);
+  });
+
   it("reports invalid arguments and unknown tools back to the model instead of failing", async () => {
     const { provider, requests } = scriptedProvider([
       [

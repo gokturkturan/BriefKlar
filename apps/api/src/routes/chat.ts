@@ -16,7 +16,7 @@ import { HttpError } from "../lib/httpError";
 import { prisma } from "../lib/prisma";
 import { llm, LLMError } from "../llm";
 import type { ChatTurn } from "../llm/LLMProvider";
-import { chatSystemPrompt, CHAT_PROMPT_VERSION } from "../prompts/chat";
+import { chatSystemPrompt, chatTurnInstruction, CHAT_PROMPT_VERSION } from "../prompts/chat";
 import { todayInGermany } from "../replies/composeReplyLetter";
 import { findOwnedDocument, requireExtraction } from "./ownedDocument";
 
@@ -126,6 +126,7 @@ chatRouter.post("/", async (req, res) => {
       promptVersion: CHAT_PROMPT_VERSION,
       history,
       message: body.data.message,
+      instruction: chatTurnInstruction(language),
       context: {
         userId: doc.userId,
         documentId: doc.id,
