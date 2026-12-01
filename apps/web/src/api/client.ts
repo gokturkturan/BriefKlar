@@ -1,12 +1,16 @@
 import type {
   AnalysisTranslationDto,
   ApiErrorBody,
+  ChatMessageDto,
+  CreateReminderInput,
   CreateReplyDraftInput,
   DocumentDetailDto,
   DocumentDto,
   ErrorCode,
   ExplanationLanguage,
   HealthDto,
+  ReminderDto,
+  RemindersDto,
   ReplyDraftDto,
   SettingsDto,
   UpdateDocumentInput,
@@ -96,6 +100,20 @@ export const api = {
     return request<DocumentDto>("/api/documents", { method: "POST", body: form });
   },
 
+  listChatMessages: (documentId: string) => request<ChatMessageDto[]>(`/api/documents/${documentId}/chat`),
+
+  clearChat: (documentId: string) => request<void>(`/api/documents/${documentId}/chat`, { method: "DELETE" }),
+
+  listReminders: () => request<RemindersDto>("/api/reminders"),
+
+  createReminder: (input: CreateReminderInput) => request<ReminderDto>("/api/reminders", json("POST", input)),
+
+  updateReminder: (id: string, done: boolean) => request<ReminderDto>(`/api/reminders/${id}`, json("PATCH", { done })),
+
+  deleteReminder: (id: string) => request<void>(`/api/reminders/${id}`, { method: "DELETE" }),
+
+  /** POST with a Server-Sent Events answer (EventSource only does GET), see useChat */
+  chatUrl: (documentId: string) => `/api/documents/${documentId}/chat`,
   fileUrl: (id: string) => `/api/documents/${id}/file`,
   eventsUrl: (id: string) => `/api/documents/${id}/events`,
   explanationUrl: (id: string, language: string) =>
@@ -108,6 +126,8 @@ export const queryKeys = {
   replyDrafts: (id: string) => ["documents", id, "reply-drafts"] as const,
   translation: (id: string, language: string, analysisCreatedAt: string) =>
     ["documents", id, "translation", language, analysisCreatedAt] as const,
+  chat: (id: string) => ["documents", id, "chat"] as const,
+  reminders: ["reminders"] as const,
   health: ["health"] as const,
   settings: ["settings"] as const,
 };

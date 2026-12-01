@@ -14,6 +14,7 @@ import {
 import { api, queryKeys } from "../api/client";
 import { deadlineStepText } from "../i18n/deadlineSteps";
 import { dirOf, useI18n, type I18n } from "../i18n/I18nProvider";
+import { ChatPanel } from "./ChatPanel";
 import { ExplanationPanel } from "./ExplanationPanel";
 import { ReceivedDateForm } from "./ReceivedDateForm";
 import { ReplyDraftsPanel } from "./ReplyDraftsPanel";
@@ -242,6 +243,10 @@ export function AnalysisPanel({
 
       <Section title={t.analysis.sections.explained}>
         <ExplanationPanel documentId={documentId} />
+      </Section>
+
+      <Section title={t.analysis.sections.chat}>
+        <ChatPanel documentId={documentId} />
       </Section>
 
       <Section title={t.analysis.sections.todo}>

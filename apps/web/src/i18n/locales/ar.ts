@@ -7,8 +7,9 @@ const ltr = (text: string) => `⁦${text}⁩`;
 /** Modern Standard Arabic in simple words. German terms stay in Latin script. */
 export const ar: Messages = {
   app: {
-    nav: { upload: "رفع رسالة", documents: "رسائلي", settings: "الإعدادات" },
+    nav: { upload: "رفع رسالة", documents: "رسائلي", settings: "الإعدادات", reminders: "التذكيرات" },
     language: "اللغة",
+    dueReminders: (count) => `تذكيرات حان وقتها: ${count}`,
   },
 
   common: {
@@ -120,6 +121,7 @@ export const ar: Messages = {
       documents: "المستندات المطلوب إرسالها",
       references: "الأرقام المرجعية",
       reply: "اكتب ردًا باللغة الألمانية",
+      chat: "اسأل عن هذه الرسالة",
     },
     notOfficial: "لا يبدو هذا رسالة رسمية. قد لا تكون النتائج مفيدة.",
     uncertain: (fields: string) =>
@@ -261,6 +263,52 @@ export const ar: Messages = {
       REQUEST_ONLY: () => "هذا طلب فقط: يبقى الموعد النهائي ساريًا حتى يوافق المرسِل.",
       FILL_PLACEHOLDERS: (placeholders: string) => `املأ قبل الإرسال: ${placeholders}`,
     },
+  },
+
+  chat: {
+    intro: "اسأل أي شيء عن هذه الرسالة. يقرأ المساعد تحليلها، ويحسب التواريخ بحاسبة المواعيد النهائية، ويبحث في قاعدة معرفة تستند إلى مصادر رسمية. هذه ليست استشارة قانونية.",
+    placeholder: "سؤالك…",
+    send: "إرسال",
+    thinking: "يفكر…",
+    clear: "بدء محادثة جديدة",
+    clearConfirm: "حذف هذه المحادثة",
+    toolsUsed: "الأدوات المستخدمة",
+    /** What each tool does, shown while the assistant uses it */
+    tools: {
+      get_letter_details: "بيانات الرسالة",
+      search_knowledge_base: "قاعدة المعرفة",
+      calculate_deadline: "حساب الموعد النهائي",
+      check_date: "التقويم",
+      list_public_holidays: "العطل الرسمية",
+      list_reminders: "التذكيرات",
+      create_reminder: "تذكير جديد",
+    },
+    sources: "المصادر",
+    seeReminders: "عرض تذكيراتك",
+    answeredBy: (model) => `أجاب ${model}. تحقق من التفاصيل المهمة في الرسالة الأصلية.`,
+    suggestions: [
+      "ماذا عليّ أن أفعل، وحتى متى؟",
+      "ماذا يحدث إذا لم أفعل شيئًا؟",
+      "ذكّرني قبل الموعد النهائي بيومين.",
+    ],
+  },
+
+  reminders: {
+    title: "التذكيرات",
+    intro: "يذكّرك BriefKlar قبل ثلاثة أيام من كل موعد نهائي في رسائلك. يمكنك إضافة تذكيراتك الخاصة هنا، أو طلبها من المحادثة في صفحة الرسالة.",
+    due: "حان وقتها",
+    upcoming: "القادمة",
+    empty: "لا توجد تذكيرات مفتوحة.",
+    deadline: (kind, date) => `${kind}: الموعد النهائي ${date}`,
+    remindOn: (date) => `التذكير يوم ${date}`,
+    markDone: "تم",
+    origins: { DEADLINE: "تلقائي", USER: "أضفته أنت", CHAT: "أُنشئ في المحادثة" },
+    add: "إضافة تذكير",
+    note: "بماذا تريد أن نذكّرك؟",
+    date: "التاريخ",
+    letter: "الرسالة (اختياري)",
+    noLetter: "بدون رسالة",
+    save: "إضافة التذكير",
   },
 
   settings: {

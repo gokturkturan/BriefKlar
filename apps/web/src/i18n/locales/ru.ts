@@ -6,8 +6,9 @@ const dot = (date: string) => (date.endsWith(".") ? date : `${date}.`);
 
 export const ru: Messages = {
   app: {
-    nav: { upload: "Загрузить", documents: "Мои письма", settings: "Настройки" },
+    nav: { upload: "Загрузить", documents: "Мои письма", settings: "Настройки", reminders: "Напоминания" },
     language: "Язык",
+    dueReminders: (count) => `Напоминания на сегодня: ${count}`,
   },
 
   common: {
@@ -119,6 +120,7 @@ export const ru: Messages = {
       documents: "Какие документы отправить",
       references: "Номера дела",
       reply: "Написать ответ на немецком",
+      chat: "Спросите об этом письме",
     },
     notOfficial: "Это не похоже на официальное письмо. Результаты могут быть бесполезны.",
     uncertain: (fields: string) =>
@@ -256,6 +258,52 @@ export const ru: Messages = {
       REQUEST_ONLY: () => "Это просьба: срок остаётся в силе, пока отправитель не согласится.",
       FILL_PLACEHOLDERS: (placeholders: string) => `Заполните перед отправкой: ${placeholders}`,
     },
+  },
+
+  chat: {
+    intro: "Спрашивайте что угодно об этом письме. Ассистент читает его анализ, вычисляет даты калькулятором сроков и ищет в базе знаний с официальными источниками. Это не юридическая консультация.",
+    placeholder: "Ваш вопрос…",
+    send: "Отправить",
+    thinking: "Думает…",
+    clear: "Начать новый разговор",
+    clearConfirm: "Удалить этот разговор",
+    toolsUsed: "Использованные инструменты",
+    /** What each tool does, shown while the assistant uses it */
+    tools: {
+      get_letter_details: "Данные письма",
+      search_knowledge_base: "База знаний",
+      calculate_deadline: "Расчёт срока",
+      check_date: "Календарь",
+      list_public_holidays: "Праздничные дни",
+      list_reminders: "Напоминания",
+      create_reminder: "Новое напоминание",
+    },
+    sources: "Источники",
+    seeReminders: "Посмотреть напоминания",
+    answeredBy: (model) => `Ответ от ${model}. Проверьте важные данные в оригинале письма.`,
+    suggestions: [
+      "Что мне нужно сделать и до какого числа?",
+      "Что будет, если я ничего не сделаю?",
+      "Напомни мне за два дня до конца срока.",
+    ],
+  },
+
+  reminders: {
+    title: "Напоминания",
+    intro: "BriefKlar напоминает вам за три дня до каждого срока в ваших письмах. Здесь можно добавить свои напоминания или попросить об этом в чате на странице письма.",
+    due: "Пора",
+    upcoming: "Предстоящие",
+    empty: "Открытых напоминаний нет.",
+    deadline: (kind, date) => `${kind}: срок до ${date}`,
+    remindOn: (date) => `Напоминание ${date}`,
+    markDone: "Готово",
+    origins: { DEADLINE: "Автоматически", USER: "Добавлено вами", CHAT: "Создано в чате" },
+    add: "Добавить напоминание",
+    note: "О чём вам напомнить?",
+    date: "Дата",
+    letter: "Письмо (необязательно)",
+    noLetter: "Без письма",
+    save: "Добавить напоминание",
   },
 
   settings: {

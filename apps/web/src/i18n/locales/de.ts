@@ -4,8 +4,9 @@ import type { Messages } from "./en";
 /** Einfaches Deutsch: kurze Sätze, bekannte Wörter, Sie-Form */
 export const de: Messages = {
   app: {
-    nav: { upload: "Hochladen", documents: "Meine Briefe", settings: "Einstellungen" },
+    nav: { upload: "Hochladen", documents: "Meine Briefe", settings: "Einstellungen", reminders: "Erinnerungen" },
     language: "Sprache",
+    dueReminders: (count) => `Fällige Erinnerungen: ${count}`,
   },
 
   common: {
@@ -117,6 +118,7 @@ export const de: Messages = {
       documents: "Diese Unterlagen schicken",
       references: "Aktenzeichen und Nummern",
       reply: "Eine Antwort auf Deutsch schreiben",
+      chat: "Fragen zu diesem Brief",
     },
     notOfficial: "Das sieht nicht wie ein Brief vom Amt aus. Die Ergebnisse helfen vielleicht nicht.",
     uncertain: (fields: string) =>
@@ -255,6 +257,52 @@ export const de: Messages = {
       REQUEST_ONLY: () => "Das ist eine Bitte: Die Frist gilt weiter, bis der Absender zustimmt.",
       FILL_PLACEHOLDERS: (placeholders: string) => `Vor dem Absenden ausfüllen: ${placeholders}`,
     },
+  },
+
+  chat: {
+    intro: "Fragen Sie alles zu diesem Brief. Der Assistent liest die Auswertung, berechnet Daten mit dem Fristenrechner und sucht in einer Wissensdatenbank mit amtlichen Quellen. Das ist keine Rechtsberatung.",
+    placeholder: "Ihre Frage…",
+    send: "Senden",
+    thinking: "Denkt nach…",
+    clear: "Neues Gespräch beginnen",
+    clearConfirm: "Gespräch löschen",
+    toolsUsed: "Benutzte Werkzeuge",
+    /** What each tool does, shown while the assistant uses it */
+    tools: {
+      get_letter_details: "Daten des Briefs",
+      search_knowledge_base: "Wissensdatenbank",
+      calculate_deadline: "Fristberechnung",
+      check_date: "Kalender",
+      list_public_holidays: "Feiertage",
+      list_reminders: "Erinnerungen",
+      create_reminder: "Neue Erinnerung",
+    },
+    sources: "Quellen",
+    seeReminders: "Zu Ihren Erinnerungen",
+    answeredBy: (model) => `Antwort von ${model}. Prüfen Sie wichtige Angaben im Original-Brief.`,
+    suggestions: [
+      "Was muss ich tun und bis wann?",
+      "Was passiert, wenn ich nichts mache?",
+      "Erinnere mich zwei Tage vor der Frist.",
+    ],
+  },
+
+  reminders: {
+    title: "Erinnerungen",
+    intro: "BriefKlar erinnert Sie drei Tage vor jeder Frist in Ihren Briefen. Hier können Sie eigene Erinnerungen anlegen. Sie können auch im Chat auf der Seite eines Briefs danach fragen.",
+    due: "Jetzt fällig",
+    upcoming: "Demnächst",
+    empty: "Keine offenen Erinnerungen.",
+    deadline: (kind, date) => `${kind}: Frist am ${date}`,
+    remindOn: (date) => `Erinnerung am ${date}`,
+    markDone: "Erledigt",
+    origins: { DEADLINE: "Automatisch", USER: "Von Ihnen", CHAT: "Im Chat erstellt" },
+    add: "Erinnerung hinzufügen",
+    note: "Woran sollen wir Sie erinnern?",
+    date: "Datum",
+    letter: "Brief (freiwillig)",
+    noLetter: "Kein Brief",
+    save: "Erinnerung speichern",
   },
 
   settings: {

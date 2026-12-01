@@ -4,6 +4,7 @@ import { useChangeLanguage } from "./hooks/useSettings";
 import { useI18n } from "./i18n/I18nProvider";
 import { DocumentDetailPage } from "./pages/DocumentDetailPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
+import { RemindersPage, useDueReminderCount } from "./pages/RemindersPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { UploadPage } from "./pages/UploadPage";
 
@@ -15,6 +16,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 export function App() {
   const { t, language } = useI18n();
   const changeLanguage = useChangeLanguage();
+  const dueReminders = useDueReminderCount();
 
   return (
     <div className="min-h-screen">
@@ -31,6 +33,17 @@ export function App() {
               </NavLink>
               <NavLink to="/documents" className={navClass}>
                 {t.app.nav.documents}
+              </NavLink>
+              <NavLink to="/reminders" className={navClass}>
+                {t.app.nav.reminders}
+                {dueReminders > 0 && (
+                  <span
+                    className="ms-1.5 rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white"
+                    aria-label={t.app.dueReminders(dueReminders)}
+                  >
+                    {dueReminders}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/settings" className={navClass}>
                 {t.app.nav.settings}
@@ -56,6 +69,7 @@ export function App() {
           <Route path="/" element={<UploadPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/documents/:id" element={<DocumentDetailPage />} />
+          <Route path="/reminders" element={<RemindersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>

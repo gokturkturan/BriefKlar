@@ -1,4 +1,5 @@
 import type {
+  ChatToolName,
   DeadlineKind,
   DeadlineStep,
   DocumentStatus,
@@ -7,6 +8,7 @@ import type {
   LetterType,
   PeriodUnit,
   ProcessingStep,
+  ReminderOrigin,
   ReplyType,
   ReplyWarning,
   SenderType,
@@ -21,8 +23,9 @@ import { plural } from "../plural";
  */
 export const en = {
   app: {
-    nav: { upload: "Upload", documents: "My letters", settings: "Settings" },
+    nav: { upload: "Upload", documents: "My letters", settings: "Settings", reminders: "Reminders" },
     language: "Language",
+    dueReminders: (count: number) => `Due reminders: ${count}`,
   },
 
   common: {
@@ -135,6 +138,7 @@ export const en = {
       documents: "Documents to send",
       references: "Reference numbers",
       reply: "Write a reply in German",
+      chat: "Ask about this letter",
     },
     notOfficial: "This does not look like an official letter. The results may not be useful.",
     uncertain: (fields: string) =>
@@ -271,6 +275,52 @@ export const en = {
     },
   },
 
+  chat: {
+    intro: "Ask anything about this letter. The assistant reads its analysis, calculates dates with the deadline engine and searches a knowledge base with official sources. It does not provide legal advice.",
+    placeholder: "Your question…",
+    send: "Send",
+    thinking: "Thinking…",
+    clear: "Start a new conversation",
+    clearConfirm: "Delete this conversation",
+    toolsUsed: "Tools used",
+    /** What each tool does, shown while the assistant uses it */
+    tools: {
+      get_letter_details: "Letter data",
+      search_knowledge_base: "Knowledge base",
+      calculate_deadline: "Deadline calculation",
+      check_date: "Calendar",
+      list_public_holidays: "Public holidays",
+      list_reminders: "Reminders",
+      create_reminder: "New reminder",
+    },
+    sources: "Sources",
+    seeReminders: "See your reminders",
+    answeredBy: (model: string) => `Answered by ${model}. Check important details in the original letter.`,
+    suggestions: [
+      "What do I have to do, and by when?",
+      "What happens if I do nothing?",
+      "Remind me two days before the deadline.",
+    ],
+  },
+
+  reminders: {
+    title: "Reminders",
+    intro: "BriefKlar reminds you three days before every deadline in your letters. You can add your own reminders here, or ask the chat on a letter's page.",
+    due: "Due now",
+    upcoming: "Upcoming",
+    empty: "No open reminders.",
+    deadline: (kind: string, date: string) => `${kind}: due ${date}`,
+    remindOn: (date: string) => `Reminder on ${date}`,
+    markDone: "Done",
+    origins: { DEADLINE: "Automatic", USER: "Added by you", CHAT: "Set in the chat" },
+    add: "Add a reminder",
+    note: "What do you want to be reminded of?",
+    date: "Date",
+    letter: "Letter (optional)",
+    noLetter: "No letter",
+    save: "Add reminder",
+  },
+
   settings: {
     title: "Settings",
     state: "Federal state (Bundesland)",
@@ -331,3 +381,5 @@ en.holidays satisfies Record<HolidayId, string>;
 en.replies.types satisfies Record<ReplyType, string>;
 en.replies.hints satisfies Record<ReplyType, string>;
 en.replies.warnings satisfies Record<ReplyWarning["code"], unknown>;
+en.chat.tools satisfies Record<ChatToolName, string>;
+en.reminders.origins satisfies Record<ReminderOrigin, string>;

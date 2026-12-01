@@ -6,8 +6,9 @@ const dot = (date: string) => (date.endsWith(".") ? date : `${date}.`);
 
 export const uk: Messages = {
   app: {
-    nav: { upload: "Завантажити", documents: "Мої листи", settings: "Налаштування" },
+    nav: { upload: "Завантажити", documents: "Мої листи", settings: "Налаштування", reminders: "Нагадування" },
     language: "Мова",
+    dueReminders: (count) => `Нагадування на сьогодні: ${count}`,
   },
 
   common: {
@@ -119,6 +120,7 @@ export const uk: Messages = {
       documents: "Які документи надіслати",
       references: "Номери справи",
       reply: "Написати відповідь німецькою",
+      chat: "Запитайте про цей лист",
     },
     notOfficial: "Це не схоже на офіційний лист. Результати можуть бути некорисними.",
     uncertain: (fields: string) =>
@@ -256,6 +258,52 @@ export const uk: Messages = {
       REQUEST_ONLY: () => "Це прохання: строк залишається чинним, доки відправник не погодиться.",
       FILL_PLACEHOLDERS: (placeholders: string) => `Заповніть перед відправленням: ${placeholders}`,
     },
+  },
+
+  chat: {
+    intro: "Запитуйте будь-що про цей лист. Асистент читає його аналіз, обчислює дати калькулятором строків і шукає в базі знань з офіційними джерелами. Це не юридична консультація.",
+    placeholder: "Ваше запитання…",
+    send: "Надіслати",
+    thinking: "Думає…",
+    clear: "Почати нову розмову",
+    clearConfirm: "Видалити цю розмову",
+    toolsUsed: "Використані інструменти",
+    /** What each tool does, shown while the assistant uses it */
+    tools: {
+      get_letter_details: "Дані листа",
+      search_knowledge_base: "База знань",
+      calculate_deadline: "Розрахунок строку",
+      check_date: "Календар",
+      list_public_holidays: "Державні свята",
+      list_reminders: "Нагадування",
+      create_reminder: "Нове нагадування",
+    },
+    sources: "Джерела",
+    seeReminders: "Переглянути нагадування",
+    answeredBy: (model) => `Відповідь від ${model}. Перевірте важливі дані в оригіналі листа.`,
+    suggestions: [
+      "Що мені потрібно зробити і до якого числа?",
+      "Що буде, якщо я нічого не робитиму?",
+      "Нагадай мені за два дні до кінця строку.",
+    ],
+  },
+
+  reminders: {
+    title: "Нагадування",
+    intro: "BriefKlar нагадує вам за три дні до кожного строку у ваших листах. Тут можна додати власні нагадування або попросити про це в чаті на сторінці листа.",
+    due: "Час настав",
+    upcoming: "Найближчі",
+    empty: "Відкритих нагадувань немає.",
+    deadline: (kind, date) => `${kind}: строк до ${date}`,
+    remindOn: (date) => `Нагадування ${date}`,
+    markDone: "Виконано",
+    origins: { DEADLINE: "Автоматично", USER: "Додано вами", CHAT: "Створено в чаті" },
+    add: "Додати нагадування",
+    note: "Про що вам нагадати?",
+    date: "Дата",
+    letter: "Лист (необов’язково)",
+    noLetter: "Без листа",
+    save: "Додати нагадування",
   },
 
   settings: {

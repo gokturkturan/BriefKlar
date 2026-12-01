@@ -3,8 +3,9 @@ import type { Messages } from "./en";
 
 export const tr: Messages = {
   app: {
-    nav: { upload: "Yükle", documents: "Mektuplarım", settings: "Ayarlar" },
+    nav: { upload: "Yükle", documents: "Mektuplarım", settings: "Ayarlar", reminders: "Hatırlatıcılar" },
     language: "Dil",
+    dueReminders: (count) => `Zamanı gelen hatırlatıcılar: ${count}`,
   },
 
   common: {
@@ -116,6 +117,7 @@ export const tr: Messages = {
       documents: "Gönderilecek belgeler",
       references: "Dosya ve referans numaraları",
       reply: "Almanca cevap yazın",
+      chat: "Bu mektup hakkında sorun",
     },
     notOfficial: "Bu resmî bir mektup gibi görünmüyor. Sonuçlar işinize yaramayabilir.",
     uncertain: (fields: string) =>
@@ -253,6 +255,52 @@ export const tr: Messages = {
       REQUEST_ONLY: () => "Bu bir rica: gönderen kabul edene kadar son tarih geçerliliğini korur.",
       FILL_PLACEHOLDERS: (placeholders: string) => `Göndermeden önce doldurun: ${placeholders}`,
     },
+  },
+
+  chat: {
+    intro: "Bu mektupla ilgili her şeyi sorabilirsiniz. Asistan mektubun analizini okur, tarihleri son tarih hesaplayıcısıyla hesaplar ve resmî kaynaklara dayanan bir bilgi bankasında arama yapar. Bu bir hukuki danışmanlık değildir.",
+    placeholder: "Sorunuz…",
+    send: "Gönder",
+    thinking: "Düşünüyor…",
+    clear: "Yeni bir sohbet başlat",
+    clearConfirm: "Bu sohbeti sil",
+    toolsUsed: "Kullanılan araçlar",
+    /** What each tool does, shown while the assistant uses it */
+    tools: {
+      get_letter_details: "Mektup bilgileri",
+      search_knowledge_base: "Bilgi bankası",
+      calculate_deadline: "Son tarih hesabı",
+      check_date: "Takvim",
+      list_public_holidays: "Resmî tatiller",
+      list_reminders: "Hatırlatıcılar",
+      create_reminder: "Yeni hatırlatıcı",
+    },
+    sources: "Kaynaklar",
+    seeReminders: "Hatırlatıcılarınızı görün",
+    answeredBy: (model) => `Cevaplayan: ${model}. Önemli bilgileri asıl mektuptan kontrol edin.`,
+    suggestions: [
+      "Ne yapmam gerekiyor ve ne zamana kadar?",
+      "Hiçbir şey yapmazsam ne olur?",
+      "Son tarihten iki gün önce bana hatırlat.",
+    ],
+  },
+
+  reminders: {
+    title: "Hatırlatıcılar",
+    intro: "BriefKlar, mektuplarınızdaki her son tarihten üç gün önce size hatırlatır. Burada kendi hatırlatıcılarınızı ekleyebilir ya da bir mektubun sayfasındaki sohbetten isteyebilirsiniz.",
+    due: "Zamanı geldi",
+    upcoming: "Yaklaşanlar",
+    empty: "Açık hatırlatıcı yok.",
+    deadline: (kind, date) => `${kind}: son tarih ${date}`,
+    remindOn: (date) => `Hatırlatma tarihi: ${date}`,
+    markDone: "Tamamlandı",
+    origins: { DEADLINE: "Otomatik", USER: "Sizin eklediğiniz", CHAT: "Sohbette kuruldu" },
+    add: "Hatırlatıcı ekle",
+    note: "Neyi hatırlatalım?",
+    date: "Tarih",
+    letter: "Mektup (isteğe bağlı)",
+    noLetter: "Mektup yok",
+    save: "Hatırlatıcıyı ekle",
   },
 
   settings: {
