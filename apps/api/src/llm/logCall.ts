@@ -2,8 +2,12 @@ import { prisma } from "../lib/prisma";
 import { LLMError } from "./errors";
 import type { FailedAttempt } from "./fallback";
 import type { LLMProvider } from "./LLMProvider";
+import { costOf } from "./pricing";
 
-/** Every LLM request is logged to the LlmCall table (tokens, latency, success). */
+/**
+ * Every LLM request is logged to the LlmCall table (tokens, cost, latency, success).
+ * The cost comes from the price table; a model without a price is logged with cost 0.
+ */
 export async function logCall(data: {
   provider: LLMProvider;
   model: string;
@@ -26,7 +30,7 @@ export async function logCall(data: {
         promptVersion: data.promptVersion,
         inputTokens: data.inputTokens,
         outputTokens: data.outputTokens,
-        costUsd: 0, // free tier for now; a price table per model comes with the cost dashboard
+        costUsd: costOf(data.model, data.inputTokens, data.outputTokens) ?? 0,
         latencyMs: data.latencyMs,
         success: data.success,
         errorMessage: data.errorMessage,
