@@ -23,7 +23,7 @@ import { plural } from "../plural";
  */
 export const en = {
   app: {
-    nav: { upload: "Upload", documents: "My letters", settings: "Settings", reminders: "Reminders" },
+    nav: { upload: "Upload", documents: "My letters", settings: "Settings", reminders: "Reminders", usage: "Usage" },
     language: "Language",
     dueReminders: (count: number) => `Due reminders: ${count}`,
   },
@@ -332,6 +332,42 @@ export const en = {
     languageHint:
       "BriefKlar is shown in this language: the pages, the analysis of your letters, explanations and " +
       "the translations of reply drafts.",
+  },
+
+  usage: {
+    title: "Usage and cost",
+    intro: (date: string) =>
+      `Every AI call is logged. Costs are estimates at the paid-tier prices of each model (checked on ${date}); ` +
+      "development runs on the free tier.",
+    period: (days: number) => `Last ${days} days`,
+    cost: "Estimated cost",
+    calls: "AI calls",
+    failed: (count: number) => `${count} failed`,
+    fallbackSwitches: "Switches to the fallback model",
+    fallbackHint: "The main model failed or timed out and the smaller model answered.",
+    costPerLetter: "Average cost per letter",
+    letters: (count: number) => `Letters: ${count}`,
+    latency: "Response time (median / 95%)",
+    tokens: "Tokens (input / output)",
+    perDay: "Cost per day",
+    byPurpose: "By task",
+    byModel: "By model",
+    columns: { name: "Name", calls: "Calls", failed: "Failed", switches: "Fallback", tokens: "Tokens", cost: "Cost", latency: "Median / 95%" },
+    purposes: {
+      "extract-letter": "Letter analysis",
+      "translate-analysis": "Translation",
+      "explain-letter": "Explanation",
+      "reply-draft": "Reply draft",
+      chat: "Chat",
+      "embed-query": "Knowledge base search",
+      "embed-knowledge": "Knowledge base setup",
+      "eval-extract-letter": "Evaluation run",
+    } as Record<string, string>,
+    unpriced: "no price known, counted as 0",
+    recentFailures: "Latest failures",
+    switched: "fallback answered",
+    noFailures: "No failed calls in this period.",
+    empty: "No AI calls in this period.",
   },
 
   errors: {

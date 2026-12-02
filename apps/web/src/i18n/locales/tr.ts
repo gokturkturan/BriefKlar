@@ -3,7 +3,7 @@ import type { Messages } from "./en";
 
 export const tr: Messages = {
   app: {
-    nav: { upload: "Yükle", documents: "Mektuplarım", settings: "Ayarlar", reminders: "Hatırlatıcılar" },
+    nav: { upload: "Yükle", documents: "Mektuplarım", settings: "Ayarlar", reminders: "Hatırlatıcılar", usage: "Kullanım" },
     language: "Dil",
     dueReminders: (count) => `Zamanı gelen hatırlatıcılar: ${count}`,
   },
@@ -315,6 +315,42 @@ export const tr: Messages = {
     languageHint:
       "BriefKlar bu dilde gösterilir: sayfalar, mektuplarınızın analizi, açıklamalar ve cevap " +
       "taslaklarının çevirileri.",
+  },
+
+  usage: {
+    title: "Kullanım ve maliyet",
+    intro: (date) =>
+      `Her yapay zeka çağrısı kaydedilir. Maliyetler, her modelin ücretli katman fiyatlarıyla yapılan tahminlerdir (kontrol tarihi: ${date}); ` +
+      "geliştirme ücretsiz katmanda yapılır.",
+    period: (days) => `Son ${days} gün`,
+    cost: "Tahmini maliyet",
+    calls: "Yapay zeka çağrıları",
+    failed: (count) => `${count} başarısız`,
+    fallbackSwitches: "Yedek modele geçişler",
+    fallbackHint: "Ana model hata verdi ya da zaman aşımına uğradı ve daha küçük model yanıtladı.",
+    costPerLetter: "Mektup başına ortalama maliyet",
+    letters: (count) => `Mektup: ${count}`,
+    latency: "Yanıt süresi (medyan / %95)",
+    tokens: "Token (girdi / çıktı)",
+    perDay: "Günlük maliyet",
+    byPurpose: "Göreve göre",
+    byModel: "Modele göre",
+    columns: { name: "Ad", calls: "Çağrı", failed: "Hatalı", switches: "Yedek", tokens: "Token", cost: "Maliyet", latency: "Medyan / %95" },
+    purposes: {
+      "extract-letter": "Mektup analizi",
+      "translate-analysis": "Çeviri",
+      "explain-letter": "Açıklama",
+      "reply-draft": "Yanıt taslağı",
+      chat: "Sohbet",
+      "embed-query": "Bilgi bankası araması",
+      "embed-knowledge": "Bilgi bankası kurulumu",
+      "eval-extract-letter": "Değerlendirme çalıştırması",
+    },
+    unpriced: "fiyatı bilinmiyor, 0 sayıldı",
+    recentFailures: "Son hatalar",
+    switched: "yedek model yanıtladı",
+    noFailures: "Bu dönemde başarısız çağrı yok.",
+    empty: "Bu dönemde yapay zeka çağrısı yok.",
   },
 
   errors: {

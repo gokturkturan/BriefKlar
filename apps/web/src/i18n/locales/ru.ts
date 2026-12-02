@@ -6,7 +6,7 @@ const dot = (date: string) => (date.endsWith(".") ? date : `${date}.`);
 
 export const ru: Messages = {
   app: {
-    nav: { upload: "Загрузить", documents: "Мои письма", settings: "Настройки", reminders: "Напоминания" },
+    nav: { upload: "Загрузить", documents: "Мои письма", settings: "Настройки", reminders: "Напоминания", usage: "Расходы" },
     language: "Язык",
     dueReminders: (count) => `Напоминания на сегодня: ${count}`,
   },
@@ -318,6 +318,42 @@ export const ru: Messages = {
     languageHint:
       "BriefKlar показывается на этом языке: страницы, анализ ваших писем, объяснения и переводы " +
       "черновиков ответов.",
+  },
+
+  usage: {
+    title: "Использование и расходы",
+    intro: (date) =>
+      `Каждый запрос к ИИ записывается. Расходы оценены по ценам платного тарифа каждой модели (проверено ${date}); ` +
+      "разработка идёт на бесплатном тарифе.",
+    period: (days) => `Последние ${days} дней`,
+    cost: "Примерные расходы",
+    calls: "Запросы к ИИ",
+    failed: (count) => `Неудачных: ${count}`,
+    fallbackSwitches: "Переключения на резервную модель",
+    fallbackHint: "Основная модель выдала ошибку или не ответила вовремя, и ответила меньшая модель.",
+    costPerLetter: "Средняя стоимость одного письма",
+    letters: (count) => `Писем: ${count}`,
+    latency: "Время ответа (медиана / 95%)",
+    tokens: "Токены (вход / выход)",
+    perDay: "Расходы по дням",
+    byPurpose: "По задачам",
+    byModel: "По моделям",
+    columns: { name: "Название", calls: "Запросы", failed: "Ошибки", switches: "Резерв", tokens: "Токены", cost: "Стоимость", latency: "Медиана / 95%" },
+    purposes: {
+      "extract-letter": "Анализ письма",
+      "translate-analysis": "Перевод",
+      "explain-letter": "Объяснение",
+      "reply-draft": "Черновик ответа",
+      chat: "Чат",
+      "embed-query": "Поиск в базе знаний",
+      "embed-knowledge": "Наполнение базы знаний",
+      "eval-extract-letter": "Прогон оценки",
+    },
+    unpriced: "цена неизвестна, учтено как 0",
+    recentFailures: "Последние ошибки",
+    switched: "ответила резервная модель",
+    noFailures: "За этот период неудачных запросов нет.",
+    empty: "За этот период запросов к ИИ не было.",
   },
 
   errors: {

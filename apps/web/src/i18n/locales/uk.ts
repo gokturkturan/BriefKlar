@@ -6,7 +6,7 @@ const dot = (date: string) => (date.endsWith(".") ? date : `${date}.`);
 
 export const uk: Messages = {
   app: {
-    nav: { upload: "Завантажити", documents: "Мої листи", settings: "Налаштування", reminders: "Нагадування" },
+    nav: { upload: "Завантажити", documents: "Мої листи", settings: "Налаштування", reminders: "Нагадування", usage: "Використання" },
     language: "Мова",
     dueReminders: (count) => `Нагадування на сьогодні: ${count}`,
   },
@@ -317,6 +317,42 @@ export const uk: Messages = {
     languageHint:
       "BriefKlar показується цією мовою: сторінки, аналіз ваших листів, пояснення та переклади " +
       "чернеток відповідей.",
+  },
+
+  usage: {
+    title: "Використання та вартість",
+    intro: (date) =>
+      `Кожен запит до ШІ записується. Вартість оцінено за цінами платного тарифу кожної моделі (перевірено ${date}); ` +
+      "розробка працює на безкоштовному тарифі.",
+    period: (days) => `Останні ${days} днів`,
+    cost: "Орієнтовна вартість",
+    calls: "Запити до ШІ",
+    failed: (count) => `Невдалих: ${count}`,
+    fallbackSwitches: "Перемикання на резервну модель",
+    fallbackHint: "Основна модель видала помилку або не відповіла вчасно, і відповіла менша модель.",
+    costPerLetter: "Середня вартість одного листа",
+    letters: (count) => `Листів: ${count}`,
+    latency: "Час відповіді (медіана / 95%)",
+    tokens: "Токени (вхід / вихід)",
+    perDay: "Вартість за день",
+    byPurpose: "За завданням",
+    byModel: "За моделлю",
+    columns: { name: "Назва", calls: "Запити", failed: "Помилки", switches: "Резерв", tokens: "Токени", cost: "Вартість", latency: "Медіана / 95%" },
+    purposes: {
+      "extract-letter": "Аналіз листа",
+      "translate-analysis": "Переклад",
+      "explain-letter": "Пояснення",
+      "reply-draft": "Чернетка відповіді",
+      chat: "Чат",
+      "embed-query": "Пошук у базі знань",
+      "embed-knowledge": "Наповнення бази знань",
+      "eval-extract-letter": "Запуск оцінювання",
+    },
+    unpriced: "ціна невідома, враховано як 0",
+    recentFailures: "Останні помилки",
+    switched: "відповіла резервна модель",
+    noFailures: "За цей період невдалих запитів немає.",
+    empty: "За цей період запитів до ШІ не було.",
   },
 
   errors: {

@@ -7,6 +7,7 @@ import { DocumentsPage } from "./pages/DocumentsPage";
 import { RemindersPage, useDueReminderCount } from "./pages/RemindersPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { UploadPage } from "./pages/UploadPage";
+import { UsagePage } from "./pages/UsagePage";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-md px-3 py-1.5 text-sm font-medium ${
@@ -45,6 +46,9 @@ export function App() {
                   </span>
                 )}
               </NavLink>
+              <NavLink to="/usage" className={navClass}>
+                {t.app.nav.usage}
+              </NavLink>
               <NavLink to="/settings" className={navClass}>
                 {t.app.nav.settings}
               </NavLink>
@@ -70,6 +74,7 @@ export function App() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/documents/:id" element={<DocumentDetailPage />} />
           <Route path="/reminders" element={<RemindersPage />} />
+          <Route path="/usage" element={<UsagePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>

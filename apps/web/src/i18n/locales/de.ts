@@ -4,7 +4,7 @@ import type { Messages } from "./en";
 /** Einfaches Deutsch: kurze Sätze, bekannte Wörter, Sie-Form */
 export const de: Messages = {
   app: {
-    nav: { upload: "Hochladen", documents: "Meine Briefe", settings: "Einstellungen", reminders: "Erinnerungen" },
+    nav: { upload: "Hochladen", documents: "Meine Briefe", settings: "Einstellungen", reminders: "Erinnerungen", usage: "Verbrauch" },
     language: "Sprache",
     dueReminders: (count) => `Fällige Erinnerungen: ${count}`,
   },
@@ -317,6 +317,42 @@ export const de: Messages = {
     languageHint:
       "BriefKlar zeigt alles in dieser Sprache: die Seiten, die Auswertung Ihrer Briefe, die Erklärungen " +
       "und die Übersetzung von Antwort-Entwürfen.",
+  },
+
+  usage: {
+    title: "Verbrauch und Kosten",
+    intro: (date) =>
+      `Jeder KI-Aufruf wird gespeichert. Die Kosten sind geschätzt, mit den Preisen der bezahlten Stufe (Stand: ${date}). ` +
+      "Bei der Entwicklung wird die kostenlose Stufe genutzt.",
+    period: (days) => `Letzte ${days} Tage`,
+    cost: "Geschätzte Kosten",
+    calls: "KI-Aufrufe",
+    failed: (count) => `${count} fehlgeschlagen`,
+    fallbackSwitches: "Wechsel zum Ersatz-Modell",
+    fallbackHint: "Das Haupt-Modell hatte einen Fehler oder war zu langsam. Das kleinere Modell hat geantwortet.",
+    costPerLetter: "Kosten pro Brief (Durchschnitt)",
+    letters: (count) => `Briefe: ${count}`,
+    latency: "Antwortzeit (Median / 95 %)",
+    tokens: "Tokens (Eingabe / Ausgabe)",
+    perDay: "Kosten pro Tag",
+    byPurpose: "Nach Aufgabe",
+    byModel: "Nach Modell",
+    columns: { name: "Name", calls: "Aufrufe", failed: "Fehler", switches: "Ersatz", tokens: "Tokens", cost: "Kosten", latency: "Median / 95 %" },
+    purposes: {
+      "extract-letter": "Brief-Analyse",
+      "translate-analysis": "Übersetzung",
+      "explain-letter": "Erklärung",
+      "reply-draft": "Antwort-Entwurf",
+      chat: "Chat",
+      "embed-query": "Suche im Wissen",
+      "embed-knowledge": "Wissen einrichten",
+      "eval-extract-letter": "Test-Lauf (Evaluation)",
+    },
+    unpriced: "kein Preis bekannt, zählt als 0",
+    recentFailures: "Letzte Fehler",
+    switched: "Ersatz-Modell hat geantwortet",
+    noFailures: "Keine Fehler in diesem Zeitraum.",
+    empty: "Keine KI-Aufrufe in diesem Zeitraum.",
   },
 
   errors: {

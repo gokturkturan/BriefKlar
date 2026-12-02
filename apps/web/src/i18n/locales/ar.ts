@@ -7,7 +7,7 @@ const ltr = (text: string) => `⁦${text}⁩`;
 /** Modern Standard Arabic in simple words. German terms stay in Latin script. */
 export const ar: Messages = {
   app: {
-    nav: { upload: "رفع رسالة", documents: "رسائلي", settings: "الإعدادات", reminders: "التذكيرات" },
+    nav: { upload: "رفع رسالة", documents: "رسائلي", settings: "الإعدادات", reminders: "التذكيرات", usage: "الاستخدام" },
     language: "اللغة",
     dueReminders: (count) => `تذكيرات حان وقتها: ${count}`,
   },
@@ -321,6 +321,42 @@ export const ar: Messages = {
     language: "لغتك",
     languageHint:
       "يظهر BriefKlar بهذه اللغة: الصفحات، وتحليل رسائلك، والشروحات، وترجمات مسودات الردود.",
+  },
+
+  usage: {
+    title: "الاستخدام والتكلفة",
+    intro: (date) =>
+      `يُسجَّل كل طلب إلى الذكاء الاصطناعي. التكاليف تقديرية بأسعار الفئة المدفوعة لكل نموذج (تاريخ التحقق: ${date})؛ ` +
+      "يجري التطوير على الفئة المجانية.",
+    period: (days) => `آخر ${days} يومًا`,
+    cost: "التكلفة التقديرية",
+    calls: "طلبات الذكاء الاصطناعي",
+    failed: (count) => `فشل: ${count}`,
+    fallbackSwitches: "التحويل إلى النموذج الاحتياطي",
+    fallbackHint: "فشل النموذج الرئيسي أو تأخر، فأجاب النموذج الأصغر.",
+    costPerLetter: "متوسط التكلفة لكل رسالة",
+    letters: (count) => `الرسائل: ${count}`,
+    latency: "زمن الاستجابة (الوسيط / 95%)",
+    tokens: "الرموز (إدخال / إخراج)",
+    perDay: "التكلفة اليومية",
+    byPurpose: "حسب المهمة",
+    byModel: "حسب النموذج",
+    columns: { name: "الاسم", calls: "الطلبات", failed: "فاشلة", switches: "احتياطي", tokens: "الرموز", cost: "التكلفة", latency: "الوسيط / 95%" },
+    purposes: {
+      "extract-letter": "تحليل الرسالة",
+      "translate-analysis": "الترجمة",
+      "explain-letter": "الشرح",
+      "reply-draft": "مسودة الرد",
+      chat: "المحادثة",
+      "embed-query": "البحث في قاعدة المعرفة",
+      "embed-knowledge": "إعداد قاعدة المعرفة",
+      "eval-extract-letter": "تشغيل التقييم",
+    },
+    unpriced: "السعر غير معروف، احتُسب 0",
+    recentFailures: "آخر الأخطاء",
+    switched: "أجاب النموذج الاحتياطي",
+    noFailures: "لا توجد طلبات فاشلة في هذه الفترة.",
+    empty: "لا توجد طلبات ذكاء اصطناعي في هذه الفترة.",
   },
 
   errors: {

@@ -15,6 +15,8 @@ import type {
   SettingsDto,
   UpdateDocumentInput,
   UpdateSettingsInput,
+  UsageDto,
+  UsagePeriod,
 } from "@briefklar/shared";
 
 const json = (method: string, body: unknown): RequestInit => ({
@@ -106,6 +108,8 @@ export const api = {
 
   listReminders: () => request<RemindersDto>("/api/reminders"),
 
+  getUsage: (days: UsagePeriod) => request<UsageDto>(`/api/usage?days=${days}`),
+
   createReminder: (input: CreateReminderInput) => request<ReminderDto>("/api/reminders", json("POST", input)),
 
   updateReminder: (id: string, done: boolean) => request<ReminderDto>(`/api/reminders/${id}`, json("PATCH", { done })),
@@ -130,4 +134,5 @@ export const queryKeys = {
   reminders: ["reminders"] as const,
   health: ["health"] as const,
   settings: ["settings"] as const,
+  usage: (days: number) => ["usage", days] as const,
 };
