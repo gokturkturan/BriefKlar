@@ -5,21 +5,25 @@ import {
 } from "../prompts/extractLetter";
 import { generateStructured, type StructuredResult } from "./generateStructured";
 import { llm } from "./index";
+import type { LLMProvider } from "./LLMProvider";
 
 export async function extractLetter(params: {
   file: Buffer;
   mimeType: string;
-  documentId: string;
+  documentId?: string;
+  /** The evaluation runs one model at a time, without the fallback */
+  provider?: LLMProvider;
+  purpose?: string;
 }): Promise<StructuredResult<LetterExtraction>> {
   return generateStructured({
-    provider: llm,
+    provider: params.provider ?? llm,
     schema: LetterExtractionSchema,
     system: EXTRACT_LETTER_SYSTEM_PROMPT,
     input: [
       { type: "file", mimeType: params.mimeType, data: params.file },
       { type: "text", text: "Analyze this letter." },
     ],
-    purpose: "extract-letter",
+    purpose: params.purpose ?? "extract-letter",
     promptVersion: EXTRACT_LETTER_PROMPT_VERSION,
     documentId: params.documentId,
   });

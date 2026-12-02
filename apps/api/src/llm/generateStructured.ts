@@ -46,6 +46,12 @@ export interface StructuredResult<T> {
   data: T;
   /** The model that produced the accepted answer */
   model: string;
+  /** Answers needed: 1 = valid at once, 2 = valid after one repair */
+  attempts: number;
+  /** Summed over all attempts, for evaluations */
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
 }
 
 export async function generateStructured<T>(
@@ -58,6 +64,7 @@ export async function generateStructured<T>(
 
   let input = options.input;
   let lastError = "";
+  const usage = { inputTokens: 0, outputTokens: 0, latencyMs: 0 };
 
   for (let attempt = 0; attempt <= maxRepairAttempts; attempt++) {
     const startedAt = Date.now();
@@ -68,6 +75,10 @@ export async function generateStructured<T>(
       await logFailure(context, err, startedAt);
       throw err; // LLMError: the caller decides whether to retry
     }
+
+    usage.inputTokens += result.inputTokens;
+    usage.outputTokens += result.outputTokens;
+    usage.latencyMs += result.latencyMs;
 
     const json = parseJson(result.text);
     const parsed = schema.safeParse(json);
@@ -85,7 +96,7 @@ export async function generateStructured<T>(
       errorMessage: parsed.success ? undefined : lastError.slice(0, 2000),
     });
 
-    if (parsed.success) return { data: parsed.data, model: result.model };
+    if (parsed.success) return { data: parsed.data, model: result.model, attempts: attempt + 1, ...usage };
 
     // Repair attempt: show the model its own answer and what was wrong with it
     input = [
