@@ -13,6 +13,7 @@ import { remindersRouter } from "./routes/reminders";
 import { replyDraftsRouter } from "./routes/replyDrafts";
 import { settingsRouter } from "./routes/settings";
 import { healthRouter } from "./routes/health";
+import { usageRouter } from "./routes/usage";
 
 export function createApp() {
   const app = express();
@@ -31,6 +32,7 @@ export function createApp() {
   app.use("/api/documents", documentsRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api/reminders", remindersRouter);
+  app.use("/api/usage", usageRouter);
   if (env.NODE_ENV === "development") app.use("/api/debug", debugRouter);
 
   app.use(notFound);

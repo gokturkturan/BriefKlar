@@ -42,6 +42,9 @@ export async function logCall(data: {
   }
 }
 
+/** Marks a failed call after which the fallback model answered (read by the usage dashboard) */
+export const FALLBACK_SWITCH_NOTE = "(switched to the fallback model)";
+
 export type CallContext = Pick<Parameters<typeof logCall>[0], "provider" | "purpose" | "promptVersion" | "documentId">;
 
 /**
@@ -58,7 +61,8 @@ export async function logFailedAttempts(context: CallContext, attempts: FailedAt
       outputTokens: 0,
       latencyMs: attempt.latencyMs,
       success: false,
-      errorMessage: `${attempt.errorMessage} (switched to the fallback model)`.slice(0, 2000),
+      // Cut the error, not the note, so a long error still counts as a switch
+      errorMessage: `${attempt.errorMessage.slice(0, 1900)} ${FALLBACK_SWITCH_NOTE}`,
     });
   }
 }
